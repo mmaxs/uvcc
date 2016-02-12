@@ -1,0 +1,19 @@
+# vim: ft=make
+# generic makefile framework
+# Copyright (c) 2015 Mikhail Usenko <michaelus@tochka.ru>
+
+
+# don't try to rebuild this makefile
+$(lastword $(MAKEFILE_LIST)): ;
+
+
+$(MAKECMDGOALS): private LDOUT = $(call _LIBS,lib%.so,$@)
+$(MAKECMDGOALS): private {ld-out} = $(LDOUT)$(if $(SOFILE_VERSION),.$(SOFILE_VERSION))
+
+
+$(MAKECMDGOALS): private {ld-soname} = -Wl,-soname=$(notdir $(LDOUT)).$(SONAME_VERSION)
+$(MAKECMDGOALS): private LDFLAGS += -shared $(if $(SONAME_VERSION),$({ld-soname}))
+
+
+include $(ROOT)/Makefile.d/link.rules
+

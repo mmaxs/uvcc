@@ -1,0 +1,91 @@
+# vim: ft=make
+# generic makefile framework
+# Copyright (c) 2015 Mikhail Usenko <michaelus@tochka.ru>
+
+
+# don't try to rebuild this makefile
+$(lastword $(MAKEFILE_LIST)): ;
+
+
+# use common definitions
+include $(ROOT)/Makefile.d/common.defs
+
+
+# no default goal
+# (define it with recursively expanded assignment from any empty variable)
+.DEFAULT_GOAL = $@
+
+
+# the object files (adjusted to build paths)
+{OBJECT-FILES} = $(call !!,$(call _OBJS,$(CXX_FILE_SUFFIX),$(wildcard $(SOURCES))))
+
+
+# the build subdirectory being supposed for the main goal
+{BUILD-DIR} = $(call !!,$(CURDIR))
+
+
+# use secondary expansion to make target-specific and automatic variables
+# to be properly expanded in pattern rule prerequisites
+.SECONDEXPANSION:
+
+
+# the rules for linking and producing an executable or a shared library
+$(MAKECMDGOALS): private {ld-out} ?= $(if $(LDOUT),$(LDOUT),$@)
+$(MAKECMDGOALS): private {target-build-dir} = $(call !,$({ld-out}))
+$(MAKECMDGOALS): private {source-file} = $(if $(wildcard $@$(CXX_FILE_SUFFIX)),$@$(CXX_FILE_SUFFIX))
+$(MAKECMDGOALS): private {object-file} = $(call !!,$(call _OBJS,$(CXX_FILE_SUFFIX),$({source-file})))
+$(MAKECMDGOALS): private {link-parts} = $(if $(findstring $({object-file}),$({OBJECT-FILES})),,$({source-file})) $({OBJECT-FILES})
+$(MAKECMDGOALS): $$({source-file}) $$({OBJECT-FILES}) $$(MAKEFILE_LIST) | $$({target-build-dir})
+	$(info $. *** ($@: $^))
+	$(LINK.cc) $(LDSTATIC) $({link-parts}) $(LDLIBS)  -o $(call !!,$({ld-out}))
+
+
+# create the subdirectory that should appears as a prerequisite
+# of the main goal where its rules are supposed output to
+# i.e. {target-build-dir} is supposed to be the same as {BUILD-DIR}
+$({BUILD-DIR})/:
+	mkdir -p $@
+# if it is not the case, {target-build-dir} is supposed to be under {BUILD-DIR}
+$({BUILD-DIR})/%:
+	mkdir -p $@
+
+
+# the summary of the predefined implicit rules
+#
+# LINK.cc = $(CXX) $(CXXFLAGS) $(CPPFLAGS) $(LDFLAGS) $(TARGET_ARCH)
+# COMPILE.cc = $(CXX) $(CXXFLAGS) $(CPPFLAGS) $(TARGET_ARCH) -c
+# %.cc:
+# %: %.cc
+#         $(LINK.cc) $^ $(LOADLIBES) $(LDLIBS) -o $@
+# %.o: %.cc
+#         $(COMPILE.cc) $(OUTPUT_OPTION) $<
+# .cc:
+#         $(LINK.cc) $^ $(LOADLIBES) $(LDLIBS) -o $@
+# .cc.o:
+#         $(COMPILE.cc) $(OUTPUT_OPTION) $<
+#
+# LINK.cpp = $(LINK.cc)
+# COMPILE.cpp = $(COMPILE.cc)
+# %.cpp:
+# %: %.cpp
+#         $(LINK.cpp) $^ $(LOADLIBES) $(LDLIBS) -o $@
+# %.o: %.cpp
+#         $(COMPILE.cpp) $(OUTPUT_OPTION) $<
+# .cpp:
+#         $(LINK.cpp) $^ $(LOADLIBES) $(LDLIBS) -o $@
+# .cpp.o:
+#         $(COMPILE.cpp) $(OUTPUT_OPTION) $<
+#
+# LINK.c = $(CC) $(CFLAGS) $(CPPFLAGS) $(LDFLAGS) $(TARGET_ARCH)
+# COMPILE.c = $(CC) $(CFLAGS) $(CPPFLAGS) $(TARGET_ARCH) -c
+# %.c:
+# %: %.c
+#         $(LINK.c) $^ $(LOADLIBES) $(LDLIBS) -o $@
+# %.o: %.c
+#         $(COMPILE.c) $(OUTPUT_OPTION) $<
+# .c:
+#         $(LINK.c) $^ $(LOADLIBES) $(LDLIBS) -o $@
+# .c.o:
+#         $(COMPILE.c) $(OUTPUT_OPTION) $<
+#
+

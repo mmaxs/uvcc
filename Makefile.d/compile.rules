@@ -1,0 +1,62 @@
+# vim: ft=make
+# generic makefile framework
+# Copyright (c) 2015 Mikhail Usenko <michaelus@tochka.ru>
+
+
+# don't try to rebuild this makefile
+$(lastword $(MAKEFILE_LIST)): ;
+
+
+# use common definitions
+include $(ROOT)/Makefile.d/common.defs
+
+
+# no default goal
+# (define it with recursively expanded assignment from any empty variable)
+.DEFAULT_GOAL = $@
+
+
+# the sources, ...
+{SOURCES} = $(call _SRCS,$(CXX_FILE_SUFFIX),$(wildcard $(SOURCES)))
+
+
+ifneq ($({SOURCES}),)
+
+# ... their corresponding object files (adjusted to build paths), ...
+{OBJECT-FILES} = $(call !!,$(call _OBJS,$(CXX_FILE_SUFFIX),$(wildcard $(SOURCES))))
+
+
+# ... their dependencies (with build subdirectory dependencies), ...
+{OBJECT-DEPENDENCIES} = $(foreach {file},$({SOURCES}),$(call _DEPS,$({file}),$(call !!,$(call _OBJS,$(CXX_FILE_SUFFIX),$({file})))) | $(call !,$({file})))
+
+
+# ... their build subdirectories, ...
+$(sort $(dir $({OBJECT-FILES}))):
+	mkdir -p $@
+
+
+# ... the rules for prerequisites, ...
+$(eval $({OBJECT-DEPENDENCIES}))
+
+
+# ... and the rules for compiling
+$({OBJECT-FILES}): $(MAKEFILE_LIST)
+$({OBJECT-FILES}): private {compile-parts} = $(filter-out %$(CXX_HEADER_SUFFIX) $(MAKEFILE_LIST),$^)
+$({OBJECT-FILES}):
+	$(info $. *** ($@: $^))
+	$(COMPILE.cc) $(CXXSTD) $(IFLAGS) $({compile-parts})  -o $@
+
+
+# do compile the object files
+$(MAKECMDGOALS): $({OBJECT-FILES}) ;
+
+else
+
+# the warning on the fall back to the predefined implicit rules (if target file does not exist yet)
+%: %$(CXX_FILE_SUFFIX) ; $(warning The implicit rule ($@: $^) is discarded.)
+
+# reject all other goals
+%: ; $(warning Avoid the target '$@'.)
+
+endif
+
