@@ -349,12 +349,15 @@ public: /*interface*/
     handle::base< stream::uv_t >::from(_stream.uv_handle)->ref();
     base< uv_t >::from(uv_req)->ref();
     //return ::uv_write(static_cast< uv_t* >(uv_req), _stream, _bufs.data(), _bufs.size(), run_cb);
+    return 0;
   }
   int run(pipe _pipe, stream _send_handle)
   {
+    return 0;
   }
   int try_run(stream _stream, const std::vector< buffer > &_bufs)
   {
+    return 0;
   }
   int run_protected(stream _stream, const std::vector< buffer > &_bufs)
   {
@@ -362,15 +365,19 @@ public: /*interface*/
     base< uv_t >::from(uv_req)->ref();
     base< uv_t >::from(uv_req)->lock();
     //return ::uv_write(static_cast< uv_t* >(uv_req), _stream, _bufs.data(), _bufs.size(), run_protected_cb);
+    return 0;
   }
   int run_protected(pipe _pipe, stream _send_handle)
   {
+    return 0;
   }
   int try_run_protected(stream _stream, const std::vector< buffer > &_bufs)
   {
+    return 0;
   }
   int try_run_protected(pipe _pipe, stream _send_handle)
   {
+    return 0;
   }
 
 public: /*conversion operators*/

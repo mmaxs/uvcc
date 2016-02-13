@@ -13,12 +13,14 @@
 
 namespace uv
 {
-/*! \addtogroup __utility */
+//! \addtogroup __utility
 //! \{
 
 /*! \defgroup __endian Byte order conversion
     \details Templates of cross-platform (*nix/windows) functions for byte order conversion between host and network byte encoding.
-    \sa For fairly complete version for C functions see https://gist.github.com/panzi/6856583 */
+    \sa For fairly complete version of C functions see e.g.: \n
+    https://gist.github.com/panzi/6856583 \n
+    https://github.com/blizzard4591/cmake-portable-endian */
 //! \{
 
 //! \cond
