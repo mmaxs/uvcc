@@ -253,47 +253,61 @@ public: /*constructors*/
   union_storage(union_storage&&) = delete;
   union_storage& operator =(union_storage&&) = delete;
 
-  template< typename _T_ > union_storage(const _T_ &_value)
+  template< typename _T_, typename = std::enable_if_t< is_one_of< _T_, _Ts_... >::value > >
+  union_storage(const _T_ &_value)
   {
-    using value_type = std::enable_if_t< is_one_of< _T_, _Ts_... >::value, typename std::decay< _T_ >::type >;
+    using value_type = typename std::decay< _T_ >::type;
+
     new(static_cast< void* >(&storage)) value_type(_value);
     Destroy = default_destroy< _T_ >::Destroy;
   }
-  template< typename _T_ > union_storage(_T_ &&_value)
+  template< typename _T_, typename = std::enable_if_t< is_one_of< _T_, _Ts_... >::value > >
+  union_storage(_T_ &&_value)
   {
-    using value_type = std::enable_if_t< is_one_of< _T_, _Ts_... >::value, typename std::decay< _T_ >::type >;
+    using value_type = typename std::decay< _T_ >::type;
+
     new(static_cast< void* >(&storage)) value_type(std::move(_value));
     Destroy = default_destroy< _T_ >::Destroy;
   }
 
 public: /*interface*/
-  template< typename _T_ > void reset()
+  template< typename _T_ >
+  typename std::enable_if< is_one_of< _T_, _Ts_... >::value >::type reset()
   {
+    using value_type = typename std::decay< _T_ >::type;
+
     if (Destroy)  { Destroy(&storage); Destroy = nullptr; }
-    using value_type = std::enable_if_t< is_one_of< _T_, _Ts_... >::value, typename std::decay< _T_ >::type >;
     new(static_cast< void* >(&storage)) value_type();
     Destroy = default_destroy< _T_ >::Destroy;
   }
-  template< typename _T_, typename... _Args_ > void reset(_Args_&&... _args)
+  template< typename _T_, typename... _Args_ >
+  typename std::enable_if< is_one_of< _T_, _Ts_... >::value >::type reset(_Args_&&... _args)
   {
+    using value_type = typename std::decay< _T_ >::type;
+
     if (Destroy)  { Destroy(&storage); Destroy = nullptr; }
-    using value_type = std::enable_if_t< is_one_of< _T_, _Ts_... >::value, typename std::decay< _T_ >::type >;
     new(static_cast< void* >(&storage)) value_type(std::forward< _Args_ >(_args)...);
     Destroy = default_destroy< _T_ >::Destroy;
   }
-  template< typename _T_ > void reset(const _T_ &_value)
+  template< typename _T_ >
+  typename std::enable_if< is_one_of< _T_, _Ts_... >::value >::type reset(const _T_ &_value)
   {
+    using value_type = typename std::decay< _T_ >::type;
+
     if (static_cast< void* >(&storage) == static_cast< void* >(&_value))  return;
+
     if (Destroy)  { Destroy(&storage); Destroy = nullptr; }
-    using value_type = std::enable_if_t< is_one_of< _T_, _Ts_... >::value, typename std::decay< _T_ >::type >;
     new(static_cast< void* >(&storage)) value_type(_value);
     Destroy = default_destroy< _T_ >::Destroy;
   }
-  template< typename _T_ > void reset(_T_ &&_value)
+  template< typename _T_ >
+  typename std::enable_if< is_one_of< _T_, _Ts_... >::value >::type reset(_T_ &&_value)
   {
+    using value_type = typename std::decay< _T_ >::type;
+
     if (static_cast< void* >(&storage) == static_cast< void* >(&_value))  return;
+
     if (Destroy)  { Destroy(&storage); Destroy = nullptr; }
-    using value_type = std::enable_if_t< is_one_of< _T_, _Ts_... >::value, typename std::decay< _T_ >::type >;
     new(static_cast< void* >(&storage)) value_type(std::move(_value));
     Destroy = default_destroy< _T_ >::Destroy;
   }
