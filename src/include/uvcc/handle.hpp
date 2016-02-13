@@ -15,12 +15,9 @@
 namespace uv
 {
 /*! \defgroup __handle Handles
-    \brief The classes represnting libuv handles. */
+    \brief The classes representing libuv handles. */
 //! \{
 
-/*! \defgroup __handle_traits uv_handle_traits< typename >
-    \brief Defines the correspondence between libuv handle data types and C++ classes representing them. */
-//! \{
 
 /* libuv handles */
 class async;
@@ -40,8 +37,11 @@ class tty;
 class udp;
 class signal;
 
+
+/*! \defgroup __handle_traits uv_handle_traits< typename >
+    \brief Defines the correspondence between libuv handle data types and C++ classes representing them. */
+//! \{
 //! \cond
-/*! See \ref __handle_traits */
 template< typename _UV_T_ > struct uv_handle_traits  {};
 //! \endcond
 #define XX(_, x) template<> struct uv_handle_traits< uv_##x##_t > { using type = x; };
@@ -339,7 +339,7 @@ public: /*conversion operators*/
 namespace std
 {
 
-/*! \brief \ingroup __handle */
+//! \ingroup __handle
 template<> void swap(uv::handle &_this, uv::handle &_that) noexcept  { _this.swap(_that); }
 
 }

@@ -21,7 +21,7 @@
 namespace uv
 {
 /*! \defgroup __request Requests
-    \brief The classes represnting libuv requests. */
+    \brief The classes representing libuv requests. */
 //! \{
 
 /*! \defgroup __request_traits uv_req_traits< typename >
@@ -57,8 +57,8 @@ class request;
 #define req request  // redefine UV_REQ_TYPE_MAP() entry
 #define ON_REQ_T std::function< void() >  // a dummy declaration for UV_REQ_TYPE_MAP() being able to be used
 
+
 //! \cond
-/*! See \ref __request_traits */
 template< typename _UV_T_ > struct uv_req_traits  {};
 //! \endcond
 #define XX(X, x) template<> struct uv_req_traits< uv_##x##_t >\
@@ -512,7 +512,7 @@ public: /*conversion operators*/
 namespace std
 {
 
-/*! \brief \ingroup __request */
+//! \ingroup __request
 template<> void swap(uv::request &_this, uv::request &_that) noexcept  { _this.swap(_that); }
 
 }

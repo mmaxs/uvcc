@@ -153,7 +153,7 @@ public: /*interface*/
 
 namespace
 {
-/*! \brief The type of `adopt_ref` constant. */
+/*! \brief The type of the `adopt_ref` constant. */
 struct adopt_ref_t  { constexpr adopt_ref_t() = default; };
 }
 /*! \brief The tag to be used to prevent `ref_guard` constructor from increasing reference count of the protected object. */
@@ -222,8 +222,8 @@ public: /*constructors*/
   }
 
 public: /*interface*/
-        value_type& value()       noexcept  { return *reinterpret_cast<       value_type* >(&storage); }
   const value_type& value() const noexcept  { return *reinterpret_cast< const value_type* >(&storage); }
+        value_type& value()       noexcept  { return *reinterpret_cast<       value_type* >(&storage); }
 };
 
 
@@ -299,9 +299,9 @@ public: /*interface*/
   }
 
   template< typename _T_, typename = std::enable_if_t< is_one_of< _T_, _Ts_... >::value > >
-        typename std::decay< _T_ >::type& value()       noexcept  { return *reinterpret_cast<       typename std::decay< _T_ >::type* >(&storage); }
-  template< typename _T_, typename = std::enable_if_t< is_one_of< _T_, _Ts_... >::value > >
   const typename std::decay< _T_ >::type& value() const noexcept  { return *reinterpret_cast< const typename std::decay< _T_ >::type* >(&storage); }
+  template< typename _T_, typename = std::enable_if_t< is_one_of< _T_, _Ts_... >::value > >
+        typename std::decay< _T_ >::type& value()       noexcept  { return *reinterpret_cast<       typename std::decay< _T_ >::type* >(&storage); }
 };
 
 

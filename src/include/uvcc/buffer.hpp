@@ -17,7 +17,7 @@ namespace uv
 //! \{
 
 
-/*! \brief The class encapsulating `uv_buf_t` data type and `uv_buf_t[]` functionality. */
+/*! \brief Encapsulates `uv_buf_t` data type and provides `uv_buf_t[]` functionality. */
 class buffer
 {
 public: /*types*/
@@ -120,7 +120,7 @@ public: /*conversion operators*/
 namespace std
 {
 
-/*! \ingroup __buffer */
+//! \ingroup __buffer
 template<> void swap(uv::buffer &_this, uv::buffer &_that) noexcept  { _this.swap(_that); }
 
 }
