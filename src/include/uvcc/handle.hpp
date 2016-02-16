@@ -67,7 +67,7 @@ protected: /*types*/
   {
   private: /*data*/
     void (*Delete)(void*);  // store a proper delete operator
-    ref_count count;
+    ref_count rc;
     type_storage< on_destroy_t > on_destroy_storage;
     alignas(::uv_any_handle) _UV_T_ uv_handle;
 
@@ -116,8 +116,8 @@ protected: /*types*/
 
     on_destroy_t& on_destroy() noexcept  { return on_destroy_storage.value(); }
 
-    void ref()  { count.inc(); }
-    void unref() noexcept  { if (count.dec() == 0)  destroy(); }
+    void ref()  { rc.inc(); }
+    void unref() noexcept  { if (rc.dec() == 0)  destroy(); }
   };
   //! \endcond
 

@@ -105,7 +105,7 @@ protected: /*types*/
 
   private: /*data*/
     void (*Delete)(void*);  // store a proper delete operator
-    ref_count count;
+    ref_count rc;
     type_storage< on_destroy_t > on_destroy_storage;
     mutex busy;
     on_request_storage_t on_request_storage;
@@ -146,8 +146,8 @@ protected: /*types*/
     on_destroy_t& on_destroy() noexcept  { return on_destroy_storage.value(); }
     on_request_t& on_request() noexcept  { return on_request_storage.template value< on_request_t >(); }
 
-    void ref()  { count.inc(); }
-    void unref()  { if (count.dec() == 0)  destroy(); }
+    void ref()  { rc.inc(); }
+    void unref()  { if (rc.dec() == 0)  destroy(); }
 
     void lock() noexcept  { busy.lock(); }
     bool try_lock() noexcept { return busy.try_lock(); }
