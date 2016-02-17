@@ -13,15 +13,12 @@
 
 namespace uv
 {
-//! \addtogroup __utility
-//! \{
-
-/*! \defgroup __endian Byte order conversion
+/*! \defgroup g__endian Byte order conversion
+    \ingroup g__utility
     \details Templates of cross-platform (*nix/windows) functions for byte order conversion between host and network byte encoding.
     \sa For fairly complete version of C functions see e.g.: \n
     https://gist.github.com/panzi/6856583 \n
     https://github.com/blizzard4591/cmake-portable-endian */
-//! \{
 
 //! \cond
 #ifdef _WIN32
@@ -51,13 +48,16 @@ namespace uv
 #endif
 //! \endcond
 
-template< typename _I_ > inline uint16_t hton16(const _I_ &_i)  { return HOST_to_NET_16(_i); }
-template< typename _I_ > inline uint32_t hton32(const _I_ &_i)  { return HOST_to_NET_32(_i); }
-template< typename _I_ > inline uint64_t hton64(const _I_ &_i)  { return HOST_to_NET_64(_i); }
+//! \ingroup g__endian
+//! \{
+template< typename _I_ > inline uint16_t hton16(const _I_ &_i)  { return HOST_to_NET_16(_i); }  /*!< \brief Cross-platform `htons()` */
+template< typename _I_ > inline uint32_t hton32(const _I_ &_i)  { return HOST_to_NET_32(_i); }  /*!< \brief Cross-platform `htonl()` */
+template< typename _I_ > inline uint64_t hton64(const _I_ &_i)  { return HOST_to_NET_64(_i); }  /*!< \brief Cross-platform `htonll()` */
 
-template< typename _I_ > inline uint16_t ntoh16(const _I_ &_i)  { return NET_to_HOST_16(_i); }
-template< typename _I_ > inline uint32_t ntoh32(const _I_ &_i)  { return NET_to_HOST_32(_i); }
-template< typename _I_ > inline uint64_t ntoh64(const _I_ &_i)  { return NET_to_HOST_64(_i); }
+template< typename _I_ > inline uint16_t ntoh16(const _I_ &_i)  { return NET_to_HOST_16(_i); }  /*!< \brief Cross-platform `ntohs()` */
+template< typename _I_ > inline uint32_t ntoh32(const _I_ &_i)  { return NET_to_HOST_32(_i); }  /*!< \brief Cross-platform `ntohl()` */
+template< typename _I_ > inline uint64_t ntoh64(const _I_ &_i)  { return NET_to_HOST_64(_i); }  /*!< \brief Cross-platform `ntohll()` */
+//! \}
 
 #undef HOST_to_NET_16
 #undef HOST_to_NET_32
@@ -67,8 +67,6 @@ template< typename _I_ > inline uint64_t ntoh64(const _I_ &_i)  { return NET_to_
 #undef NET_to_HOST_64
 
 
-//! \}
-//! \}
 }
 
 #endif

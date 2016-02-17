@@ -13,7 +13,7 @@
 
 namespace uv
 {
-/*! \defgroup __buffer Buffer for I/O operations */
+/*! \defgroup g__buffer Buffer for I/O operations */
 //! \{
 
 
@@ -120,7 +120,7 @@ public: /*conversion operators*/
 namespace std
 {
 
-//! \ingroup __buffer
+//! \ingroup g__buffer
 template<> void swap(uv::buffer &_this, uv::buffer &_that) noexcept  { _this.swap(_that); }
 
 }

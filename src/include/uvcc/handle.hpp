@@ -14,7 +14,7 @@
 
 namespace uv
 {
-/*! \defgroup __handle Handles
+/*! \defgroup g__handle Handles
     \brief The classes representing libuv handles. */
 //! \{
 
@@ -38,7 +38,7 @@ class udp;
 class signal;
 
 
-/*! \defgroup __handle_traits uv_handle_traits< typename >
+/*! \defgroup g__handle_traits uv_handle_traits< typename >
     \brief Defines the correspondence between libuv handle data types and C++ classes representing them. */
 //! \{
 //! \cond
@@ -339,7 +339,7 @@ public: /*conversion operators*/
 namespace std
 {
 
-//! \ingroup __handle
+//! \ingroup g__handle
 template<> void swap(uv::handle &_this, uv::handle &_that) noexcept  { _this.swap(_that); }
 
 }

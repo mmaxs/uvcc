@@ -11,19 +11,25 @@
 
 namespace uv
 {
-/*! \defgroup __utility Utility structures and definitions
+/*! \defgroup g__utility Utility structures and definitions
     \brief The utility definitions being used throughout the library. */
 //! \{
 
 
-/* default_delete */
+/*! \brief The analogue of the `std::default_delete`.
+    \details Being the analogue of the `std::default_delete` it also provides the
+    static member function `void Delete(void*)` holding the proper delete operator
+    for the type `_T_`. The client code then can store a pointer to this function
+    being alike a pointer to the virtual delete operator for implementing the
+    run-time data polymorphism.
+    */
 template< typename _T_ > struct default_delete
 {
   using value_type = typename std::decay< _T_ >::type;
 
   constexpr default_delete() noexcept = default;
 
-  // we can delete an object through the polimorphic pointer to its base class
+  // we can delete an object through the polymorphic pointer to its base class
   template<
       typename _U_,
       typename = std::enable_if_t< std::is_convertible< _U_*, _T_* >::value >
@@ -31,7 +37,7 @@ template< typename _T_ > struct default_delete
 
   void operator ()(value_type *_) const   { Delete(_); }
 
-  // not for use for polimorphic deleting without the operator () above
+  // not for use for polymorphic deleting without the operator () above
   static void Delete(void *_)
   {
     static_assert(!std::is_void< value_type >::value, "void type");
@@ -42,14 +48,19 @@ template< typename _T_ > struct default_delete
 };
 
 
-/* default_destroy */
+/*! \brief The analogue of the `uv::default_delete` but for the type destructor only.
+    \details Provides the static member function `void Destroy(void*)` holding
+    the proper destructor call for the type `_T_`. The client code then can store
+    a pointer to this function  being alike a pointer to the virtual destructor
+    for implementing the run-time data polymorphism.
+    */
 template< typename _T_ > struct default_destroy
 {
   using value_type = typename std::decay< _T_ >::type;
 
   constexpr default_destroy() noexcept = default;
 
-  // we can destroy an object through the polimorphic pointer to its base class
+  // we can destroy an object through the polymorphic pointer to its base class
   template<
       typename _U_,
       typename = std::enable_if_t< std::is_convertible< _U_*, _T_* >::value >
@@ -57,7 +68,7 @@ template< typename _T_ > struct default_destroy
 
   void operator ()(value_type *_) const   { Destroy(_); }
 
-  // not for use for polimorphic destroying without the operator () above
+  // not for use for polymorphic destroying without the operator () above
   static void Destroy(void *_)
   {
     static_assert(!std::is_void< value_type >::value, "void type");
@@ -94,16 +105,18 @@ public:
 //! \cond
 template< typename _T_ > constexpr const _T_& greatest(const _T_& _v)   { return _v; }
 //! \endcond
-/*! \brief Similar to `std::max()` but it does not require the arguments being of the same type
-    and using the `std::initializer_list` braces when there are more than two arguments. */
+/*! \brief Similar to `constexpr T max(std::initializer_list<T> ilist)` but it does not
+    require the arguments being of the same type and using the `std::initializer_list`
+    braces when there are more than two arguments. */
 template< typename _T_, typename... _Ts_ > constexpr const _T_& greatest(const _T_& _v, const _Ts_&... _vs)
 { return _v < greatest(_vs...) ? greatest(_vs...) : _v; }
 
 //! \cond
 template< typename _T_ > constexpr const _T_& lowest(const _T_& _v)   { return _v; }
 //! \endcond
-/*! \brief Similar to `std::min()` but it does not require the arguments being of the same type
-    and using the `std::initializer_list` braces when there are more than two arguments. */
+/*! \brief Similar to `constexpr T min(std::initializer_list<T> ilist)` but it does not
+    require the arguments being of the same type and using the `std::initializer_list`
+    braces when there are more than two arguments. */
 template< typename _T_, typename... _Ts_ > constexpr const _T_& lowest(const _T_& _v, const _Ts_&... _vs)
 { return lowest(_vs...) < _v ? lowest(_vs...) : _v; }
 

@@ -1,18 +1,18 @@
 This is introduction
-* \\subpage __uvcc
-* \\subpage __ref_counting
-* \\subpage __destroy
+* \\subpage p__uvcc
+* \\subpage p__ref_counting
+* \\subpage p__destroy
 
-\page __uvcc Libuv and uvcc
+\page p__uvcc Libuv and uvcc
 Uvcc is a C++ bindings for libuv.
 
-\page __ref_counting Objects with reference counting semantics
+\page p__ref_counting Objects with reference counting semantics
 buffer, handle, request
 
 [libcxx]: http://www.libcxx.org "libcxx" 
 
 
-\page __destroy Destroy callbacks
+\page p__destroy Destroy callbacks
 
 ```
 void (*uv_close_cb)(uv_handle_t* handle)
@@ -31,7 +31,7 @@ Uvcc's handle destroy callback differs from libuv's handle close callback in the
    as part of the variable's destructor.
 
 
-\addtogroup __buffer
+\addtogroup g__buffer
 \details
 
 [nix]: http://man7.org/linux/man-pages/man2/readv.2.html "readv(2)"

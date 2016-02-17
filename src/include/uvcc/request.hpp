@@ -20,11 +20,11 @@
 
 namespace uv
 {
-/*! \defgroup __request Requests
+/*! \defgroup g__request Requests
     \brief The classes representing libuv requests. */
 //! \{
 
-/*! \defgroup __request_traits uv_req_traits< typename >
+/*! \defgroup g__request_traits uv_req_traits< typename >
     \brief Defines the correspondence between libuv request data types and C++ classes representing them. */
 //! \{
 
@@ -519,7 +519,7 @@ public: /*conversion operators*/
 namespace std
 {
 
-//! \ingroup __request
+//! \ingroup g__request
 template<> void swap(uv::request &_this, uv::request &_that) noexcept  { _this.swap(_that); }
 
 }
