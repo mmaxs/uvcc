@@ -3,7 +3,7 @@
 #define UVCC_UTILITY__HPP
 
 #include <cstring>      // memcpy()
-#include <type_traits>  // is_void is_convertible enable_if_t decay aligned_storage
+#include <type_traits>  // is_void is_convertible enable_if_t decay common_type aligned_storage
 #include <atomic>       // atomic memory_order_*
 #include <utility>      // forward() move()
 #include <stdexcept>    // runtime_error
@@ -103,7 +103,7 @@ public:
 
 
 //! \cond
-template< typename _T_ > constexpr const _T_& greatest(const _T_& _v)   { return _v; }
+template< typename _T_ > constexpr const _T_& greatest(const _T_& _v)  { return _v; }
 //! \endcond
 /*! \brief Similar to `constexpr T max(std::initializer_list<T> ilist)` but it does not
     require the arguments being of the same type and using the `std::initializer_list`
@@ -112,13 +112,21 @@ template< typename _T_, typename... _Ts_ > constexpr const _T_& greatest(const _
 { return _v < greatest(_vs...) ? greatest(_vs...) : _v; }
 
 //! \cond
-template< typename _T_ > constexpr const _T_& lowest(const _T_& _v)   { return _v; }
+template< typename _T_ > constexpr const _T_& lowest(const _T_& _v)  { return _v; }
 //! \endcond
 /*! \brief Similar to `constexpr T min(std::initializer_list<T> ilist)` but it does not
     require the arguments being of the same type and using the `std::initializer_list`
     braces when there are more than two arguments. */
 template< typename _T_, typename... _Ts_ > constexpr const _T_& lowest(const _T_& _v, const _Ts_&... _vs)
 { return lowest(_vs...) < _v ? lowest(_vs...) : _v; }
+
+
+//! \cond
+template< typename _T_ > constexpr auto sum(const _T_& _v) -> typename std::decay< _T_ >::type  { return _v; }
+//! \endcond
+/*! \brief Primarily intended for summation of values from parameter packs when fold expressions are not supported. */
+template< typename _T_, typename... _Ts_ > constexpr auto sum(const _T_& _v, const _Ts_&... _vs) -> typename std::common_type< _T_, _Ts_... >::type
+{ return _v + sum(_vs...); }
 
 
 
