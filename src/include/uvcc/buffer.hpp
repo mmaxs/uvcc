@@ -29,17 +29,17 @@ private: /*types*/
   {
   private: /*data*/
     ref_count rc;
-    long buf_count;
+    std::size_t buf_count;
     uv_t uv_buf;
 
   private: /*new/delete*/
     static void* operator new(std::size_t _size, const std::initializer_list< std::size_t > &_len_values)
     {
-      auto buf_ecount = _len_values.size();
-      if (buf_ecount > 0)  --buf_ecount;  // extra count
-      std::size_t buf_tlen = 0;
-      for (auto len : _len_values)  buf_tlen += len;  // total length
-      return ::operator new(_size + buf_ecount*sizeof(uv_t) + buf_tlen);
+      auto extra_buf_count = _len_values.size();
+      if (extra_buf_count > 0)  --extra_buf_count;
+      std::size_t total_buf_len = 0;
+      for (auto len : _len_values)  total_buf_len += len;
+      return ::operator new(_size + extra_buf_count*sizeof(uv_t) + total_buf_len);  // + ALIGNMENT PADDING!
     }
     static void operator delete(void *_ptr, const std::initializer_list< std::size_t >&)  { ::operator delete(_ptr); }
     static void operator delete(void *_ptr)  { ::operator delete(_ptr); }
@@ -56,10 +56,18 @@ private: /*types*/
       else
       {
         uv_t *buf = &uv_buf;
-        for (auto len : _len_values)  (buf++)->len = len;
-        uv_buf.base = reinterpret_cast< char* >(buf);
-        buf = &uv_buf;
-        for (decltype(buf_count) i = 1; i < buf_count; ++i)  buf[i].base = &buf[i-1].base[buf[i-1].len];
+        std::size_t total_buf_len = 0;
+        for (auto len : _len_values)  total_buf_len += ((buf++)->len = len);
+        if (total_buf_len == 0)
+        {
+          for (decltype(buf_count) i = 0; i < buf_count; ++i)  { buf[i].base = nullptr; buf[i].len = 0; }
+        }
+        else
+        {
+          uv_buf.base = reinterpret_cast< char* >(buf);  // + ALIGNMENT PADDING!
+          buf = &uv_buf;
+          for (decltype(buf_count) i = 1; i < buf_count; ++i)  buf[i].base = &buf[i-1].base[buf[i-1].len];
+        }
       }
     }
 
@@ -78,7 +86,6 @@ private: /*types*/
   public: /*interface*/
     static uv_t* create(const std::initializer_list< std::size_t > &_len_values)  { return std::addressof((new(_len_values) instance(_len_values))->uv_buf); }
     static uv_t* create()  { return create({}); }
-    static uv_t* create(std::size_t _len)  { return create({_len}); }
 
     constexpr static instance* from(uv_t *_uv_buf) noexcept
     {
@@ -98,8 +105,31 @@ private: /*data*/
 public: /*constructors*/
   ~buffer()  { if (uv_buf)  instance::from(uv_buf)->unref(); }
 
+  /*! \brief Create a single `uv_buf_t` null-initialized buffer structure.
+      \details Create a single `uv_buf_t` null-initialized buffer structure, that is:
+      ```
+      char* uv_buf_t.base = nullptr;
+      size_t uv_buf_t.len = 0;
+      ``` */
   buffer() : uv_buf(instance::create())  {}
-  explicit buffer(std::size_t _len) : uv_buf(instance::create(_len))  {}
+
+  /*! \brief Create an array of `uv_buf_t` effectively initialized buffer structures.
+      \details Create an array of `uv_buf_t` buffer structures. Each structure in the array
+      is effectively initialized with an allocated memory chunk of the specified length.
+      The number of structures in array is equal to the number of elements in the initializer list.
+      The value of the `.len` field and the length of the each allocated chunk pointed by the `.base`
+      field is equal to the corresponding value from the initializer list.
+
+      All chunks are located seamlessly one after the next within a single continuous memory block.
+      Therefore the `.base` field of the next buffer just points to the byte following the end
+      of the previous buffer and the `.base` field of the first buffer in the array points to the
+      whole memory area of the total length of all buffers.
+
+      If some of the initializing values are zeros, the `.base` field of the such a buffer is not a `nullptr`.
+      Instead it keeps pointing inside the continuous memory block and is considered as a zero-length chunk.
+
+      All of the initializing values being zeros results in creating an array of null-initialized
+      `uv_buf_t` buffer structures. */
   explicit buffer(const std::initializer_list< std::size_t > &_len_values) : uv_buf(instance::create(_len_values))  {}
 
   buffer(const buffer &_b)
@@ -135,16 +165,17 @@ public: /*constructors*/
 public: /*interface*/
   void swap(buffer &_b) noexcept  { std::swap(uv_buf, _b.uv_buf); }
 
-  auto count()  { return instance::from(uv_buf)->bcount(); }
+  std::size_t count() const noexcept  { return instance::from(uv_buf)->bcount(); }  /*!< \brief The number of the `uv_buf_t` structures in the array. */
 
-  char* base(const long _i = 0) const noexcept  { return uv_buf[_i].base; }
-  std::size_t len(const long _i = 0) const noexcept  { return uv_buf[_i].len; }
+  uv_t operator [](const std::size_t _i) const noexcept  { return uv_buf[_i]; }  /*!< \brief Access to the `_i`-th `uv_buf_t` buffer structure in the array. */
+  char* base(const std::size_t _i = 0) const noexcept  { return uv_buf[_i].base; }  /*!< \brief The `.base` field of the `_i`-th buffer structure. */
+  std::size_t len(const std::size_t _i = 0) const noexcept  { return uv_buf[_i].len; }  /*!< \brief The `.len` field of the `_i`-th buffer structure. */
 
 public: /*conversion operators*/
   operator const uv_t*() const noexcept  { return uv_buf; }
   operator       uv_t*()       noexcept  { return uv_buf; }
 
-  explicit operator bool() const noexcept  { return base(); }
+  explicit operator bool() const noexcept  { return base(); }  /*!< \brief Equivalent to `( base() != nullptr )`. */
 };
 
 
