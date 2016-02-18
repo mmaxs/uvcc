@@ -91,19 +91,49 @@ template< typename _T_, typename... _Ts_ > struct is_one_of;
 //! \cond
 template< typename _T_ > struct is_one_of< _T_ >
 {
-  constexpr static const long value = 0;
+  constexpr static const std::size_t value = 0;
 };
 template< typename _T_, typename... _Ts_ > struct is_one_of< _T_, _T_, _Ts_... >
 {
-  constexpr static const long value = 1;
+  constexpr static const std::size_t value = 1;
 };
 template< typename _T_, typename _U_, typename... _Ts_ > struct is_one_of< _T_, _U_, _Ts_... >
 {
 private:
-  constexpr static const long value_ =  is_one_of< _T_, _Ts_... >::value;
+  constexpr static const std::size_t value_ = is_one_of< _T_, _Ts_... >::value;
 public:
-  constexpr static const long value = value_ ? value_+1 : 0;
+  constexpr static const std::size_t value = value_ ? value_+1 : 0;
 };
+//! \endcond
+
+/*! \brief Checks if a type `_T_` is convertible to one of the types from the type list `_Ts_`.
+    \details Provides the constexpr `value` that is equal to the index of the type from the type
+    list `_Ts_` which the given type `_T_` can be converted to by using implicit conversion.
+    The index starts from **1** up to `sizeof...(_Ts_)` or is **0** otherwise. */
+template< typename _T_, typename... _Ts_ > struct is_convertible_to_one_of;
+//! \cond
+template< typename _T_ > struct is_convertible_to_one_of< _T_ >
+{
+  constexpr static const std::size_t value = 0;
+};
+template< typename _T_, typename _U_, typename... _Ts_ > struct is_convertible_to_one_of< _T_, _U_, _Ts_... >
+{
+private:
+  constexpr static const std::size_t value_ = is_convertible_to_one_of< _T_, _Ts_... >::value;
+public:
+  constexpr static const std::size_t value = std::is_convertible< _T_, _U_ >::value ? 1 : (value_ ? value_+1 : 0);
+};
+//! \endcond
+
+/*! \brief Provides a typedef member `type` equal to the type from the type list `_Ts_` at index `_index_`.
+    The index should start from **1** up to `sizeof...(_Ts_)`. */
+template< std::size_t _index_, typename... _Ts_ > struct type_at;
+//! \cond
+template< typename... _Ts_ > struct type_at< 0, _Ts_... >  {};  // index in type lists starts from 1 rather than from 0
+template< std::size_t _index_ > struct type_at< _index_ >  {};  // index is behind the length of the type list
+template< typename _T_, typename... _Ts_ > struct type_at< 1, _T_, _Ts_...>  { using type = _T_; };
+template< std::size_t _index_, typename _T_, typename... _Ts_ > struct type_at< _index_, _T_, _Ts_...>
+{ using type = typename type_at< _index_-1, _Ts_... >::type; };
 //! \endcond
 
 
@@ -267,6 +297,7 @@ public: /*types*/
   using storage_type = typename aligned_union< _Ts_... >::type;
 
 private: /*data*/
+  std::size_t t = 0;
   void (*Destroy)(void*) = nullptr;
   storage_type storage;
 
@@ -280,18 +311,22 @@ public: /*constructors*/
   union_storage(union_storage&&) = delete;
   union_storage& operator =(union_storage&&) = delete;
 
-  template< typename _T_, typename = std::enable_if_t< is_one_of< _T_, _Ts_... >::value > >
+  template< typename _T_, typename = std::enable_if_t< is_convertible_to_one_of< _T_, _Ts_... >::value > >
   union_storage(const _T_ &_value)
   {
-    using value_type = typename std::decay< _T_ >::type;
+    constexpr const std::size_t tt = is_convertible_to_one_of< _T_, _Ts_... >::value;
+    t = tt;
+    using value_type = typename std::decay< typename type_at< tt, _Ts_... >::type >::type;
 
     new(static_cast< void* >(&storage)) value_type(_value);
     Destroy = default_destroy< _T_ >::Destroy;
   }
-  template< typename _T_, typename = std::enable_if_t< is_one_of< _T_, _Ts_... >::value > >
+  template< typename _T_, typename = std::enable_if_t< is_convertible_to_one_of< _T_, _Ts_... >::value > >
   union_storage(_T_ &&_value)
   {
-    using value_type = typename std::decay< _T_ >::type;
+    constexpr const std::size_t tt = is_convertible_to_one_of< _T_, _Ts_... >::value;
+    t = tt;
+    using value_type = typename std::decay< typename type_at< tt, _Ts_... >::type >::type;
 
     new(static_cast< void* >(&storage)) value_type(std::move(_value));
     Destroy = default_destroy< _T_ >::Destroy;
@@ -299,45 +334,59 @@ public: /*constructors*/
 
 public: /*interface*/
   template< typename _T_ >
-  typename std::enable_if< is_one_of< _T_, _Ts_... >::value >::type reset()
+  typename std::enable_if< is_convertible_to_one_of< _T_, _Ts_... >::value >::type reset()
   {
-    using value_type = typename std::decay< _T_ >::type;
+    if (Destroy)  { Destroy(&storage); Destroy = nullptr; t = 0; }
 
-    if (Destroy)  { Destroy(&storage); Destroy = nullptr; }
+    constexpr const std::size_t tt = is_convertible_to_one_of< _T_, _Ts_... >::value;
+    t = tt;
+    using value_type = typename std::decay< typename type_at< tt, _Ts_... >::type >::type;
+
     new(static_cast< void* >(&storage)) value_type();
     Destroy = default_destroy< _T_ >::Destroy;
   }
   template< typename _T_, typename... _Args_ >
-  typename std::enable_if< is_one_of< _T_, _Ts_... >::value >::type reset(_Args_&&... _args)
+  typename std::enable_if< is_convertible_to_one_of< _T_, _Ts_... >::value >::type reset(_Args_&&... _args)
   {
-    using value_type = typename std::decay< _T_ >::type;
+    if (Destroy)  { Destroy(&storage); Destroy = nullptr; t = 0; }
 
-    if (Destroy)  { Destroy(&storage); Destroy = nullptr; }
+    constexpr const std::size_t tt = is_convertible_to_one_of< _T_, _Ts_... >::value;
+    t = tt;
+    using value_type = typename std::decay< typename type_at< tt, _Ts_... >::type >::type;
+
     new(static_cast< void* >(&storage)) value_type(std::forward< _Args_ >(_args)...);
     Destroy = default_destroy< _T_ >::Destroy;
   }
   template< typename _T_ >
-  typename std::enable_if< is_one_of< _T_, _Ts_... >::value >::type reset(const _T_ &_value)
+  typename std::enable_if< is_convertible_to_one_of< _T_, _Ts_... >::value >::type reset(const _T_ &_value)
   {
-    using value_type = typename std::decay< _T_ >::type;
+    if (static_cast< void* >(&storage) == reinterpret_cast< void* >(&_value))  return;
 
-    if (static_cast< void* >(&storage) == static_cast< void* >(&_value))  return;
+    if (Destroy)  { Destroy(&storage); Destroy = nullptr; t = 0; }
 
-    if (Destroy)  { Destroy(&storage); Destroy = nullptr; }
+    constexpr const std::size_t tt = is_convertible_to_one_of< _T_, _Ts_... >::value;
+    t = tt;
+    using value_type = typename std::decay< typename type_at< tt, _Ts_... >::type >::type;
+
     new(static_cast< void* >(&storage)) value_type(_value);
     Destroy = default_destroy< _T_ >::Destroy;
   }
   template< typename _T_ >
-  typename std::enable_if< is_one_of< _T_, _Ts_... >::value >::type reset(_T_ &&_value)
+  typename std::enable_if< is_convertible_to_one_of< _T_, _Ts_... >::value >::type reset(_T_ &&_value)
   {
-    using value_type = typename std::decay< _T_ >::type;
+    if (static_cast< void* >(&storage) == reinterpret_cast< void* >(&_value))  return;
 
-    if (static_cast< void* >(&storage) == static_cast< void* >(&_value))  return;
+    if (Destroy)  { Destroy(&storage); Destroy = nullptr; t = 0; }
 
-    if (Destroy)  { Destroy(&storage); Destroy = nullptr; }
+    constexpr const std::size_t tt = is_convertible_to_one_of< _T_, _Ts_... >::value;
+    t = tt;
+    using value_type = typename std::decay< typename type_at< tt, _Ts_... >::type >::type;
+
     new(static_cast< void* >(&storage)) value_type(std::move(_value));
     Destroy = default_destroy< _T_ >::Destroy;
   }
+
+  std::size_t tag()  { return t; }
 
   template< typename _T_, typename = std::enable_if_t< is_one_of< _T_, _Ts_... >::value > >
   const typename std::decay< _T_ >::type& value() const noexcept  { return *reinterpret_cast< const typename std::decay< _T_ >::type* >(&storage); }
