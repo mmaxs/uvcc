@@ -55,6 +55,8 @@ int main(int _argc, char *_argv[])
 */
 
   {
+    buffer b{1, 2};
+
   tcp c(::uv_default_loop());
   c.on_destroy() = destroy_cb1;
   handle &h1 = c;

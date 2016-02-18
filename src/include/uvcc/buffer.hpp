@@ -5,10 +5,11 @@
 #include "uvcc/utility.hpp"
 
 #include <uv.h>
-#include <cstddef>      // size_t offsetof
-#include <type_traits>  // is_standard_layout
-#include <utility>      // swap()
-#include <memory>       // addressof()
+#include <cstddef>           // size_t offsetof
+#include <type_traits>       // is_standard_layout
+#include <utility>           // swap()
+#include <memory>            // addressof()
+#include <initializer_list>  //
 
 
 namespace uv
@@ -29,42 +30,41 @@ private: /*types*/
   private: /*data*/
     ref_count rc;
     long buf_count;
-    uv_t *uv_bufs;
+    uv_t uv_buf;
+
+  private: /*new/delete*/
+    static void* operator new(std::size_t _size, const std::initializer_list< std::size_t > &_len_values)
+    {
+      auto buf_ecount = _len_values.size();
+      if (buf_ecount > 0)  --buf_ecount;  // extra count
+      std::size_t buf_tlen = 0;
+      for (auto len : _len_values)  buf_tlen += len;  // total length
+      return ::operator new(_size + buf_ecount*sizeof(uv_t) + buf_tlen);
+    }
+    static void operator delete(void *_ptr, const std::initializer_list< std::size_t >&)  { ::operator delete(_ptr); }
+    static void operator delete(void *_ptr)  { ::operator delete(_ptr); }
 
   private: /*constructors*/
-    instance()
+    instance(const std::initializer_list< std::size_t > &_len_values) : buf_count(_len_values.size())
     {
-      buf_count = 1;
-      uv_bufs = new uv_t[buf_count];
-      uv_bufs[0].base = nullptr;
-      uv_bufs[0].len = 0;
-    }
-    /* for gcc 6
-    template< typename... _Args_ > instance(const _Args_ _args)
-    {
-      buf_count = sizeof...(_Args_);
-      uv_bufs = new uv_t[buf_count];
-      uv_bufs[0].base = new char[(... + _args)];
-
-      auto buf = bufs;
-      (..., ((buf++)->len = _args));
-      buf = bufs;
-      (..., ((++buf)->base = &buf[-1].base[buf[-1].len], (void)_args));
-    }
-    */
-    template< typename... _Args_ > instance(const _Args_... _args)
-    {
-      buf_count = sizeof...(_Args_);
-      uv_bufs = new uv_t[buf_count];
-      init(uv_bufs, _args...);
+      if (buf_count == 0)
+      {
+        buf_count = 1;
+        uv_buf.base = nullptr;
+        uv_buf.len = 0;
+      }
+      else
+      {
+        uv_t *buf = &uv_buf;
+        for (auto len : _len_values)  (buf++)->len = len;
+        uv_buf.base = reinterpret_cast< char* >(buf);
+        buf = &uv_buf;
+        for (decltype(buf_count) i = 1; i < buf_count; ++i)  buf[i].base = &buf[i-1].base[buf[i-1].len];
+      }
     }
 
   public: /*constructors*/
-    ~instance()
-    {
-      delete[] uv_bufs[0].base;
-      delete[] uv_bufs;
-    }
+    ~instance() = default;
 
     instance(const instance&) = delete;
     instance& operator =(const instance&) = delete;
@@ -73,45 +73,34 @@ private: /*types*/
     instance& operator =(instance&&) = delete;
 
   private: /*functions*/
-    void init(uv_t*)
-    {
-      std::size_t len = 0;
-      for (auto i = buf_count; i--;)  len += uv_bufs[i].len;
-      uv_bufs[0].base = new char[len];
-
-      uv_t *buf = uv_bufs;
-      for (decltype(buf_count) i = 1; i < buf_count; ++i)  buf[i].base = &buf[i-1].base[buf[i-1].len];
-    }
-    template< typename... _Args_ > void init(uv_t *_buf, const std::size_t _len, const _Args_... _args)
-    {
-      _buf->len = _len;
-      init(++_buf, _args...);
-    }
-
     void destroy()  { delete this; }
 
   public: /*interface*/
-    static uv_t** create()  { return std::addressof((new instance)->uv_bufs); }
-    static uv_t** create(std::size_t _len)  { return std::addressof((new instance(_len))->uv_bufs); }
+    static uv_t* create(const std::initializer_list< std::size_t > &_len_values)  { return std::addressof((new(_len_values) instance(_len_values))->uv_buf); }
+    static uv_t* create()  { return create({}); }
+    static uv_t* create(std::size_t _len)  { return create({_len}); }
 
-    constexpr static instance* from(uv_t **_uv_bufs) noexcept
+    constexpr static instance* from(uv_t *_uv_buf) noexcept
     {
       static_assert(std::is_standard_layout< instance >::value, "not a standard layout type");
-      return reinterpret_cast< instance* >(reinterpret_cast< char* >(_uv_bufs) - offsetof(instance, uv_bufs));
+      return reinterpret_cast< instance* >(reinterpret_cast< char* >(_uv_buf) - offsetof(instance, uv_buf));
     }
+
+    auto bcount()  { return buf_count; }
 
     void ref()  { rc.inc(); }
     void unref() noexcept  { if (rc.dec() == 0)  destroy(); }
   };
 
 private: /*data*/
-  uv_t **uv_buf;
+  uv_t *uv_buf;
 
 public: /*constructors*/
   ~buffer()  { if (uv_buf)  instance::from(uv_buf)->unref(); }
 
   buffer() : uv_buf(instance::create())  {}
-  buffer(std::size_t _len) : uv_buf(instance::create(_len))  {}
+  explicit buffer(std::size_t _len) : uv_buf(instance::create(_len))  {}
+  explicit buffer(const std::initializer_list< std::size_t > &_len_values) : uv_buf(instance::create(_len_values))  {}
 
   buffer(const buffer &_b)
   {
@@ -123,7 +112,7 @@ public: /*constructors*/
     if (this != &_b)
     {
       instance::from(_b.uv_buf)->ref();
-      uv_t **uv_b = uv_buf;
+      uv_t *uv_b = uv_buf;
       uv_buf = _b.uv_buf; 
       instance::from(uv_b)->unref();
     };
@@ -135,7 +124,7 @@ public: /*constructors*/
   {
     if (this != &_b)
     {
-      uv_t **uv_b = uv_buf;
+      uv_t *uv_b = uv_buf;
       uv_buf = _b.uv_buf;
       _b.uv_buf = nullptr;
       instance::from(uv_b)->unref();
@@ -146,12 +135,14 @@ public: /*constructors*/
 public: /*interface*/
   void swap(buffer &_b) noexcept  { std::swap(uv_buf, _b.uv_buf); }
 
-  char* base(const long _i = 0) const noexcept  { return (*uv_buf)[_i].base; }
-  std::size_t len(const long _i = 0) const noexcept  { return (*uv_buf)[_i].len; }
+  auto count()  { return instance::from(uv_buf)->bcount(); }
+
+  char* base(const long _i = 0) const noexcept  { return uv_buf[_i].base; }
+  std::size_t len(const long _i = 0) const noexcept  { return uv_buf[_i].len; }
 
 public: /*conversion operators*/
-  operator const uv_t*() const noexcept  { return *uv_buf; }
-  operator       uv_t*()       noexcept  { return *uv_buf; }
+  operator const uv_t*() const noexcept  { return uv_buf; }
+  operator       uv_t*()       noexcept  { return uv_buf; }
 
   explicit operator bool() const noexcept  { return base(); }
 };
