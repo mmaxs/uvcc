@@ -43,7 +43,8 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 h1.glow, h2.glow, h3.glow, h4.glow, h5.glow, h6.glow {
-	text-shadow: 0 0 15px cyan;
+///	text-shadow: 0 0 15px cyan;
+	text-shadow: 0 0 15px RoyalBlue;  ///
 }
 
 dt {
@@ -213,8 +214,10 @@ div.line:after {
 }
 
 div.line.glow {
-	background-color: cyan;
-	box-shadow: 0 0 10px cyan;
+///	background-color: cyan;
+///	box-shadow: 0 0 10px cyan;
+	background-color: CornflowerBlue;  ///
+	box-shadow: 0 0 10px CornflowerBlue;  ///
 }
 
 
@@ -457,8 +460,10 @@ table.memberdecls {
 }
 
 .memberdecls td.glow, .fieldtable tr.glow {
-	background-color: cyan;
-	box-shadow: 0 0 15px cyan;
+///	background-color: cyan;
+///	box-shadow: 0 0 15px cyan;
+	background-color: CornflowerBlue;  ///
+	box-shadow: 0 0 15px CornflowerBlue;  ///
 }
 
 .mdescLeft, .mdescRight,
@@ -536,7 +541,8 @@ table.memberdecls {
 }
 
 .memitem.glow {
-         box-shadow: 0 0 15px cyan;
+///         box-shadow: 0 0 15px cyan;
+         box-shadow: 0 0 15px RoyalBlue;  ///
 }
 
 .memname {
