@@ -41,6 +41,8 @@ class signal;
 /*! \defgroup g__handle_traits uv_handle_traits< typename >
     \brief Defines the correspondence between libuv handle data types and C++ classes representing them. */
 //! \{
+#define BUGGY_DOXYGEN
+#undef BUGGY_DOXYGEN
 //! \cond
 template< typename _UV_T_ > struct uv_handle_traits  {};
 //! \endcond

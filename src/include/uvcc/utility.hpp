@@ -79,6 +79,11 @@ template< typename _T_ > struct default_destroy
 };
 
 
+/*! \defgroup g__variadic Dealing with type lists and parameter packs */
+//! \{
+#define BUGGY_DOXYGEN
+#undef BUGGY_DOXYGEN
+
 /*! \brief Checks if a type `_T_` belongs to a type list `_Ts_`.
     \details Provides the constexpr `value` that is equal to the index of the given type `_T_`
     in the type list `_Ts_` starting from **1** up to `sizeof...(_Ts_)` or **0** otherwise. */
@@ -105,18 +110,18 @@ public:
 //! \cond
 template< typename _T_ > constexpr const _T_& greatest(const _T_& _v)  { return _v; }
 //! \endcond
-/*! \brief Similar to `constexpr T max(std::initializer_list<T> ilist)` but it does not
-    require the arguments being of the same type and using the `std::initializer_list`
-    braces when there are more than two arguments. */
+/*! \brief Intended to be used instead of `constexpr T max(std::initializer_list<T>)`.
+    \details Intended to be used instead of `constexpr T max(std::initializer_list<T>)` if the latter is
+    not defined being `constexpr` in the current STL version and therefore cannot be employed at compile-time.
+    Does not require the arguments being of the same type and using the `std::initializer_list`
+    curly braces when there are more than two arguments. */
 template< typename _T_, typename... _Ts_ > constexpr const _T_& greatest(const _T_& _v, const _Ts_&... _vs)
 { return _v < greatest(_vs...) ? greatest(_vs...) : _v; }
 
 //! \cond
 template< typename _T_ > constexpr const _T_& lowest(const _T_& _v)  { return _v; }
 //! \endcond
-/*! \brief Similar to `constexpr T min(std::initializer_list<T> ilist)` but it does not
-    require the arguments being of the same type and using the `std::initializer_list`
-    braces when there are more than two arguments. */
+/*! \brief The counterpart of `greatest()` */
 template< typename _T_, typename... _Ts_ > constexpr const _T_& lowest(const _T_& _v, const _Ts_&... _vs)
 { return lowest(_vs...) < _v ? lowest(_vs...) : _v; }
 
@@ -124,10 +129,11 @@ template< typename _T_, typename... _Ts_ > constexpr const _T_& lowest(const _T_
 //! \cond
 template< typename _T_ > constexpr auto sum(const _T_& _v) -> typename std::decay< _T_ >::type  { return _v; }
 //! \endcond
-/*! \brief Primarily intended for summation of values from parameter packs when fold expressions are not supported. */
+/*! \brief Primarily intended for summation of values from parameter packs if fold expressions are not supported. */
 template< typename _T_, typename... _Ts_ > constexpr auto sum(const _T_& _v, const _Ts_&... _vs) -> typename std::common_type< _T_, _Ts_... >::type
 { return _v + sum(_vs...); }
 
+// \}
 
 
 /*! \brief A reference counter with atomic increment/decrement. */
@@ -180,8 +186,8 @@ struct adopt_ref_t  { constexpr adopt_ref_t() = default; };
 /*! \brief The tag to be used to prevent `ref_guard` constructor from increasing reference count of the protected object. */
 constexpr const adopt_ref_t adopt_ref;
 
-/*! \brief A scoped reference count guard.
-    \details Similar to `std::lock_guard` but it is for reference count.
+/*! \brief A scoped reference counting guard.
+    \details Similar to `std::lock_guard` but it is for reference counting.
     The target object should provide `ref()` and `unref()` public member functions. */
 template< class _T_ >
 class ref_guard
