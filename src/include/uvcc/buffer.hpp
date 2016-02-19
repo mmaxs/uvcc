@@ -5,7 +5,7 @@
 #include "uvcc/utility.hpp"
 
 #include <uv.h>
-#include <cstddef>           // size_t offsetof
+#include <cstddef>           // size_t offsetof max_align_t
 #include <type_traits>       // is_standard_layout
 #include <utility>           // swap()
 #include <memory>            // addressof()
@@ -39,7 +39,7 @@ private: /*types*/
       if (extra_buf_count > 0)  --extra_buf_count;
       std::size_t total_buf_len = 0;
       for (auto len : _len_values)  total_buf_len += len;
-      return ::operator new(_size + extra_buf_count*sizeof(uv_t) + total_buf_len);  // + ALIGNMENT PADDING!
+      return ::operator new(_size + extra_buf_count*sizeof(uv_t) + alignment_padding(extra_buf_count) + total_buf_len);
     }
     static void operator delete(void *_ptr, const std::initializer_list< std::size_t >&)  { ::operator delete(_ptr); }
     static void operator delete(void *_ptr)  { ::operator delete(_ptr); }
@@ -60,11 +60,12 @@ private: /*types*/
         for (auto len : _len_values)  total_buf_len += ((buf++)->len = len);
         if (total_buf_len == 0)
         {
+          buf = &uv_buf;
           for (decltype(buf_count) i = 0; i < buf_count; ++i)  { buf[i].base = nullptr; buf[i].len = 0; }
         }
         else
         {
-          uv_buf.base = reinterpret_cast< char* >(buf);  // + ALIGNMENT PADDING!
+          uv_buf.base = reinterpret_cast< char* >(buf) + alignment_padding(buf_count-1);
           buf = &uv_buf;
           for (decltype(buf_count) i = 1; i < buf_count; ++i)  buf[i].base = &buf[i-1].base[buf[i-1].len];
         }
@@ -81,6 +82,13 @@ private: /*types*/
     instance& operator =(instance&&) = delete;
 
   private: /*functions*/
+    static std::size_t alignment_padding(const std::size_t _extra_buf_count) noexcept
+    {
+      std::size_t base_size = sizeof(instance) + _extra_buf_count*sizeof(uv_t);
+      std::size_t proper_size = (base_size + alignof(std::max_align_t) - 1) & ~(alignof(std::max_align_t) - 1);
+      return proper_size - base_size;
+    }
+
     void destroy()  { delete this; }
 
   public: /*interface*/
@@ -168,8 +176,8 @@ public: /*interface*/
   std::size_t count() const noexcept  { return instance::from(uv_buf)->bcount(); }  /*!< \brief The number of the `uv_buf_t` structures in the array. */
 
   uv_t operator [](const std::size_t _i) const noexcept  { return uv_buf[_i]; }  /*!< \brief Access to the `_i`-th `uv_buf_t` buffer structure in the array. */
-  char* base(const std::size_t _i = 0) const noexcept  { return uv_buf[_i].base; }  /*!< \brief The `.base` field of the `_i`-th buffer structure. */
-  std::size_t len(const std::size_t _i = 0) const noexcept  { return uv_buf[_i].len; }  /*!< \brief The `.len` field of the `_i`-th buffer structure. */
+  decltype(uv_t::base) base(const std::size_t _i = 0) const noexcept  { return uv_buf[_i].base; }  /*!< \brief The `.base` field of the `_i`-th buffer structure. */
+  decltype(uv_t::len) len(const std::size_t _i = 0) const noexcept  { return uv_buf[_i].len; }  /*!< \brief The `.len` field of the `_i`-th buffer structure. */
 
 public: /*conversion operators*/
   operator const uv_t*() const noexcept  { return uv_buf; }

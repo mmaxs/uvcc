@@ -14,14 +14,14 @@
 int main()
 {
 
-  init(1, 0, 1, 1, 1);
+  uv::buffer b({10, 20, 30, 0, 40, 50});
+  printf("b.count()=%zu\n", b.count());  fflush(stdout);
 
-  for(long i = 0; i < buf_count; ++i) printf("%zu\t", bufs[i].len);
-  printf("\n");
-  for(long i = 0; i < buf_count; ++i) printf("%p\t", bufs[i].base);
-  printf("\n");
-    
-    
+  printf("%lu\t%p\n", b.len(), b.base());
+  for(std::size_t i = 1; i < b.count(); ++i) printf("%lu\t%p (%p)\n", b[i].len, b[i].base, (b[i-1].base + b[i-1].len));
+  fflush(stdout);
+
+  getchar();
   return 0;
 }
 
