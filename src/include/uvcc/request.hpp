@@ -14,7 +14,6 @@
 #include <functional>   // function
 #include <utility>      // move()
 #include <type_traits>  // aligned_storage is_standard_layout
-#include <vector>       // vector
 #include <mutex>        // lock_guard adopt_lock
 
 
@@ -344,40 +343,54 @@ public: /*interface*/
   stream handle() const  { return stream(static_cast< uv_t* >(uv_req)->handle); }
   stream send_handle() const  { return stream(static_cast< uv_t* >(uv_req)->send_handle); }
 
-  int run(stream _stream, const std::vector< buffer > &_bufs)
+  /*! \brief Run the request. */
+  int run(stream _stream, const buffer _buf)
   {
     handle::base< stream::uv_t >::from(_stream.uv_handle)->ref();
     base< uv_t >::from(uv_req)->ref();
-    //return ::uv_write(static_cast< uv_t* >(uv_req), _stream, _bufs.data(), _bufs.size(), run_cb);
-    return 0;
+    return ::uv_write(static_cast< uv_t* >(uv_req), _stream, _buf, _buf.count(), run_cb);
   }
-  int run(pipe _pipe, stream _send_handle)
+  /*! \brief The overload for sending handles over a pipe using libuv's
+      [`uv_write2()`](http://docs.libuv.org/en/latest/stream.html#c.uv_write2). */
+  int run(pipe _pipe, const stream _send_handle)
   {
     return 0;
   }
-  int try_run(stream _stream, const std::vector< buffer > &_bufs)
-  {
-    return 0;
-  }
-  int run_protected(stream _stream, const std::vector< buffer > &_bufs)
+
+
+  /*! \brief The overload for protected `write::run(stream, const buffer)` */
+  int run_protected(stream _stream, const buffer _buf)
   {
     handle::base< stream::uv_t >::from(_stream.uv_handle)->ref();
     base< uv_t >::from(uv_req)->ref();
     base< uv_t >::from(uv_req)->lock();
-    //return ::uv_write(static_cast< uv_t* >(uv_req), _stream, _bufs.data(), _bufs.size(), run_protected_cb);
-    return 0;
+    return ::uv_write(static_cast< uv_t* >(uv_req), _stream, _buf, _buf.count(), run_protected_cb);
   }
-  int run_protected(pipe _pipe, stream _send_handle)
+  /*! \brief The overload for protected `write::run(pipe, stream)` */
+  int run_protected(pipe _pipe, const stream _send_handle)
   {
     return 0;
   }
-  int try_run_protected(stream _stream, const std::vector< buffer > &_bufs)
+
+  int try_run_protected(stream _stream, const buffer _buf)
+  {
+    int o = base< uv_t >::from(uv_req)->try_lock();
+    if (o != 0)  return o;
+    handle::base< stream::uv_t >::from(_stream.uv_handle)->ref();
+    base< uv_t >::from(uv_req)->ref();
+    return ::uv_write(static_cast< uv_t* >(uv_req), _stream, _buf, _buf.count(), run_protected_cb);
+  }
+  int try_run_protected(pipe _pipe, const stream _send_handle)
   {
     return 0;
   }
-  int try_run_protected(pipe _pipe, stream _send_handle)
+
+  /*! \brief The wrapper for libuv's
+      [`uv_try_write()`](http://docs.libuv.org/en/latest/stream.html#c.uv_try_write).
+      \note It tries to execute and complete immediately and does not call the request callback. */
+  int try_write(stream _stream, const buffer _buf)
   {
-    return 0;
+    return ::uv_try_write(_stream, _buf, _buf.count());
   }
 
 public: /*conversion operators*/

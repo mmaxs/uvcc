@@ -16,25 +16,38 @@ using namespace uv;
 
 void destroy_cb1(void*)
 {
-  fprintf(stderr, "destroy_cb1\n");
-  fflush(stderr);
+  fprintf(stderr, "destroy_cb1\n");  fflush(stderr);
 }
 
 struct destroy_cb2
 {
   void operator ()(void*)
   {
-    fprintf(stderr, "destroy_cb2\n");
-    fflush(stderr);
+    fprintf(stderr, "destroy_cb2\n");  fflush(stderr);
   }
 };
 
 
-void ccb(uv::connect _c, int _status)
+void ccb1(uv::connect _c, int _status)
 {
-  fprintf(stdout, "ccb: %s(%i): %s\n", ::uv_err_name(_status), _status, ::uv_strerror(_status));
-  fflush(stdout);
+  fprintf(stdout, "ccb1: %s(%i): %s\n", ::uv_err_name(_status), _status, ::uv_strerror(_status));  fflush(stdout);
   if (_status == 0)  ::send(_c.handle().socket(), "Hello!\n", 7, 0);
+}
+void ccb2(uv::connect _c, int _status)
+{
+  fprintf(stdout, "ccb2: %s(%i): %s\n", ::uv_err_name(_status), _status, ::uv_strerror(_status));  fflush(stdout);
+  if (_status == 0)
+  {
+    uv::write wr;
+    wr.on_request() = [](uv::write _req, int _status){
+          fprintf(stdout, "write: %s(%i): %s\n", ::uv_err_name(_status), _status, ::uv_strerror(_status));  fflush(stdout);
+    };
+    static const char* msg = "Hello, uvcc!\n";
+    buffer b;
+    b.base() = const_cast< char* >(msg);
+    b.len() = std::strlen(msg) + 1;
+    wr.run(_c.handle(), b);
+  };
 }
 
 
@@ -76,7 +89,7 @@ int main(int _argc, char *_argv[])
     in_loopback.sin_addr.s_addr  = 0x0100007f;
     //in_loopback.sin_zero   = {0};
     
-    c_req.on_request() = ccb;
+    c_req.on_request() = ccb2;
 
     int o = c_req.run(c, (const ::sockaddr*)&in_loopback);
     fprintf(stdout, "c_req: %s(%i): %s\n", ::uv_err_name(o), o, ::uv_strerror(o));
