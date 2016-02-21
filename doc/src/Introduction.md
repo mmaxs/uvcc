@@ -33,8 +33,71 @@ Uvcc's handle destroy callback differs from libuv's handle close callback in the
 
 \addtogroup g__buffer
 \details
+[`uv_buf_t`]: http://docs.libuv.org/en/latest/misc.html#c.uv_buf_t "libuv"
+[`iovec`]: http://man7.org/linux/man-pages/man2/readv.2.html "readv(2)"
+[`WSABUF`]: https://msdn.microsoft.com/en-us/library/ms741542(v=vs.85).aspx "MSDN"
 
-[nix]: http://man7.org/linux/man-pages/man2/readv.2.html "readv(2)"
-[win]: https://msdn.microsoft.com/en-us/library/ms741542(v=vs.85).aspx "MSDN"
+Libuv uses the [`uv_buf_t`] structure to describe the I/O buffer. It is made up in accordance with
+system depended type [`iovec`] on Unix-like OSes and with [`WSABUF`] on Windows. An array of
+[`uv_buf_t`] structures is used to allow writing multiple buffers in a single `uv::write` request.
 
+The class `uv::buffer` encapsulates [`uv_buf_t`] structure and provides `uv_buf_t[]` array functionality.
+See descriptions for `uv::buffer`'s constructors.
+
+The following example shows the diagram illustrating the internals of the `uv::buffer` object while executing `foo(BUF)`:
+\verbatim
+uv::buffer BUF{100, 200, 0, 300};
+
+void foo(uv::buffer _b)  {
+...
+}
+
+foo(BUF);
+
+...
+
+
+         BUF                      uv::buffer::instance
+ ╔═══════════════╗      ╔═════════════════════════════════════╗
+ ║ uv_buf_t* ptr ╫──┐   ║ ref_count rc = 2                    ║
+ ╚═══════════════╝  │   ╟─────────────────────────────────────╢
+                    │   ║ size_t    buf_count = 4             ║
+                    │   ╟─────────────────┬───────────────────╢
+         _b         ├──►║ uv_buf_t buf[0] │ char*  .base      ╫───┐
+ ╔═══════════════╗  │   ║                 │ size_t .len = 100 ║   │
+ ║ uv_buf_t* ptr ╫──┘   ╚═════════════════╧═══════════════════╝   │
+ ╚═══════════════╝      │ uv_buf_t buf[1] │ char*  .base      ┼───│───┐
+                        │                 │ size_t .len = 200 │   │   │
+                        ├─────────────────┼───────────────────┤   │   │
+                        │ uv_buf_t buf[2] │ char*  .base      ┼───│───│───┐
+                        │                 │ size_t .len = 0   │   │   │   │
+                        ├─────────────────┼───────────────────┤   │   │   │
+                        │ uv_buf_t buf[3] │ char*  .base      ┼───│───│──┐│
+                        │                 │ size_t .len = 300 │   │   │  ││
+                        ├─────────────────┴───────────────────┤   │   │  ││
+                        │ ... std::max_align_t padding ...    │   │   │  ││
+                        ├─────────────────────────────────────┤   │   │  ││
+                        │                                     │◄──┘   │  ││
+                        │ ... 100 bytes ...                   │       │  ││
+                        │                                     │       │  ││
+                        ├─────────────────────────────────────┤       │  ││
+                        │                                     │◄──────┘  ││
+                        │                                     │          ││
+                        │ ... 200 bytes ...                   │          ││
+                        │                                     │          ││
+                        │                                     │          ││
+                        ├─────────────────────────────────────┤          ││
+                        │                                     │◄─────────┴┘
+                        │                                     │
+                        │                                     │
+                        │ ... 300 bytes ...                   │
+                        │                                     │
+                        │                                     │
+                        │                                     │
+                        └─────────────────────────────────────┘
+\endverbatim                            
+                            
+[ ]: # "▲ ► ▼ ◄"
+[ ]: # "─ │ ┌ ┐ └ ┘ ├ ┤ ┬ ┴ ┼"
+[ ]: # "═ ║ ╒ ╓ ╔ ╕ ╖ ╗ ╘ ╙ ╚ ╛ ╜ ╝ ╞ ╟ ╠ ╡ ╢ ╣ ╤ ╥ ╦ ╧ ╨ ╩ ╪ ╫ ╬"
 
