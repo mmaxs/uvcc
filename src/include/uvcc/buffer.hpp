@@ -9,7 +9,7 @@
 #include <type_traits>       // is_standard_layout
 #include <utility>           // swap()
 #include <memory>            // addressof()
-#include <initializer_list>  //
+#include <initializer_list>  // initializer_list
 
 
 namespace uv
@@ -28,9 +28,9 @@ private: /*types*/
   class instance
   {
   private: /*data*/
-    ref_count rc;
-    std::size_t buf_count;
-    uv_t uv_buf;
+    ref_count rc_;
+    std::size_t buf_count_;
+    uv_t uv_buf_;
 
   private: /*new/delete*/
     static void* operator new(std::size_t _size, const std::initializer_list< std::size_t > &_len_values)
@@ -45,29 +45,29 @@ private: /*types*/
     static void operator delete(void *_ptr)  { ::operator delete(_ptr); }
 
   private: /*constructors*/
-    instance(const std::initializer_list< std::size_t > &_len_values) : buf_count(_len_values.size())
+    instance(const std::initializer_list< std::size_t > &_len_values) : buf_count_(_len_values.size())
     {
-      if (buf_count == 0)
+      if (buf_count_ == 0)
       {
-        buf_count = 1;
-        uv_buf.base = nullptr;
-        uv_buf.len = 0;
+        buf_count_ = 1;
+        uv_buf_.base = nullptr;
+        uv_buf_.len = 0;
       }
       else
       {
-        uv_t *buf = &uv_buf;
+        uv_t *buf = &uv_buf_;
         std::size_t total_buf_len = 0;
         for (auto len : _len_values)  total_buf_len += ((buf++)->len = len);
         if (total_buf_len == 0)
         {
-          buf = &uv_buf;
-          for (decltype(buf_count) i = 0; i < buf_count; ++i)  { buf[i].base = nullptr; buf[i].len = 0; }
+          buf = &uv_buf_;
+          for (decltype(buf_count_) i = 0; i < buf_count_; ++i)  { buf[i].base = nullptr; buf[i].len = 0; }
         }
         else
         {
-          uv_buf.base = reinterpret_cast< char* >(buf) + alignment_padding(buf_count-1);
-          buf = &uv_buf;
-          for (decltype(buf_count) i = 1; i < buf_count; ++i)  buf[i].base = &buf[i-1].base[buf[i-1].len];
+          uv_buf_.base = reinterpret_cast< char* >(buf) + alignment_padding(buf_count_-1);
+          buf = &uv_buf_;
+          for (decltype(buf_count_) i = 1; i < buf_count_; ++i)  buf[i].base = &buf[i-1].base[buf[i-1].len];
         }
       }
     }
@@ -92,19 +92,20 @@ private: /*types*/
     void destroy()  { delete this; }
 
   public: /*interface*/
-    static uv_t* create(const std::initializer_list< std::size_t > &_len_values)  { return std::addressof((new(_len_values) instance(_len_values))->uv_buf); }
+    static uv_t* create(const std::initializer_list< std::size_t > &_len_values)
+    { return std::addressof((new(_len_values) instance(_len_values))->uv_buf_); }
     static uv_t* create()  { return create({}); }
 
     constexpr static instance* from(uv_t *_uv_buf) noexcept
     {
       static_assert(std::is_standard_layout< instance >::value, "not a standard layout type");
-      return reinterpret_cast< instance* >(reinterpret_cast< char* >(_uv_buf) - offsetof(instance, uv_buf));
+      return reinterpret_cast< instance* >(reinterpret_cast< char* >(_uv_buf) - offsetof(instance, uv_buf_));
     }
 
-    auto bcount()  { return buf_count; }
+    std::size_t buf_count()  { return buf_count_; }
 
-    void ref()  { rc.inc(); }
-    void unref() noexcept  { if (rc.dec() == 0)  destroy(); }
+    void ref()  { rc_.inc(); }
+    void unref() noexcept  { if (rc_.dec() == 0)  destroy(); }
   };
 
 private: /*data*/
@@ -173,11 +174,11 @@ public: /*constructors*/
 public: /*interface*/
   void swap(buffer &_b) noexcept  { std::swap(uv_buf, _b.uv_buf); }
 
-  std::size_t count() const noexcept  { return instance::from(uv_buf)->bcount(); }  /*!< \brief The number of the `uv_buf_t` structures in the array. */
+  std::size_t count() const noexcept  { return instance::from(uv_buf)->buf_count(); }  /*!< \brief The number of the `uv_buf_t` structures in the array. */
 
-  uv_t operator [](const std::size_t _i) const noexcept  { return uv_buf[_i]; }  /*!< \brief Access to the `_i`-th `uv_buf_t` buffer structure in the array. */
-  decltype(uv_t::base) base(const std::size_t _i = 0) const noexcept  { return uv_buf[_i].base; }  /*!< \brief The `.base` field of the `_i`-th buffer structure. */
-  decltype(uv_t::len) len(const std::size_t _i = 0) const noexcept  { return uv_buf[_i].len; }  /*!< \brief The `.len` field of the `_i`-th buffer structure. */
+  uv_t& operator [](const std::size_t _i) const noexcept  { return uv_buf[_i]; }  /*!< \brief Access to the `_i`-th `uv_buf_t` buffer structure in the array. */
+  decltype(uv_t::base)& base(const std::size_t _i = 0) const noexcept  { return uv_buf[_i].base; }  /*!< \brief The `.base` field of the `_i`-th buffer structure. */
+  decltype(uv_t::len)& len(const std::size_t _i = 0) const noexcept  { return uv_buf[_i].len; }  /*!< \brief The `.len` field of the `_i`-th buffer structure. */
 
 public: /*conversion operators*/
   operator const uv_t*() const noexcept  { return uv_buf; }
