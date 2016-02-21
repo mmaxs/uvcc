@@ -171,8 +171,8 @@ public: /*interface*/
   ::uv_handle_type type() const noexcept  { return static_cast< uv_t* >(uv_handle)->type; }
   ::uv_loop_t* loop() const noexcept  { return static_cast< uv_t* >(uv_handle)->loop; }
 
-  void* user_data() const noexcept  { return static_cast< uv_t* >(uv_handle)->data; }
-  void user_data(void *_data) noexcept { static_cast< uv_t* >(uv_handle)->data = _data; }
+  void* data() const noexcept  { return static_cast< uv_t* >(uv_handle)->data; }
+  void data(void *_data) noexcept { static_cast< uv_t* >(uv_handle)->data = _data; }
 
   int is_active() const noexcept  { return ::uv_is_active(*this); }
   int is_closing() const noexcept { return ::uv_is_closing(*this); }

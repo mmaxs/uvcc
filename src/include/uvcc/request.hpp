@@ -201,8 +201,8 @@ public: /*interface*/
 
   ::uv_req_type type() const noexcept  { return static_cast< uv_t* >(uv_req)->type; }
 
-  void* const& user_data() const noexcept  { return static_cast< uv_t* >(uv_req)->data; }
-  void*      & user_data()       noexcept  { return static_cast< uv_t* >(uv_req)->data; }
+  void* const& data() const noexcept  { return static_cast< uv_t* >(uv_req)->data; }
+  void*      & data()       noexcept  { return static_cast< uv_t* >(uv_req)->data; }
 
   int cancel() noexcept  { return ::uv_cancel(static_cast< uv_t* >(uv_req)); }
 
