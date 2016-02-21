@@ -54,7 +54,8 @@ UV_HANDLE_TYPE_MAP(XX)
 
 /*! \brief The base class for the libuv handles.
     \details Derived classes conceptually are just interfaces to the data stored
-    in the base class, so there are no any virtual member functions. */
+    in the base class, so there are no any virtual member functions.
+    \sa Libuv documentation: [`uv_handle_t`](http://docs.libuv.org/en/v1.x/handle.html#uv-handle-t-base-handle) */
 class handle
 {
   friend class request;
@@ -62,6 +63,9 @@ class handle
 public: /*types*/
   using uv_t = ::uv_handle_t;
   using on_destroy_t = std::function< void(void*) >;
+  /*!< \brief The function type of the callback called when the handle is about to be closed and destroyed.
+       \sa Libuv documentation: [`uv_close_cb`](http://docs.libuv.org/en/v1.x/handle.html#c.uv_close_cb),
+       [`uv_close`](http://docs.libuv.org/en/v1.x/handle.html#c.uv_close) */
 
 protected: /*types*/
   //! \cond
@@ -168,11 +172,14 @@ public: /*interface*/
   const on_destroy_t& on_destroy() const noexcept  { return base< uv_t >::from(uv_handle)->on_destroy(); }
         on_destroy_t& on_destroy()       noexcept  { return base< uv_t >::from(uv_handle)->on_destroy(); }
 
+  /*! \brief The libuv type tag of the handle. */
   ::uv_handle_type type() const noexcept  { return static_cast< uv_t* >(uv_handle)->type; }
+  /*! \brief The libuv loop where the handle is running on. */
   ::uv_loop_t* loop() const noexcept  { return static_cast< uv_t* >(uv_handle)->loop; }
 
-  void* data() const noexcept  { return static_cast< uv_t* >(uv_handle)->data; }
-  void data(void *_data) noexcept { static_cast< uv_t* >(uv_handle)->data = _data; }
+  /*! \brief Access to the space for user-defined arbitrary data. Libuv and uvcc does not use this field. */
+  void* const& data() const noexcept  { return static_cast< uv_t* >(uv_handle)->data; }
+  void*      & data()       noexcept  { return static_cast< uv_t* >(uv_handle)->data; }
 
   int is_active() const noexcept  { return ::uv_is_active(*this); }
   int is_closing() const noexcept { return ::uv_is_closing(*this); }
@@ -213,10 +220,12 @@ public: /*conversion operators*/
 
 
 
-
+/*! \brief Stream handle type.
+    \sa Libuv documentation: [`uv_stream_t`](http://docs.libuv.org/en/v1.x/stream.html#uv-stream-t-stream-handle) */
 class stream : public handle
 {
   friend class write;
+  friend class shutdown;
 
 public: /*types*/
   using uv_t = ::uv_stream_t;
@@ -241,6 +250,8 @@ public: /*constructors*/
   stream& operator =(stream&&) noexcept = default;
 
 public: /*interface*/
+  /*! \brief The amount of queued bytes waiting to be sent. */
+  std::size_t write_queue_size()  { return static_cast< uv_t* >(uv_handle)->write_queue_size; }
   bool is_readable()  { return ::uv_is_readable(static_cast< uv_t* >(uv_handle)); }
   bool is_writable()  { return ::uv_is_writable(static_cast< uv_t* >(uv_handle)); }
   int set_blocking(bool _b)  { return ::uv_stream_set_blocking(static_cast< uv_t* >(uv_handle), _b); }

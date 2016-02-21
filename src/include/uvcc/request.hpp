@@ -24,7 +24,8 @@ namespace uv
 //! \{
 
 /*! \defgroup g__request_traits uv_req_traits< typename >
-    \brief Defines the correspondence between libuv request data types and C++ classes representing them. */
+    \brief Defines signatures of request callback functions and the correspondence
+    between libuv request data types and C++ classes representing them. */
 //! \{
 
 /* libuv requests */
@@ -80,7 +81,7 @@ UV_REQ_TYPE_MAP(XX)
 //! \}
 
 
-/*! \brief The base class for the libuv's requests.
+/*! \brief The base class for the libuv requests.
     \details Derived classes conceptually are just interfaces to the data stored
     in the base class, so there are no any virtual member functions. */
 class request
@@ -199,6 +200,7 @@ public: /*interface*/
   const on_destroy_t& on_destroy() const noexcept  { return base< uv_t >::from(uv_req)->on_destroy(); }
         on_destroy_t& on_destroy()       noexcept  { return base< uv_t >::from(uv_req)->on_destroy(); }
 
+  /*! \brief The libuv type tag of the request. */
   ::uv_req_type type() const noexcept  { return static_cast< uv_t* >(uv_req)->type; }
 
   void* const& data() const noexcept  { return static_cast< uv_t* >(uv_req)->data; }
@@ -213,12 +215,15 @@ public: /*conversion operators*/
 
 
 
-
+/*! \brief Connect request type. */
 class connect : public request
 {
 public: /*types*/
   using uv_t = ::uv_connect_t;
   using on_request_t = typename uv_req_traits< uv_t >::on_request_t;
+  /*!< \brief The function type of the callback called after a connection request is done.
+       See \ref g__request_traits
+       \sa Libuv documentation: [`uv_connect_cb`](http://docs.libuv.org/en/v1.x/stream.html#c.uv_connect_cb) */
 
 private: /*constructors*/
   explicit connect(uv_t *_uv_r)
@@ -262,7 +267,8 @@ public: /*interface*/
   const on_request_t& on_request() const noexcept  { return base< uv_t >::from(uv_req)->on_request(); }
         on_request_t& on_request()       noexcept  { return base< uv_t >::from(uv_req)->on_request(); }
 
-  tcp handle() const  { return tcp(static_cast< uv_t* >(uv_req)->handle); }
+  /*! \brief The tcp stream which this connect request is running on. */
+  tcp handle() const noexcept  { return tcp(static_cast< uv_t* >(uv_req)->handle); }
 
   int run(tcp _tcp, const ::sockaddr *_sa)
   {
@@ -292,11 +298,15 @@ public: /*conversion operators*/
 };
 
 
+/*! \brief Write request type. */
 class write : public request
 {
 public: /*types*/
   using uv_t = ::uv_write_t;
   using on_request_t = typename uv_req_traits< uv_t >::on_request_t;
+  /*!< \brief The function type of the callback called after data was written on a stream.
+       See \ref g__request_traits
+       \sa Libuv documentation: [`uv_write_cb`](http://docs.libuv.org/en/v1.x/stream.html#c.uv_write_cb) */
 
 private: /*constructors*/
   explicit write(uv_t *_uv_r)
@@ -340,8 +350,10 @@ public: /*interface*/
   const on_request_t& on_request() const noexcept  { return base< uv_t >::from(uv_req)->on_request(); }
         on_request_t& on_request()       noexcept  { return base< uv_t >::from(uv_req)->on_request(); }
 
-  stream handle() const  { return stream(static_cast< uv_t* >(uv_req)->handle); }
-  stream send_handle() const  { return stream(static_cast< uv_t* >(uv_req)->send_handle); }
+  /*! \brief The stream which this write request is running on. */
+  stream handle() const noexcept  { return stream(static_cast< uv_t* >(uv_req)->handle); }
+  /*! \brief The handle of the stream being sent over a pipe using this write request. */
+  stream send_handle() const noexcept  { return stream(static_cast< uv_t* >(uv_req)->send_handle); }
 
   /*! \brief Run the request. */
   int run(stream _stream, const buffer _buf)
@@ -350,8 +362,8 @@ public: /*interface*/
     base< uv_t >::from(uv_req)->ref();
     return ::uv_write(static_cast< uv_t* >(uv_req), _stream, _buf, _buf.count(), run_cb);
   }
-  /*! \brief The overload for sending handles over a pipe using libuv's
-      [`uv_write2()`](http://docs.libuv.org/en/latest/stream.html#c.uv_write2). */
+  /*! \brief The overload for sending handles over a pipe.
+      \sa Libuv documentation: [`uv_write2()`](http://docs.libuv.org/en/v1.x/stream.html#c.uv_write2) */
   int run(pipe _pipe, const stream _send_handle)
   {
     return 0;
@@ -385,9 +397,9 @@ public: /*interface*/
     return 0;
   }
 
-  /*! \brief The wrapper for libuv's
-      [`uv_try_write()`](http://docs.libuv.org/en/latest/stream.html#c.uv_try_write).
-      \note It tries to execute and complete immediately and does not call the request callback. */
+  /*! \brief The wrapper for corresponding libuv's function.
+      \note It tries to execute and complete immediately and does not call the request callback.
+      \sa Libuv documentation: [`uv_try_write()`](http://docs.libuv.org/en/v1.x/stream.html#c.uv_try_write) */
   int try_write(stream _stream, const buffer _buf)
   {
     return ::uv_try_write(_stream, _buf, _buf.count());
@@ -399,11 +411,15 @@ public: /*conversion operators*/
 };
 
 
+/*! \brief Shutdown request type. */
 class shutdown : public request
 {
 public: /*types*/
   using uv_t = ::uv_shutdown_t;
   using on_request_t = typename uv_req_traits< uv_t >::on_request_t;
+  /*!< \brief The function type of the callback called after a shutdown request has been completed.
+       See \ref g__request_traits
+       \sa Libuv documentation: [`uv_shutdown_cb`](http://docs.libuv.org/en/v1.x/stream.html#c.uv_shutdown_cb) */
 
 public: /*constructors*/
   ~shutdown() = default;
@@ -413,6 +429,13 @@ public: /*constructors*/
 
   shutdown(shutdown&&) noexcept = default;
   shutdown& operator =(shutdown&&) noexcept = default;
+
+public: /*interface*/
+  const on_request_t& on_request() const noexcept  { return base< uv_t >::from(uv_req)->on_request(); }
+        on_request_t& on_request()       noexcept  { return base< uv_t >::from(uv_req)->on_request(); }
+
+  /*! \brief The stream which this shutdown request is running on. */
+  stream handle() const noexcept  { return stream(static_cast< uv_t* >(uv_req)->handle); }
 
 public: /*conversion operators*/
   operator const uv_t*() const noexcept  { return static_cast< const uv_t* >(uv_req); }
