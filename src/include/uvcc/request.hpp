@@ -358,7 +358,7 @@ public: /*interface*/
   }
 
 
-  /*! \brief The overload for protected `write::run(stream, const buffer)` */
+  /*! \brief The overload for protected `run(stream, const buffer)` */
   int run_protected(stream _stream, const buffer _buf)
   {
     handle::base< stream::uv_t >::from(_stream.uv_handle)->ref();
@@ -366,7 +366,7 @@ public: /*interface*/
     base< uv_t >::from(uv_req)->lock();
     return ::uv_write(static_cast< uv_t* >(uv_req), _stream, _buf, _buf.count(), run_protected_cb);
   }
-  /*! \brief The overload for protected `write::run(pipe, stream)` */
+  /*! \brief The overload for protected `run(pipe, stream)` */
   int run_protected(pipe _pipe, const stream _send_handle)
   {
     return 0;

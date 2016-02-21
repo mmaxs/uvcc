@@ -44,18 +44,17 @@ system depended type [`iovec`] on Unix-like OSes and with [`WSABUF`] on Windows.
 The class `uv::buffer` encapsulates [`uv_buf_t`] structure and provides `uv_buf_t[]` array functionality.
 See descriptions for `uv::buffer`'s constructors.
 
-The following example shows the diagram illustrating the internals of the `uv::buffer` object while executing `foo(BUF)`:
-\verbatim
+For the following example here is the diagram illustrating the internals of the `uv::buffer` object while executing `foo(BUF)`:
+```
 uv::buffer BUF{100, 200, 0, 300};
 
-void foo(uv::buffer _b)  {
-...
+void foo(uv::buffer _b)  { ... }
+
+int main() {
+  foo(BUF);
 }
-
-foo(BUF);
-
-...
-
+```
+\verbatim
 
          BUF                      uv::buffer::instance
  ╔═══════════════╗      ╔═════════════════════════════════════╗

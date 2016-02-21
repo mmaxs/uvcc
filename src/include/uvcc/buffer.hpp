@@ -114,11 +114,11 @@ private: /*data*/
 public: /*constructors*/
   ~buffer()  { if (uv_buf)  instance::from(uv_buf)->unref(); }
 
-  /*! \brief Create a single `uv_buf_t` null-initialized buffer structure.
-      \details Create a single `uv_buf_t` null-initialized buffer structure, that is:
+  /*! \brief Create a single `uv_buf_t` _null-initialized_ buffer structure.
+      \details Create a single `uv_buf_t` _null-initialized_ buffer structure, that is:
       ```
-      char* uv_buf_t.base = nullptr;
-      size_t uv_buf_t.len = 0;
+      char*  uv_buf_t.base = nullptr;
+      size_t uv_buf_t.len  = 0;
       ``` */
   buffer() : uv_buf(instance::create())  {}
 
@@ -137,7 +137,7 @@ public: /*constructors*/
       If some of the initializing values are zeros, the `.base` field of the such a buffer is not a `nullptr`.
       Instead it keeps pointing inside the continuous memory block and is considered as a zero-length chunk.
 
-      All of the initializing values being zeros results in creating an array of null-initialized
+      All of the initializing values being zeros results in creating an array of _null-initialized_
       `uv_buf_t` buffer structures. */
   explicit buffer(const std::initializer_list< std::size_t > &_len_values) : uv_buf(instance::create(_len_values))  {}
 
