@@ -547,6 +547,7 @@ table.memberdecls {
 
 .memname {
 ///        font-weight: bold;
+        font-family: monospace;  ///
         margin-left: 6px;
 }
 
