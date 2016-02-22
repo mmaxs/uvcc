@@ -17,11 +17,10 @@ namespace uv
 
 
 /*! \brief The analogue of the `std::default_delete`.
-    \details Being the analogue of the `std::default_delete` it also provides the
-    static member function `void Delete(void*)` holding the proper delete operator
-    for the type `_T_`. The client code then can store a pointer to this function
-    being alike a pointer to the virtual delete operator for implementing the
-    run-time data polymorphism.
+    \details It also provides the static member function `void Delete(void*)`
+    holding the proper delete operator for the type `_T_`. The client code then
+    can store a pointer to this function being alike a pointer to the virtual
+    delete operator for implementing the run-time data polymorphism.
     */
 template< typename _T_ > struct default_delete
 {
@@ -140,11 +139,10 @@ template< std::size_t _index_, typename _T_, typename... _Ts_ > struct type_at< 
 //! \cond
 template< typename _T_ > constexpr const _T_& greatest(const _T_& _v)  { return _v; }
 //! \endcond
-/*! \brief Intended to be used instead of `constexpr T max(std::initializer_list<T>)`.
-    \details Intended to be used instead of `constexpr T max(std::initializer_list<T>)` if the latter is
-    not defined being `constexpr` in the current STL version and therefore cannot be employed at compile-time.
-    Does not require the arguments being of the same type and using the `std::initializer_list`
-    curly braces when there are more than two arguments. */
+/*! \brief Intended to be used instead of `constexpr T max(std::initializer_list<T>)`...
+    \details ...if the latter is not defined being `constexpr` in the current STL version and therefore
+    cannot be employed at compile-time. Does not require the arguments being of the same type and using
+    the `std::initializer_list` curly braces when there are more than two arguments. */
 template< typename _T_, typename... _Ts_ > constexpr const _T_& greatest(const _T_& _v, const _Ts_&... _vs)
 { return _v < greatest(_vs...) ? greatest(_vs...) : _v; }
 

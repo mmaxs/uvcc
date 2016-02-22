@@ -55,7 +55,7 @@ UV_HANDLE_TYPE_MAP(XX)
 /*! \brief The base class for the libuv handles.
     \details Derived classes conceptually are just interfaces to the data stored
     in the base class, so there are no any virtual member functions.
-    \sa Libuv documentation: [`uv_handle_t`](http://docs.libuv.org/en/v1.x/handle.html#uv-handle-t-base-handle) */
+    \sa Libuv documentation: [`uv_handle_t`](http://docs.libuv.org/en/v1.x/handle.html#uv-handle-t-base-handle). */
 class handle
 {
   friend class request;
@@ -65,7 +65,7 @@ public: /*types*/
   using on_destroy_t = std::function< void(void*) >;
   /*!< \brief The function type of the callback called when the handle is about to be closed and destroyed.
        \sa Libuv documentation: [`uv_close_cb`](http://docs.libuv.org/en/v1.x/handle.html#c.uv_close_cb),
-       [`uv_close`](http://docs.libuv.org/en/v1.x/handle.html#c.uv_close) */
+       [`uv_close()`](http://docs.libuv.org/en/v1.x/handle.html#c.uv_close). */
 
 protected: /*types*/
   //! \cond
@@ -177,29 +177,43 @@ public: /*interface*/
   /*! \brief The libuv loop where the handle is running on. */
   ::uv_loop_t* loop() const noexcept  { return static_cast< uv_t* >(uv_handle)->loop; }
 
-  /*! \brief Access to the space for user-defined arbitrary data. Libuv and uvcc does not use this field. */
+  /*! \brief The pointer to the user-defined arbitrary data. Libuv and uvcc does not use this field. */
   void* const& data() const noexcept  { return static_cast< uv_t* >(uv_handle)->data; }
   void*      & data()       noexcept  { return static_cast< uv_t* >(uv_handle)->data; }
 
+  /*! \details Check if the handle is active.
+      \sa Libuv documentation: [`uv_is_active()`](http://docs.libuv.org/en/v1.x/handle.html#c.uv_is_active). */
   int is_active() const noexcept  { return ::uv_is_active(*this); }
+  /*! \details Check if the handle is closing or closed.
+      \sa Libuv documentation: [`uv_is_closing()`](http://docs.libuv.org/en/v1.x/handle.html#c.uv_is_closing). */
   int is_closing() const noexcept { return ::uv_is_closing(*this); }
 
+  /*! \details _Get_ the size of the send buffer that the operating system uses for the socket.
+      \sa Libuv documentation: [`uv_send_buffer_size()`](http://docs.libuv.org/en/v1.x/handle.html#c.uv_send_buffer_size). */
   unsigned int send_buffer_size() const noexcept
   {
     unsigned int v = 0;
     ::uv_send_buffer_size(static_cast< uv_t* >(uv_handle), (int*)&v);
     return v;
   }
+  /*! \details _Set_ the size of the send buffer that the operating system uses for the socket.
+      \sa Libuv documentation: [`uv_send_buffer_size()`](http://docs.libuv.org/en/v1.x/handle.html#c.uv_send_buffer_size). */
   void send_buffer_size(const unsigned int _v) noexcept  { ::uv_send_buffer_size(static_cast< uv_t* >(uv_handle), (int*)&_v); }
 
+  /*! \details _Get_ the size of the receive buffer that the operating system uses for the socket.
+      \sa Libuv documentation: [`uv_recv_buffer_size()`](http://docs.libuv.org/en/v1.x/handle.html#c.uv_recv_buffer_size). */
   unsigned int recv_buffer_size() const noexcept
   {
     unsigned int v = 0;
     ::uv_recv_buffer_size(static_cast< uv_t* >(uv_handle), (int*)&v);
     return v;
   }
+  /*! \details _Set_ the size of the receive buffer that the operating system uses for the socket.
+      \sa Libuv documentation: [`uv_recv_buffer_size()`](http://docs.libuv.org/en/v1.x/handle.html#c.uv_recv_buffer_size). */
   void recv_buffer_size(const unsigned int _v) noexcept  { ::uv_recv_buffer_size(static_cast< uv_t* >(uv_handle), (int*)&_v); }
 
+  /*! \details Get the platform dependent file descriptor.
+      \sa Libuv documentation: [`uv_fileno()`](http://docs.libuv.org/en/v1.x/handle.html#c.uv_fileno). */
   ::uv_os_fd_t fileno() const noexcept
   {
 #ifdef _WIN32
@@ -215,13 +229,13 @@ public: /*conversion operators*/
   operator const uv_t*() const noexcept  { return static_cast< const uv_t* >(uv_handle); }
   operator       uv_t*()       noexcept  { return static_cast<       uv_t* >(uv_handle); }
 
-  explicit operator bool() const noexcept  { return is_active(); }
+  explicit operator bool() const noexcept  { return is_active(); }  /*!< \details Equivalent to `is_active()`. */
 };
 
 
 
 /*! \brief Stream handle type.
-    \sa Libuv documentation: [`uv_stream_t`](http://docs.libuv.org/en/v1.x/stream.html#uv-stream-t-stream-handle) */
+    \sa Libuv documentation: [`uv_stream_t`](http://docs.libuv.org/en/v1.x/stream.html#uv-stream-t-stream-handle). */
 class stream : public handle
 {
   friend class write;
@@ -252,8 +266,12 @@ public: /*constructors*/
 public: /*interface*/
   /*! \brief The amount of queued bytes waiting to be sent. */
   std::size_t write_queue_size()  { return static_cast< uv_t* >(uv_handle)->write_queue_size; }
+  /*! \brief Check if the stream is readable. */
   bool is_readable()  { return ::uv_is_readable(static_cast< uv_t* >(uv_handle)); }
+  /*! \brief Check if the stream is writable. */
   bool is_writable()  { return ::uv_is_writable(static_cast< uv_t* >(uv_handle)); }
+  /*! \brief Enable or disable blocking mode for the stream.
+      \sa Libuv documentation: [`uv_stream_set_blocking()`](http://docs.libuv.org/en/v1.x/stream.html#c.uv_stream_set_blocking). */
   int set_blocking(bool _b)  { return ::uv_stream_set_blocking(static_cast< uv_t* >(uv_handle), _b); }
 
 public: /*conversion operators*/

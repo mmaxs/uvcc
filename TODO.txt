@@ -1,7 +1,20 @@
 
 http://docs.libuv.org/en/v1.x/handle.html#c.uv_alloc_cb
 
+http://docs.libuv.org/en/v1.x/handle.html#c.uv_ref
+http://docs.libuv.org/en/v1.x/handle.html#c.uv_unref
+http://docs.libuv.org/en/v1.x/handle.html#c.uv_has_ref
+http://docs.libuv.org/en/v1.x/handle.html#refcount
+
+http://docs.libuv.org/en/v1.x/handle.html#c.uv_handle_size
+
+http://docs.libuv.org/en/v1.x/request.html#c.uv_req_size
+
 http://docs.libuv.org/en/v1.x/stream.html#c.uv_read_cb
 http://docs.libuv.org/en/v1.x/stream.html#c.uv_connection_cb
+http://docs.libuv.org/en/v1.x/stream.html#c.uv_listen
+http://docs.libuv.org/en/v1.x/stream.html#c.uv_accept
+http://docs.libuv.org/en/v1.x/stream.html#c.uv_read_start
+http://docs.libuv.org/en/v1.x/stream.html#c.uv_read_stop
 
 

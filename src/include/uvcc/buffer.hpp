@@ -115,7 +115,7 @@ public: /*constructors*/
   ~buffer()  { if (uv_buf)  instance::from(uv_buf)->unref(); }
 
   /*! \brief Create a single `uv_buf_t` _null-initialized_ buffer structure.
-      \details Create a single `uv_buf_t` _null-initialized_ buffer structure, that is:
+      \details That is:
       ```
       char*  uv_buf_t.base = nullptr;
       size_t uv_buf_t.len  = 0;
@@ -123,11 +123,10 @@ public: /*constructors*/
   buffer() : uv_buf(instance::create())  {}
 
   /*! \brief Create an array of `uv_buf_t` effectively initialized buffer structures.
-      \details Create an array of `uv_buf_t` buffer structures. Each structure in the array
-      is effectively initialized with an allocated memory chunk of the specified length.
-      The number of structures in array is equal to the number of elements in the initializer list.
-      The value of the `.len` field and the length of the each allocated chunk pointed by the `.base`
-      field is equal to the corresponding value from the initializer list.
+      \details Each structure in the array is effectively initialized with an allocated memory chunk
+      of the specified length. The number of structures in array is equal to the number of elements
+      in the initializer list. The value of the `.len` field and the length of the each allocated
+      chunk pointed by the `.base` field is equal to the corresponding value from the initializer list.
 
       All chunks are located seamlessly one after the next within a single continuous memory block.
       Therefore the `.base` field of the next buffer just points to the byte following the end

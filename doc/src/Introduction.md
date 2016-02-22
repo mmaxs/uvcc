@@ -39,9 +39,9 @@ Uvcc's handle destroy callback differs from libuv's handle close callback in the
 
 Libuv uses the [`uv_buf_t`] structure to describe the I/O buffer. It is made up in accordance with
 system depended type [`iovec`] on Unix-like OSes and with [`WSABUF`] on Windows. An array of
-[`uv_buf_t`] structures is used to allow writing multiple buffers in a single `uv::write` request.
+`uv_buf_t` structures is used to allow writing multiple buffers in a single `uv::write` request.
 
-The class `uv::buffer` encapsulates [`uv_buf_t`] structure and provides `uv_buf_t[]` array functionality.
+The class `uv::buffer` encapsulates `uv_buf_t` structure and provides `uv_buf_t[]` array functionality.
 See descriptions for `uv::buffer`'s constructors.
 
 For the following example here is the diagram illustrating the internals of the `uv::buffer` object while executing `foo(BUF)`:
