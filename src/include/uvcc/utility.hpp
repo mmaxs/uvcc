@@ -164,7 +164,26 @@ template< typename _T_, typename... _Ts_ > constexpr auto sum(const _T_& _v, con
 // \}
 
 
-/*! \brief A reference counter with atomic increment/decrement. */
+/*! \brief A reference counter with atomic increment/decrement.
+    \details The default constructor creates a new `ref_count` object with the value = **1**.
+
+    Atomic operations on the `ref_count` object provide the following memory ordering semantics:
+     Member function | Memory ordering
+    :----------------|:---------------:
+     `value()`       | acquire
+     `inc()`         | relaxed
+     `dec()`         | release
+
+    Thus the client code can use `value()` function to check the current number of the variables
+    referencing a counted object and be sure to be _synchronized-with_ the last `dec()` operation
+    (i.e. to see all the results of non-atomic memory changes _happened-before_ the last `dec()`
+    operation which should normally occurs when a variable of the counted object is destroyed on
+    going out of its scope).
+
+    `inc()` throws `std::runtime_error` if the current value to be incremented is **0** as this
+    circumstance is considered as a variable of the counted object is being constructed/copied
+    from a reference just becoming a dangling one.
+*/
 class ref_count
 {
 public: /*types*/
@@ -189,11 +208,11 @@ public: /*interface*/
 
   type inc()
   {
-    auto c = value();
+    auto c = count.load(std::memory_order_relaxed);
     do
       if (c == 0)   throw std::runtime_error(__PRETTY_FUNCTION__);  /*
       // perhaps constructing/copying from a reference just becoming a dangling one */
-    while (!count.compare_exchange_weak(c, c+1, std::memory_order_acquire, std::memory_order_relaxed));
+    while (!count.compare_exchange_weak(c, c+1, std::memory_order_relaxed, std::memory_order_relaxed));
     return c+1;
   }
 
