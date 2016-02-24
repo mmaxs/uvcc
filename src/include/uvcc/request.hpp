@@ -272,7 +272,7 @@ public: /*interface*/
   const on_request_t& on_request() const noexcept  { return base< uv_t >::from(uv_req)->on_request(); }
         on_request_t& on_request()       noexcept  { return base< uv_t >::from(uv_req)->on_request(); }
 
-  /*! \brief The tcp stream which this connect request is running on. */
+  /*! \brief The `uv::tcp` stream which this connect request is running on. */
   tcp handle() const noexcept  { return tcp(static_cast< uv_t* >(uv_req)->handle); }
 
   /*! \brief Run the request.

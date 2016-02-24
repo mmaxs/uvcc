@@ -65,7 +65,7 @@ public: /*types*/
   using on_destroy_t = std::function< void(void*) >;
   /*!< \brief The function type of the callback called when the handle is about to be closed and destroyed.
        \sa Libuv documentation: [`uv_close_cb`](http://docs.libuv.org/en/v1.x/handle.html#c.uv_close_cb),
-       [`uv_close()`](http://docs.libuv.org/en/v1.x/handle.html#c.uv_close). */
+                                [`uv_close()`](http://docs.libuv.org/en/v1.x/handle.html#c.uv_close). */
 
 protected: /*types*/
   //! \cond
@@ -265,14 +265,14 @@ public: /*constructors*/
 
 public: /*interface*/
   /*! \brief The amount of queued bytes waiting to be sent. */
-  std::size_t write_queue_size()  { return static_cast< uv_t* >(uv_handle)->write_queue_size; }
+  std::size_t write_queue_size() const noexcept  { return static_cast< uv_t* >(uv_handle)->write_queue_size; }
   /*! \brief Check if the stream is readable. */
-  bool is_readable()  { return ::uv_is_readable(static_cast< uv_t* >(uv_handle)); }
+  bool is_readable() const noexcept  { return ::uv_is_readable(static_cast< uv_t* >(uv_handle)); }
   /*! \brief Check if the stream is writable. */
-  bool is_writable()  { return ::uv_is_writable(static_cast< uv_t* >(uv_handle)); }
-  /*! \brief Enable or disable blocking mode for the stream.
+  bool is_writable() const noexcept  { return ::uv_is_writable(static_cast< uv_t* >(uv_handle)); }
+  /*! \details Enable or disable blocking mode for the stream.
       \sa Libuv documentation: [`uv_stream_set_blocking()`](http://docs.libuv.org/en/v1.x/stream.html#c.uv_stream_set_blocking). */
-  int set_blocking(bool _b)  { return ::uv_stream_set_blocking(static_cast< uv_t* >(uv_handle), _b); }
+  int set_blocking(bool _enable) noexcept  { return ::uv_stream_set_blocking(static_cast< uv_t* >(uv_handle), _enable); }
 
 public: /*conversion operators*/
   operator const uv_t*() const noexcept  { return static_cast< const uv_t* >(uv_handle); }
@@ -280,6 +280,8 @@ public: /*conversion operators*/
 };
 
 
+/*! \brief TCP handle type.
+    \sa Libuv documentation: [`uv_tcp_t`](http://docs.libuv.org/en/v1.x/tcp.html#uv-tcp-t-tcp-handle). */
 class tcp : public stream
 {
   friend class connect;
@@ -303,14 +305,52 @@ public: /*constructors*/
   tcp(tcp&&) noexcept = default;
   tcp& operator =(tcp&&) noexcept = default;
 
-  tcp(::uv_loop_t *_loop)
+  /*! \details Create a socket with the specified flags.
+      \note With `AF_UNSPEC` flag no socket is created.
+      \sa Libuv documentation: [`uv_tcp_init_ex()`](http://docs.libuv.org/en/v1.x/tcp.html#c.uv_tcp_init_ex). */
+  tcp(::uv_loop_t *_loop, unsigned int _flags = AF_INET)
   {
     uv_handle = base< uv_t >::create();
-    ::uv_tcp_init_ex(_loop, static_cast< uv_t* >(uv_handle), AF_INET);
+    ::uv_tcp_init_ex(_loop, static_cast< uv_t* >(uv_handle), _flags);
+  }
+  /*! \details Create a socket object from an existing OS' native socket descriptor.
+      \sa Libuv documentation: [`uv_tcp_open()`](http://docs.libuv.org/en/v1.x/tcp.html#c.uv_tcp_open),
+                               [`uv_tcp_init()`](http://docs.libuv.org/en/v1.x/tcp.html#c.uv_tcp_init). */
+  tcp(::uv_loop_t *_loop, ::uv_os_sock_t _sock)
+  {
+    uv_handle = base< uv_t >::create();
+    ::uv_tcp_init(_loop, static_cast< uv_t* >(uv_handle));
+    ::uv_tcp_open(static_cast< uv_t* >(uv_handle), _sock);
   }
 
 public: /*intreface*/
+  /*! \brief Get the platform dependent socket descriptor. The alias for `handle::fileno()`. */
   ::uv_os_sock_t socket() const noexcept  { return (::uv_os_sock_t)fileno(); }
+
+  /*! \brief Enable or disable Nagle’s algorithm on the socket. */
+  int nodelay(bool _enable) noexcept  { return ::uv_tcp_nodelay(static_cast< uv_t* >(uv_handle), _enable); }
+  /*! \details Enable or disable TCP keep-alive.
+      \arg `_delay` is the initial delay in seconds, ignored when `_enable = false`. */
+  int keepalive(bool _enable, unsigned int _delay) noexcept  { return ::uv_tcp_keepalive(static_cast< uv_t* >(uv_handle), _enable, _delay); }
+  /*! \details Enable or disable simultaneous asynchronous accept requests that are queued by the operating system when listening for new TCP connections.
+      \sa Libuv documentation: [`uv_tcp_simultaneous_accepts()`](http://docs.libuv.org/en/v1.x/tcp.html#c.uv_tcp_simultaneous_accepts). */
+  int simultaneous_accepts(bool _enable) noexcept  { return ::uv_tcp_simultaneous_accepts(static_cast< uv_t* >(uv_handle), _enable); }
+  /*! \details Bind the handle to an address and port.
+      `_sa` should point to an initialized `struct sockaddr_in` or `struct sockaddr_in6`.
+      \sa Libuv documentation: [`uv_tcp_bind()`](http://docs.libuv.org/en/v1.x/tcp.html#c.uv_tcp_bind). */
+  int bind(const ::sockaddr* _sa, unsigned int _flags) noexcept  { return ::uv_tcp_bind(static_cast< uv_t* >(uv_handle), _sa, _flags); }
+  /*! \brief Get the address which this handle is bound to. */
+  int getsockname(::sockaddr_storage *_sa) const noexcept
+  {
+    int z = sizeof(*_sa);
+    return ::uv_tcp_getsockname(static_cast< uv_t* >(uv_handle), reinterpret_cast< ::sockaddr* >(_sa), &z);
+  }
+  /*! \brief Get the address of the remote peer connected to this handle. */
+  int getpeername(::sockaddr_storage *_sa) const noexcept
+  {
+    int z = sizeof(*_sa);
+    return ::uv_tcp_getpeername(static_cast< uv_t* >(uv_handle), reinterpret_cast< ::sockaddr* >(_sa), &z);
+  }
 
 public: /*conversion operators*/
   operator const uv_t*() const noexcept  { return static_cast< const uv_t* >(uv_handle); }
