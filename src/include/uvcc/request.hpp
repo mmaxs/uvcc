@@ -150,6 +150,7 @@ protected: /*types*/
 
     void ref()  { rc.inc(); }
     void unref()  { if (rc.dec() == 0)  destroy(); }
+    ref_count::type refs() const noexcept  { return rc.value(); }
 
     void lock() noexcept  { busy.lock(); }
     bool try_lock() noexcept { return busy.try_lock(); }
@@ -198,6 +199,8 @@ public: /*constructors*/
 
 public: /*interface*/
   void swap(request &_r) noexcept  { std::swap(uv_req, _r.uv_req); }
+  /*! \brief The current number of existing references to the same object as this request variable refers to. */
+  long refs() const noexcept  { return base< uv_t >::from(uv_req)->refs(); }
 
   const on_destroy_t& on_destroy() const noexcept  { return base< uv_t >::from(uv_req)->on_destroy(); }
         on_destroy_t& on_destroy()       noexcept  { return base< uv_t >::from(uv_req)->on_destroy(); }

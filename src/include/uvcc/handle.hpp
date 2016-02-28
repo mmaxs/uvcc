@@ -124,6 +124,7 @@ protected: /*types*/
 
     void ref()  { rc.inc(); }
     void unref() noexcept  { if (rc.dec() == 0)  destroy(); }
+    ref_count::type refs() const noexcept  { return rc.value(); }
   };
   //! \endcond
 
@@ -168,6 +169,8 @@ public: /*constructors*/
 
 public: /*interface*/
   void swap(handle &_h) noexcept  { std::swap(uv_handle, _h.uv_handle); }
+  /*! \brief The current number of existing references to the same object as this handle variable refers to. */
+  long refs() const noexcept  { return base< uv_t >::from(uv_handle)->refs(); }
 
   const on_destroy_t& on_destroy() const noexcept  { return base< uv_t >::from(uv_handle)->on_destroy(); }
         on_destroy_t& on_destroy()       noexcept  { return base< uv_t >::from(uv_handle)->on_destroy(); }

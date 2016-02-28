@@ -106,6 +106,7 @@ private: /*types*/
 
     void ref()  { rc_.inc(); }
     void unref() noexcept  { if (rc_.dec() == 0)  destroy(); }
+    ref_count::type refs() const noexcept  { return rc_.value(); }
   };
 
 private: /*data*/
@@ -172,6 +173,8 @@ public: /*constructors*/
 
 public: /*interface*/
   void swap(buffer &_b) noexcept  { std::swap(uv_buf, _b.uv_buf); }
+  /*! \brief The current number of existing references to the same buffer as this variable refers to. */
+  long refs() const noexcept  { return instance::from(uv_buf)->refs(); }
 
   std::size_t count() const noexcept  { return instance::from(uv_buf)->buf_count(); }  /*!< \brief The number of the `uv_buf_t` structures in the array. */
 
