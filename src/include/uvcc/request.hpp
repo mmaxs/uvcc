@@ -280,11 +280,12 @@ public: /*interface*/
 
   /*! \brief Run the request.
       \sa Libuv documentation: [`uv_tcp_connect()`](http://docs.libuv.org/en/v1.x/tcp.html#c.uv_tcp_connect). */
-  int run(tcp _tcp, const ::sockaddr *_sa)
+  template< typename _T_, typename = std::enable_if_t< is_one_of< _T_, ::sockaddr_in, ::sockaddr_in6, ::sockaddr_storage >::value > >
+  int run(tcp _tcp, const _T_ &_sa)
   {
     handle::base< tcp::uv_t >::from(_tcp.uv_handle)->ref();
     base< uv_t >::from(uv_req)->ref();
-    return ::uv_tcp_connect(static_cast< uv_t* >(uv_req), _tcp, _sa, run_cb);
+    return ::uv_tcp_connect(static_cast< uv_t* >(uv_req), _tcp, reinterpret_cast< const ::sockaddr* >(&_sa), run_cb);
   }
   int run_protected(tcp _tcp, const ::sockaddr *_sa)
   {

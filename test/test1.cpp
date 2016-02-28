@@ -91,7 +91,7 @@ int main(int _argc, char *_argv[])
     
     c_req.on_request() = ccb2;
 
-    int o = c_req.run(c, (const ::sockaddr*)&in_loopback);
+    int o = c_req.run(c, in_loopback);
     fprintf(stdout, "c_req: %s(%i): %s\n", ::uv_err_name(o), o, ::uv_strerror(o));
     fflush(stdout);
   
