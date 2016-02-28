@@ -7,7 +7,7 @@
 #include <uv.h>
 #include <cstddef>      // offsetof
 #include <functional>   // function
-#include <type_traits>  // is_standard_layout
+#include <type_traits>  // is_standard_layout enable_if_t
 #include <utility>      // swap() move()
 #include <memory>       // addressof()
 
@@ -336,20 +336,24 @@ public: /*intreface*/
       \sa Libuv documentation: [`uv_tcp_simultaneous_accepts()`](http://docs.libuv.org/en/v1.x/tcp.html#c.uv_tcp_simultaneous_accepts). */
   int simultaneous_accepts(bool _enable) noexcept  { return ::uv_tcp_simultaneous_accepts(static_cast< uv_t* >(uv_handle), _enable); }
   /*! \details Bind the handle to an address and port.
-      `_sa` should point to an initialized `struct sockaddr_in` or `struct sockaddr_in6`.
       \sa Libuv documentation: [`uv_tcp_bind()`](http://docs.libuv.org/en/v1.x/tcp.html#c.uv_tcp_bind). */
-  int bind(const ::sockaddr* _sa, unsigned int _flags) noexcept  { return ::uv_tcp_bind(static_cast< uv_t* >(uv_handle), _sa, _flags); }
-  /*! \brief Get the address which this handle is bound to. */
-  int getsockname(::sockaddr_storage *_sa) const noexcept
+  template< typename _T_, typename = std::enable_if_t< is_one_of< _T_, ::sockaddr_in, ::sockaddr_in6, ::sockaddr_storage >::value > >
+  int bind(const _T_ &_sa, unsigned int _flags) noexcept  { return ::uv_tcp_bind(static_cast< uv_t* >(uv_handle), reinterpret_cast< ::sockaddr* >(&_sa), _flags); }
+  /*! \details Get the address which this handle is bound to.
+      \sa libuv documentation: [`uv_tcp_getsockname()`](http://docs.libuv.org/en/v1.x/tcp.html#c.uv_tcp_getsockname). */
+  template< typename _T_, typename = std::enable_if_t< is_one_of< _T_, ::sockaddr_in, ::sockaddr_in6, ::sockaddr_storage >::value > >
+  int getsockname(_T_ &_sa) const noexcept
   {
-    int z = sizeof(*_sa);
-    return ::uv_tcp_getsockname(static_cast< uv_t* >(uv_handle), reinterpret_cast< ::sockaddr* >(_sa), &z);
+    int z = sizeof(_T_);
+    return ::uv_tcp_getsockname(static_cast< uv_t* >(uv_handle), reinterpret_cast< ::sockaddr* >(&_sa), &z);
   }
-  /*! \brief Get the address of the remote peer connected to this handle. */
-  int getpeername(::sockaddr_storage *_sa) const noexcept
+  /*! \details Get the address of the remote peer connected to this handle.
+      \sa libuv documentation: [`uv_tcp_getpeername()`](http://docs.libuv.org/en/v1.x/tcp.html#c.uv_tcp_getpeername). */
+  template< typename _T_, typename = std::enable_if_t< is_one_of< _T_, ::sockaddr_in, ::sockaddr_in6, ::sockaddr_storage >::value > >
+  int getpeername(_T_ &_sa) const noexcept
   {
-    int z = sizeof(*_sa);
-    return ::uv_tcp_getpeername(static_cast< uv_t* >(uv_handle), reinterpret_cast< ::sockaddr* >(_sa), &z);
+    int z = sizeof(_T_);
+    return ::uv_tcp_getpeername(static_cast< uv_t* >(uv_handle), reinterpret_cast< ::sockaddr* >(&_sa), &z);
   }
 
 public: /*conversion operators*/
