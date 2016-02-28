@@ -341,7 +341,7 @@ public: /*intreface*/
   /*! \details Bind the handle to an address and port.
       \sa Libuv documentation: [`uv_tcp_bind()`](http://docs.libuv.org/en/v1.x/tcp.html#c.uv_tcp_bind). */
   template< typename _T_, typename = std::enable_if_t< is_one_of< _T_, ::sockaddr_in, ::sockaddr_in6, ::sockaddr_storage >::value > >
-  int bind(const _T_ &_sa, unsigned int _flags) noexcept  { return ::uv_tcp_bind(static_cast< uv_t* >(uv_handle), reinterpret_cast< ::sockaddr* >(&_sa), _flags); }
+  int bind(const _T_ &_sa, unsigned int _flags) noexcept  { return ::uv_tcp_bind(static_cast< uv_t* >(uv_handle), reinterpret_cast< const ::sockaddr* >(&_sa), _flags); }
   /*! \details Get the address which this handle is bound to.
       \sa libuv documentation: [`uv_tcp_getsockname()`](http://docs.libuv.org/en/v1.x/tcp.html#c.uv_tcp_getsockname). */
   template< typename _T_, typename = std::enable_if_t< is_one_of< _T_, ::sockaddr_in, ::sockaddr_in6, ::sockaddr_storage >::value > >
