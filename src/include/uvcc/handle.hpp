@@ -103,11 +103,11 @@ protected: /*types*/
       }
     }
 
-    static void destroy_cb(uv_t *_uv_h)
+    static void destroy_cb(uv_t *_uv_handle)
     {
-      base *b = from(_uv_h);
+      base *b = from(_uv_handle);
       on_destroy_t &f = b->on_destroy_storage.value();
-      if (f)  f(_uv_h->data);
+      if (f)  f(_uv_handle->data);
       b->Delete(b);
     }
 
@@ -248,10 +248,10 @@ public: /*types*/
   using uv_t = ::uv_stream_t;
 
 private: /*constructors*/
-  explicit stream(uv_t *_uv_h)
+  explicit stream(uv_t *_uv_handle)
   {
-    base< uv_t >::from(_uv_h)->ref();
-    uv_handle = _uv_h;
+    base< uv_t >::from(_uv_handle)->ref();
+    uv_handle = _uv_handle;
   }
 
 protected: /*constructors*/
@@ -293,10 +293,10 @@ public: /*types*/
   using uv_t = ::uv_tcp_t;
 
 private: /*constructors*/
-  explicit tcp(stream::uv_t *_uv_h)
+  explicit tcp(stream::uv_t *_uv_handle)
   {
-    base< uv_t >::from(_uv_h)->ref();
-    uv_handle = _uv_h;
+    base< uv_t >::from(_uv_handle)->ref();
+    uv_handle = _uv_handle;
   }
 
 public: /*constructors*/
