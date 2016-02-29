@@ -48,7 +48,7 @@ For the following example here is the diagram illustrating the internals of the 
 ```
 uv::buffer BUF{100, 200, 0, 300};
 
-void foo(uv::buffer _b)  { ... }
+void foo(uv::buffer _b)  { /*...*/ }
 
 int main() {
   foo(BUF);
