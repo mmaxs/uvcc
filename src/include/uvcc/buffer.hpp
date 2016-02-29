@@ -65,7 +65,7 @@ private: /*types*/
         }
         else
         {
-          uv_buf_.base = reinterpret_cast< char* >(buf) + alignment_padding(buf_count_-1);
+          uv_buf_.base = reinterpret_cast< char* >(buf) + alignment_padding(buf_count_ - 1);
           buf = &uv_buf_;
           for (decltype(buf_count_) i = 1; i < buf_count_; ++i)  buf[i].base = &buf[i-1].base[buf[i-1].len];
         }
@@ -201,7 +201,6 @@ namespace std
 template<> void swap(uv::buffer &_this, uv::buffer &_that) noexcept  { _this.swap(_that); }
 
 }
-
 
 
 #endif
