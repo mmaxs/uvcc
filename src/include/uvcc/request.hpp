@@ -234,10 +234,10 @@ public: /*types*/
        \sa libuv documentation: [`uv_connect_cb`](http://docs.libuv.org/en/v1.x/stream.html#c.uv_connect_cb). */
 
 private: /*constructors*/
-  explicit connect(uv_t *_uv_r)
+  explicit connect(uv_t *_uv_req)
   {
-    base< uv_t >::from(_uv_r)->ref();
-    uv_req = _uv_r;
+    base< uv_t >::from(_uv_req)->ref();
+    uv_req = _uv_req;
   }
 
 public: /*constructors*/
@@ -251,24 +251,24 @@ public: /*constructors*/
   connect& operator =(connect&&) noexcept = default;
 
 private: /*functions*/
-  static void run_cb(uv_t *_uv_r, int _status)
+  static void run_cb(uv_t *_uv_req, int _status)
   {
     using handle_base = handle::base< tcp::uv_t >;
-    ref_guard< handle_base > unref_handle(*handle_base::from(_uv_r->handle), adopt_ref);
-    ref_guard< base< uv_t > > unref(*base< uv_t >::from(_uv_r), adopt_ref);
+    ref_guard< handle_base > unref_handle(*handle_base::from(_uv_req->handle), adopt_ref);
+    ref_guard< base< uv_t > > unref(*base< uv_t >::from(_uv_req), adopt_ref);
 
-    on_request_t &f = base< uv_t >::from(_uv_r)->on_request();
-    if (f)  f(connect(_uv_r), _status);
+    on_request_t &f = base< uv_t >::from(_uv_req)->on_request();
+    if (f)  f(connect(_uv_req), _status);
   }
-  static void run_protected_cb(uv_t *_uv_r, int _status)
+  static void run_protected_cb(uv_t *_uv_req, int _status)
   {
     using handle_base = handle::base< tcp::uv_t >;
-    ref_guard< handle_base > unref_handle(*handle_base::from(_uv_r->handle), adopt_ref);
-    ref_guard< base< uv_t > > unref(*base< uv_t >::from(_uv_r), adopt_ref);
-    std::lock_guard< base< uv_t > > unprotect(*base< uv_t >::from(_uv_r), std::adopt_lock);
+    ref_guard< handle_base > unref_handle(*handle_base::from(_uv_req->handle), adopt_ref);
+    ref_guard< base< uv_t > > unref(*base< uv_t >::from(_uv_req), adopt_ref);
+    std::lock_guard< base< uv_t > > unprotect(*base< uv_t >::from(_uv_req), std::adopt_lock);
 
-    on_request_t &f = base< uv_t >::from(_uv_r)->on_request();
-    if (f)  f(connect(_uv_r), _status);
+    on_request_t &f = base< uv_t >::from(_uv_req)->on_request();
+    if (f)  f(connect(_uv_req), _status);
   }
 
 public: /*interface*/
@@ -320,10 +320,10 @@ public: /*types*/
        \sa libuv documentation: [`uv_write_cb`](http://docs.libuv.org/en/v1.x/stream.html#c.uv_write_cb). */
 
 private: /*constructors*/
-  explicit write(uv_t *_uv_r)
+  explicit write(uv_t *_uv_req)
   {
-    base< uv_t >::from(_uv_r)->ref();
-    uv_req = _uv_r;
+    base< uv_t >::from(_uv_req)->ref();
+    uv_req = _uv_req;
   }
 
 public: /*constructors*/
@@ -337,24 +337,24 @@ public: /*constructors*/
   write& operator =(write&&) noexcept = default;
 
 private: /*functions*/
-  static void run_cb(uv_t *_uv_r, int _status)
+  static void run_cb(uv_t *_uv_req, int _status)
   {
     using handle_base = handle::base< stream::uv_t >;
-    ref_guard< handle_base > unref_handle(*handle_base::from(_uv_r->handle), adopt_ref);
-    ref_guard< base< uv_t > > unref(*base< uv_t >::from(_uv_r), adopt_ref);
+    ref_guard< handle_base > unref_handle(*handle_base::from(_uv_req->handle), adopt_ref);
+    ref_guard< base< uv_t > > unref(*base< uv_t >::from(_uv_req), adopt_ref);
 
-    on_request_t &f = base< uv_t >::from(_uv_r)->on_request();
-    if (f)  f(write(_uv_r), _status);
+    on_request_t &f = base< uv_t >::from(_uv_req)->on_request();
+    if (f)  f(write(_uv_req), _status);
   }
-  static void run_protected_cb(uv_t *_uv_r, int _status)
+  static void run_protected_cb(uv_t *_uv_req, int _status)
   {
     using handle_base = handle::base< stream::uv_t >;
-    ref_guard< handle_base > unref_handle(*handle_base::from(_uv_r->handle), adopt_ref);
-    ref_guard< base< uv_t > > unref(*base< uv_t >::from(_uv_r), adopt_ref);
-    std::lock_guard< base< uv_t > > unprotect(*base< uv_t >::from(_uv_r), std::adopt_lock);
+    ref_guard< handle_base > unref_handle(*handle_base::from(_uv_req->handle), adopt_ref);
+    ref_guard< base< uv_t > > unref(*base< uv_t >::from(_uv_req), adopt_ref);
+    std::lock_guard< base< uv_t > > unprotect(*base< uv_t >::from(_uv_req), std::adopt_lock);
 
-    on_request_t &f = base< uv_t >::from(_uv_r)->on_request();
-    if (f)  f(write(_uv_r), _status);
+    on_request_t &f = base< uv_t >::from(_uv_req)->on_request();
+    if (f)  f(write(_uv_req), _status);
   }
 
 public: /*interface*/
@@ -434,10 +434,10 @@ public: /*types*/
        \sa libuv documentation: [`uv_shutdown_cb`](http://docs.libuv.org/en/v1.x/stream.html#c.uv_shutdown_cb). */
 
 private: /*constructors*/
-  explicit shutdown(uv_t *_uv_r)
+  explicit shutdown(uv_t *_uv_req)
   {
-    base< uv_t >::from(_uv_r)->ref();
-    uv_req = _uv_r;
+    base< uv_t >::from(_uv_req)->ref();
+    uv_req = _uv_req;
   }
 
 public: /*constructors*/
@@ -451,14 +451,14 @@ public: /*constructors*/
   shutdown& operator =(shutdown&&) noexcept = default;
 
 private: /*functions*/
-  static void run_cb(uv_t *_uv_r, int _status)
+  static void run_cb(uv_t *_uv_req, int _status)
   {
     using handle_base = handle::base< stream::uv_t >;
-    ref_guard< handle_base > unref_handle(*handle_base::from(_uv_r->handle), adopt_ref);
-    ref_guard< base< uv_t > > unref(*base< uv_t >::from(_uv_r), adopt_ref);
+    ref_guard< handle_base > unref_handle(*handle_base::from(_uv_req->handle), adopt_ref);
+    ref_guard< base< uv_t > > unref(*base< uv_t >::from(_uv_req), adopt_ref);
 
-    on_request_t &f = base< uv_t >::from(_uv_r)->on_request();
-    if (f)  f(shutdown(_uv_r), _status);
+    on_request_t &f = base< uv_t >::from(_uv_req)->on_request();
+    if (f)  f(shutdown(_uv_req), _status);
   }
 
 public: /*interface*/
