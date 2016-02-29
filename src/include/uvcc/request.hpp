@@ -84,7 +84,7 @@ UV_REQ_TYPE_MAP(XX)
 /*! \brief The base class for the libuv requests.
     \details Derived classes conceptually are just interfaces to the data stored
     in the base class, so there are no any virtual member functions.
-    \sa Libuv documentation: [`uv_req_t`](http://docs.libuv.org/en/v1.x/request.html#uv-req-t-base-request). */
+    \sa libuv documentation: [`uv_req_t`](http://docs.libuv.org/en/v1.x/request.html#uv-req-t-base-request). */
 class request
 {
 public: /*types*/
@@ -208,12 +208,12 @@ public: /*interface*/
   /*! \brief The libuv type tag of the request. */
   ::uv_req_type type() const noexcept  { return static_cast< uv_t* >(uv_req)->type; }
 
-  /*! \brief The pointer to the user-defined arbitrary data. Libuv and uvcc does not use this field. */
+  /*! \brief The pointer to the user-defined arbitrary data. libuv and uvcc does not use this field. */
   void* const& data() const noexcept  { return static_cast< uv_t* >(uv_req)->data; }
   void*      & data()       noexcept  { return static_cast< uv_t* >(uv_req)->data; }
 
   /*! \details Cancel a pending request.
-      \sa Libuv documentation: [`uv_cancel()`](http://docs.libuv.org/en/v1.x/request.html#c.uv_cancel).*/
+      \sa libuv documentation: [`uv_cancel()`](http://docs.libuv.org/en/v1.x/request.html#c.uv_cancel).*/
   int cancel() noexcept  { return ::uv_cancel(static_cast< uv_t* >(uv_req)); }
 
 public: /*conversion operators*/
@@ -231,7 +231,7 @@ public: /*types*/
   using on_request_t = typename uv_req_traits< uv_t >::on_request_t;
   /*!< \brief The function type of the callback called after a connection request is done.
        See \ref g__request_traits
-       \sa Libuv documentation: [`uv_connect_cb`](http://docs.libuv.org/en/v1.x/stream.html#c.uv_connect_cb). */
+       \sa libuv documentation: [`uv_connect_cb`](http://docs.libuv.org/en/v1.x/stream.html#c.uv_connect_cb). */
 
 private: /*constructors*/
   explicit connect(uv_t *_uv_r)
@@ -279,7 +279,7 @@ public: /*interface*/
   tcp handle() const noexcept  { return tcp(static_cast< uv_t* >(uv_req)->handle); }
 
   /*! \brief Run the request.
-      \sa Libuv documentation: [`uv_tcp_connect()`](http://docs.libuv.org/en/v1.x/tcp.html#c.uv_tcp_connect). */
+      \sa libuv documentation: [`uv_tcp_connect()`](http://docs.libuv.org/en/v1.x/tcp.html#c.uv_tcp_connect). */
   template< typename _T_, typename = std::enable_if_t< is_one_of< _T_, ::sockaddr_in, ::sockaddr_in6, ::sockaddr_storage >::value > >
   int run(tcp _tcp, const _T_ &_sa)
   {
@@ -317,7 +317,7 @@ public: /*types*/
   using on_request_t = typename uv_req_traits< uv_t >::on_request_t;
   /*!< \brief The function type of the callback called after data was written on a stream.
        See \ref g__request_traits
-       \sa Libuv documentation: [`uv_write_cb`](http://docs.libuv.org/en/v1.x/stream.html#c.uv_write_cb). */
+       \sa libuv documentation: [`uv_write_cb`](http://docs.libuv.org/en/v1.x/stream.html#c.uv_write_cb). */
 
 private: /*constructors*/
   explicit write(uv_t *_uv_r)
@@ -367,7 +367,7 @@ public: /*interface*/
   stream send_handle() const noexcept  { return stream(static_cast< uv_t* >(uv_req)->send_handle); }
 
   /*! \brief Run the request.
-      \sa Libuv documentation: [`uv_write()`](http://docs.libuv.org/en/v1.x/stream.html#c.uv_write). */
+      \sa libuv documentation: [`uv_write()`](http://docs.libuv.org/en/v1.x/stream.html#c.uv_write). */
   int run(stream _stream, const buffer _buf)
   {
     handle::base< stream::uv_t >::from(_stream.uv_handle)->ref();
@@ -375,7 +375,7 @@ public: /*interface*/
     return ::uv_write(static_cast< uv_t* >(uv_req), _stream, _buf, _buf.count(), run_cb);
   }
   /*! \brief The overload for sending handles over a pipe.
-      \sa Libuv documentation: [`uv_write2()`](http://docs.libuv.org/en/v1.x/stream.html#c.uv_write2). */
+      \sa libuv documentation: [`uv_write2()`](http://docs.libuv.org/en/v1.x/stream.html#c.uv_write2). */
   int run(pipe _pipe, const stream _send_handle)
   {
     return 0;
@@ -411,7 +411,7 @@ public: /*interface*/
 
   /*! \details The wrapper for corresponding libuv function.
       \note It tries to execute and complete immediately and does not call the request callback.
-      \sa Libuv documentation: [`uv_try_write()`](http://docs.libuv.org/en/v1.x/stream.html#c.uv_try_write). */
+      \sa libuv documentation: [`uv_try_write()`](http://docs.libuv.org/en/v1.x/stream.html#c.uv_try_write). */
   int try_write(stream _stream, const buffer _buf)
   {
     return ::uv_try_write(_stream, _buf, _buf.count());
@@ -431,7 +431,7 @@ public: /*types*/
   using on_request_t = typename uv_req_traits< uv_t >::on_request_t;
   /*!< \brief The function type of the callback called after a shutdown request has been completed.
        See \ref g__request_traits
-       \sa Libuv documentation: [`uv_shutdown_cb`](http://docs.libuv.org/en/v1.x/stream.html#c.uv_shutdown_cb). */
+       \sa libuv documentation: [`uv_shutdown_cb`](http://docs.libuv.org/en/v1.x/stream.html#c.uv_shutdown_cb). */
 
 private: /*constructors*/
   explicit shutdown(uv_t *_uv_r)
