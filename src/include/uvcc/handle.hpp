@@ -129,7 +129,9 @@ protected: /*types*/
   //! \endcond
 
 protected: /*data*/
+  //! \cond
   void *uv_handle;
+  //! \endcond
 
 protected: /*constructors*/
   handle() noexcept : uv_handle(nullptr)  {}
@@ -232,7 +234,7 @@ public: /*conversion operators*/
   operator const uv_t*() const noexcept  { return static_cast< const uv_t* >(uv_handle); }
   operator       uv_t*()       noexcept  { return static_cast<       uv_t* >(uv_handle); }
 
-  explicit operator bool() const noexcept  { return is_active(); }  /*!< \details Equivalent to `is_active()`. */
+  explicit operator bool() const noexcept  { return is_active(); }  /*!< \brief Equivalent to `is_active()`. */
 };
 
 

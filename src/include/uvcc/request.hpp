@@ -159,7 +159,9 @@ protected: /*types*/
   //! \endcond
 
 protected: /*data*/
+  //! \cond
   void *uv_req;
+  //! \endcond
 
 protected: /*constructors*/
   request() noexcept : uv_req(nullptr)  {}
