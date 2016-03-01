@@ -40,19 +40,36 @@ private: /*types*/
   class instance
   {
   public: /*types*/
-    struct default_loop_tag  {};
+    class uv_base
+    {
+    private:
+      uv_t value;
+      uv_t* ptr;
+
+    public:
+      ~uv_base()  { ::uv_loop_close(ptr); }
+
+      uv_base() noexcept : ptr(&value)  { ::uv_loop_init(ptr); }
+      explicit uv_base(uv_t *_uv_ptr) noexcept : ptr(_uv_ptr)  {}
+
+      uv_t* operator ->() const noexcept  { return ptr; }
+
+    public:
+      operator const uv_t*() const noexcept  { return ptr; }
+      operator       uv_t*()       noexcept  { return ptr; }
+    };
 
   private: /*data*/
     ref_count rc;
     type_storage< on_destroy_t > on_destroy_storage;
-    uv_t uv_loop;
+    uv_base uv_loop;
 
   private: /*constructors*/
-    instance()  { ::uv_loop_init(&uv_loop); }
-    instance(default_loop_tag) : uv_loop(*::uv_default_loop())  {}
+    instance() = default;
+    explicit instance(uv_t *_uv_ptr) : uv_loop(_uv_ptr)  {};
 
   public: /*constructors*/
-    ~instance()  { ::uv_loop_close(&uv_loop); }
+    ~instance() = default;
 
     instance(const instance&) = delete;
     instance& operator =(const instance&) = delete;
@@ -69,13 +86,13 @@ private: /*types*/
     }
 
   public: /*interface*/
-    static uv_t* create()  { return std::addressof((new instance())->uv_loop); }
-    static uv_t* create(default_loop_tag)  { return std::addressof((new instance(default_loop_tag()))->uv_loop); }
+    static uv_base* create()  { return std::addressof((new instance())->uv_loop); }
+    static uv_base* create(uv_t *_uv_ptr)  { return std::addressof((new instance(_uv_ptr))->uv_loop); }
 
-    constexpr static instance* from(void *_uv_loop) noexcept
+    constexpr static instance* from(uv_base *_uv_loop) noexcept
     {
       static_assert(std::is_standard_layout< instance >::value, "not a standard layout type");
-      return reinterpret_cast< instance* >(static_cast< char* >(_uv_loop) - offsetof(instance, uv_loop));
+      return reinterpret_cast< instance* >(reinterpret_cast< char* >(_uv_loop) - offsetof(instance, uv_loop));
     }
 
     on_destroy_t& on_destroy() noexcept  { return on_destroy_storage.value(); }
@@ -86,19 +103,15 @@ private: /*types*/
   };
 
 private: /*data*/
-  uv_t *uv_loop;
+  instance::uv_base *uv_loop;
 
 private: /*constructors*/
-  explicit loop(uv_t *_uv_loop)
+  explicit loop(instance::uv_base *_uv_loop)
   {
     instance::from(_uv_loop)->ref();
     uv_loop = _uv_loop;
   }
-
-  explicit loop(instance::default_loop_t *_default_loop)
-  {
-    uv_loop = ;
-  }
+  explicit loop(uv_t *_uv_ptr) : uv_loop(instance::create(_uv_ptr))  {}
 
 public: /*constructors*/
   ~loop()  { if (uv_loop)  instance::from(uv_loop)->unref(); }
@@ -116,7 +129,7 @@ public: /*constructors*/
     if (this != &_l)
     {
       instance::from(_l.uv_loop)->ref();
-      uv_t *uv_l = uv_loop;
+      auto uv_l = uv_loop;
       uv_loop = _l.uv_loop; 
       instance::from(uv_l)->unref();
     };
@@ -128,7 +141,7 @@ public: /*constructors*/
   {
     if (this != &_l)
     {
-      uv_t *uv_l = uv_loop;
+      auto uv_l = uv_loop;
       uv_loop = _l.uv_loop;
       _l.uv_loop = nullptr;
       instance::from(uv_l)->unref();
@@ -139,7 +152,7 @@ public: /*constructors*/
 public: /*interface*/
   static loop Default()
   {
-    static loop default_loop(instance::default_loop());
+    static loop default_loop(::uv_default_loop());
     return default_loop;
   }
 
@@ -152,8 +165,8 @@ public: /*interface*/
 
   /*! \details The pointer to the user-defined arbitrary data.
       \sa libuv documentation: [`uv_loop_t.data`](http://docs.libuv.org/en/v1.x/loop.html#c.uv_loop_t.data). */
-  void* const& data() const noexcept  { return uv_loop->data; }
-  void*      & data()       noexcept  { return uv_loop->data; }
+  void* const& data() const noexcept  { return (*uv_loop)->data; }
+  void*      & data()       noexcept  { return (*uv_loop)->data; }
 
   /*! \details Set additional loop options.
       \sa libuv documentation: [`uv_loop_configure()`](http://docs.libuv.org/en/v1.x/loop.html#c.uv_loop_configure). */
@@ -163,10 +176,10 @@ public: /*interface*/
   }
 
 public: /*conversion operators*/
-  operator const uv_t*() const noexcept  { return uv_loop; }
-  operator       uv_t*()       noexcept  { return uv_loop; }
+  operator const uv_t*() const noexcept  { return *uv_loop; }
+  operator       uv_t*()       noexcept  { return *uv_loop; }
 
-  explicit operator bool() const noexcept  { return is_active(); }  /*!< \details Equivalent to `is_alive()`. */
+  //explicit operator bool() const noexcept  { return is_active(); }  /*!< \details Equivalent to `is_alive()`. */
 };
 
 

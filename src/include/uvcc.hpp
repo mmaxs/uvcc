@@ -7,6 +7,7 @@
 #include "uvcc/buffer.hpp"
 #include "uvcc/handle.hpp"
 #include "uvcc/request.hpp"
+#include "uvcc/loop.hpp"
 
 #endif
 
