@@ -106,7 +106,7 @@ private: /*types*/
 
     void ref()  { rc_.inc(); }
     void unref() noexcept  { if (rc_.dec() == 0)  destroy(); }
-    ref_count::type refs() const noexcept  { return rc_.value(); }
+    ref_count::type nrefs() const noexcept  { return rc_.value(); }
   };
 
 private: /*data*/
@@ -141,40 +141,40 @@ public: /*constructors*/
       `uv_buf_t` buffer structures. */
   explicit buffer(const std::initializer_list< std::size_t > &_len_values) : uv_buf(instance::create(_len_values))  {}
 
-  buffer(const buffer &_b)
+  buffer(const buffer &_that)
   {
-    instance::from(_b.uv_buf)->ref();
-    uv_buf = _b.uv_buf; 
+    instance::from(_that.uv_buf)->ref();
+    uv_buf = _that.uv_buf;
   }
-  buffer& operator =(const buffer &_b)
+  buffer& operator =(const buffer &_that)
   {
-    if (this != &_b)
+    if (this != &_that)
     {
-      instance::from(_b.uv_buf)->ref();
-      uv_t *uv_b = uv_buf;
-      uv_buf = _b.uv_buf; 
-      instance::from(uv_b)->unref();
+      instance::from(_that.uv_buf)->ref();
+      auto t = uv_buf;
+      uv_buf = _that.uv_buf;
+      instance::from(t)->unref();
     };
     return *this;
   }
 
-  buffer(buffer &&_b) noexcept : uv_buf(_b.uv_buf)  { _b.uv_buf = nullptr; }
-  buffer& operator =(buffer &&_b) noexcept
+  buffer(buffer &&_that) noexcept : uv_buf(_that.uv_buf)  { _that.uv_buf = nullptr; }
+  buffer& operator =(buffer &&_that) noexcept
   {
-    if (this != &_b)
+    if (this != &_that)
     {
-      uv_t *uv_b = uv_buf;
-      uv_buf = _b.uv_buf;
-      _b.uv_buf = nullptr;
-      instance::from(uv_b)->unref();
+      auto t = uv_buf;
+      uv_buf = _that.uv_buf;
+      _that.uv_buf = nullptr;
+      instance::from(t)->unref();
     };
     return *this;
   }
 
 public: /*interface*/
-  void swap(buffer &_b) noexcept  { std::swap(uv_buf, _b.uv_buf); }
+  void swap(buffer &_that) noexcept  { std::swap(uv_buf, _that.uv_buf); }
   /*! \brief The current number of existing references to the same buffer as this variable refers to. */
-  long refs() const noexcept  { return instance::from(uv_buf)->refs(); }
+  long nrefs() const noexcept  { return instance::from(uv_buf)->nrefs(); }
 
   std::size_t count() const noexcept  { return instance::from(uv_buf)->buf_count(); }  /*!< \brief The number of the `uv_buf_t` structures in the array. */
 

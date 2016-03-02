@@ -150,7 +150,7 @@ protected: /*types*/
 
     void ref()  { rc.inc(); }
     void unref()  { if (rc.dec() == 0)  destroy(); }
-    ref_count::type refs() const noexcept  { return rc.value(); }
+    ref_count::type nrefs() const noexcept  { return rc.value(); }
 
     void lock() noexcept  { busy.lock(); }
     bool try_lock() noexcept { return busy.try_lock(); }
@@ -169,40 +169,40 @@ protected: /*constructors*/
 public: /*constructors*/
   ~request()  { if (uv_req)  base< uv_t >::from(uv_req)->unref(); }
 
-  request(const request &_r)
+  request(const request &_that)
   {
-    base< uv_t >::from(_r.uv_req)->ref();
-    uv_req = _r.uv_req; 
+    base< uv_t >::from(_that.uv_req)->ref();
+    uv_req = _that.uv_req;
   }
-  request& operator =(const request &_r)
+  request& operator =(const request &_that)
   {
-    if (this != &_r)
+    if (this != &_that)
     {
-      base< uv_t >::from(_r.uv_req)->ref();
-      void *uv_r = uv_req;
-      uv_req = _r.uv_req; 
-      base< uv_t >::from(uv_r)->unref();
+      base< uv_t >::from(_that.uv_req)->ref();
+      auto t = uv_req;
+      uv_req = _that.uv_req;
+      base< uv_t >::from(t)->unref();
     };
     return *this;
   }
 
-  request(request &&_r) noexcept : uv_req(_r.uv_req)  { _r.uv_req = nullptr; }
-  request& operator =(request &&_r) noexcept
+  request(request &&_that) noexcept : uv_req(_that.uv_req)  { _that.uv_req = nullptr; }
+  request& operator =(request &&_that) noexcept
   {
-    if (this != &_r)
+    if (this != &_that)
     {
-      void *uv_r = uv_req;
-      uv_req = _r.uv_req;
-      _r.uv_req = nullptr;
-      base< uv_t >::from(uv_r)->unref();
+      auto t = uv_req;
+      uv_req = _that.uv_req;
+      _that.uv_req = nullptr;
+      base< uv_t >::from(t)->unref();
     };
     return *this;
   }
 
 public: /*interface*/
-  void swap(request &_r) noexcept  { std::swap(uv_req, _r.uv_req); }
+  void swap(request &_that) noexcept  { std::swap(uv_req, _that.uv_req); }
   /*! \brief The current number of existing references to the same object as this request variable refers to. */
-  long refs() const noexcept  { return base< uv_t >::from(uv_req)->refs(); }
+  long nrefs() const noexcept  { return base< uv_t >::from(uv_req)->nrefs(); }
 
   const on_destroy_t& on_destroy() const noexcept  { return base< uv_t >::from(uv_req)->on_destroy(); }
         on_destroy_t& on_destroy()       noexcept  { return base< uv_t >::from(uv_req)->on_destroy(); }

@@ -94,13 +94,13 @@ protected: /*types*/
 
     void destroy()
     {
-      uv_t *uv_h = reinterpret_cast< uv_t* >(&uv_handle);
-      if (::uv_is_active(uv_h))
-        ::uv_close(uv_h, destroy_cb);
+      auto t = reinterpret_cast< uv_t* >(&uv_handle);
+      if (::uv_is_active(t))
+        ::uv_close(t, destroy_cb);
       else
       {
-        ::uv_close(uv_h, nullptr);
-        destroy_cb(uv_h);
+        ::uv_close(t, nullptr);
+        destroy_cb(t);
       }
     }
 
@@ -125,7 +125,7 @@ protected: /*types*/
 
     void ref()  { rc.inc(); }
     void unref() noexcept  { if (rc.dec() == 0)  destroy(); }
-    ref_count::type refs() const noexcept  { return rc.value(); }
+    ref_count::type nrefs() const noexcept  { return rc.value(); }
   };
   //! \endcond
 
@@ -147,40 +147,40 @@ protected: /*constructors*/
 public: /*constructors*/
   ~handle()  { if (uv_handle)  base< uv_t >::from(uv_handle)->unref(); }
 
-  handle(const handle &_h)
+  handle(const handle &_that)
   {
-    base< uv_t >::from(_h.uv_handle)->ref();
-    uv_handle = _h.uv_handle; 
+    base< uv_t >::from(_that.uv_handle)->ref();
+    uv_handle = _that.uv_handle;
   }
-  handle& operator =(const handle &_h)
+  handle& operator =(const handle &_that)
   {
-    if (this != &_h)
+    if (this != &_that)
     {
-      base< uv_t >::from(_h.uv_handle)->ref();
-      void *uv_h = uv_handle;
-      uv_handle = _h.uv_handle; 
-      base< uv_t >::from(uv_h)->unref();
+      base< uv_t >::from(_that.uv_handle)->ref();
+      auto t = uv_handle;
+      uv_handle = _that.uv_handle;
+      base< uv_t >::from(t)->unref();
     };
     return *this;
   }
 
-  handle(handle &&_h) noexcept : uv_handle(_h.uv_handle)  { _h.uv_handle = nullptr; }
-  handle& operator =(handle &&_h) noexcept
+  handle(handle &&_that) noexcept : uv_handle(_that.uv_handle)  { _that.uv_handle = nullptr; }
+  handle& operator =(handle &&_that) noexcept
   {
-    if (this != &_h)
+    if (this != &_that)
     {
-      void *uv_h = uv_handle;
-      uv_handle = _h.uv_handle;
-      _h.uv_handle = nullptr;
-      base< uv_t >::from(uv_h)->unref();
+      auto t = uv_handle;
+      uv_handle = _that.uv_handle;
+      _that.uv_handle = nullptr;
+      base< uv_t >::from(t)->unref();
     };
     return *this;
   }
 
 public: /*interface*/
-  void swap(handle &_h) noexcept  { std::swap(uv_handle, _h.uv_handle); }
+  void swap(handle &_that) noexcept  { std::swap(uv_handle, _that.uv_handle); }
   /*! \brief The current number of existing references to the same object as this handle variable refers to. */
-  long refs() const noexcept  { return base< uv_t >::from(uv_handle)->refs(); }
+  long nrefs() const noexcept  { return base< uv_t >::from(uv_handle)->nrefs(); }
 
   const on_destroy_t& on_destroy() const noexcept  { return base< uv_t >::from(uv_handle)->on_destroy(); }
         on_destroy_t& on_destroy()       noexcept  { return base< uv_t >::from(uv_handle)->on_destroy(); }
