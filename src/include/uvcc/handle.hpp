@@ -58,6 +58,7 @@ UV_HANDLE_TYPE_MAP(XX)
     \sa libuv documentation: [`uv_handle_t`](http://docs.libuv.org/en/v1.x/handle.html#uv-handle-t-base-handle). */
 class handle
 {
+  friend class loop;
   friend class request;
 
 public: /*types*/
@@ -132,6 +133,13 @@ protected: /*data*/
   //! \cond
   void *uv_handle;
   //! \endcond
+
+private: /*constructors*/
+  explicit handle(uv_t *_uv_handle)
+  {
+    base< uv_t >::from(_uv_handle)->ref();
+    uv_handle = _uv_handle;
+  }
 
 protected: /*constructors*/
   handle() noexcept : uv_handle(nullptr)  {}
