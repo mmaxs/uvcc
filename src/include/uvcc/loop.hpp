@@ -3,6 +3,7 @@
 #define UVCC_LOOP__HPP
 
 #include "uvcc/utility.hpp"
+#include "uvcc/handle.hpp"
 
 #include <uv.h>
 #include <cstddef>      // offsetof
@@ -18,7 +19,6 @@ namespace uv
     \brief The I/O event loop.
     \sa libuv documentation: [the I/O loop](http://docs.libuv.org/en/v1.x/design.html#the-i-o-loop). */
 //! \{
-
 
 
 /*! \brief The I/O event loop class.
@@ -135,11 +135,7 @@ public: /*interface*/
       [`uv_default_loop()`](http://docs.libuv.org/en/v1.x/loop.html#c.uv_default_loop)
       to create, initialize, and get the default loop instance as far as that one is just an ordinary loop
       instance stored in the global static variable. */
-  static loop Default() noexcept
-  {
-    static loop default_loop;
-    return default_loop;
-  }
+  static loop Default() noexcept;
 
   void swap(loop &_that) noexcept  { std::swap(uv_loop, _that.uv_loop); }
   /*! \brief The current number of existing references to the same loop as this variable refers to. */
@@ -199,16 +195,6 @@ public: /*conversion operators*/
 };
 
 
-
-#include "uvcc/handle.hpp"
-
-void loop::walk_cb(handle::uv_t *_uv_handle, void *_arg)
-{
-  auto t = static_cast< walk_pack* >(_arg);
-  t->func->operator ()(handle(_uv_handle), t->arg);
-}
-
-
 //! \}
 }
 
@@ -217,7 +203,7 @@ namespace std
 {
 
 //! \ingroup g__loop
-template<> void swap(uv::loop &_this, uv::loop &_that) noexcept  { _this.swap(_that); }
+template<> inline void swap(uv::loop &_this, uv::loop &_that) noexcept  { _this.swap(_that); }
 
 }
 
