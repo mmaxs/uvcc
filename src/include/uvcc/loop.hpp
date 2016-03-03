@@ -3,7 +3,6 @@
 #define UVCC_LOOP__HPP
 
 #include "uvcc/utility.hpp"
-#include "uvcc/handle.hpp"
 
 #include <uv.h>
 #include <cstddef>      // offsetof
@@ -128,11 +127,7 @@ public: /*constructors*/
   }
 
 private: /*functions*/
-  static void walk_cb(handle::uv_t *_uv_handle, void *_arg)
-  {
-    auto t = static_cast< walk_pack* >(_arg);
-    t->func->operator ()(handle(_uv_handle), t->arg);
-  }
+  static void walk_cb(handle::uv_t*, void*);
 
 public: /*interface*/
   /*! \brief Returns the initialized loop that can be used as a global default loop throughout the program.
@@ -202,6 +197,16 @@ public: /*conversion operators*/
 
   explicit operator bool() const noexcept  { return is_alive(); }  /*!< \brief Equivalent to `is_alive()`. */
 };
+
+
+
+#include "uvcc/handle.hpp"
+
+void loop::walk_cb(handle::uv_t *_uv_handle, void *_arg)
+{
+  auto t = static_cast< walk_pack* >(_arg);
+  t->func->operator ()(handle(_uv_handle), t->arg);
+}
 
 
 //! \}
