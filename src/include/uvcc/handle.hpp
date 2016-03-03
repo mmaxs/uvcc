@@ -92,6 +92,7 @@ protected: /*types*/
     base& operator =(base&&) = delete;
 
   private: /*functions*/
+    static void destroy_cb(::uv_handle_t*);
 
     void destroy()
     {
@@ -103,14 +104,6 @@ protected: /*types*/
         ::uv_close(t, nullptr);
         destroy_cb(t);
       }
-    }
-
-    static void destroy_cb(uv_t *_uv_handle)
-    {
-      base *b = from(_uv_handle);
-      on_destroy_t &f = b->on_destroy_storage.value();
-      if (f)  f(_uv_handle->data);
-      b->Delete(b);
     }
 
   public: /*interface*/
@@ -245,6 +238,16 @@ public: /*conversion operators*/
 
   explicit operator bool() const noexcept  { return is_active(); }  /*!< \brief Equivalent to `is_active()`. */
 };
+
+
+template< typename _UV_T_ >
+void handle::base< _UV_T_ >::destroy_cb(::uv_handle_t *_uv_handle)
+{
+  base *b = from(_uv_handle);
+  on_destroy_t &f = b->on_destroy_storage.value();
+  if (f)  f(_uv_handle->data);
+  b->Delete(b);
+}
 
 
 
