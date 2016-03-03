@@ -70,7 +70,8 @@ int main(int _argc, char *_argv[])
   {
     buffer b{1, 2};
 
-  tcp c(::uv_default_loop());
+  //tcp c(::uv_default_loop());
+  tcp c(loop::Default());
   c.on_destroy() = destroy_cb1;
   handle &h1 = c;
 
@@ -95,7 +96,8 @@ int main(int _argc, char *_argv[])
     fprintf(stdout, "c_req: %s(%i): %s\n", ::uv_err_name(o), o, ::uv_strerror(o));
     fflush(stdout);
   
-    int t = ::uv_run(::uv_default_loop(), UV_RUN_DEFAULT);
+    //int t = ::uv_run(::uv_default_loop(), UV_RUN_DEFAULT);
+    loop::Default().run(UV_RUN_DEFAULT);
 
   }
 
