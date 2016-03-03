@@ -3,7 +3,6 @@
 #define UVCC_LOOP__HPP
 
 #include "uvcc/utility.hpp"
-#include "uvcc/handle.hpp"
 
 #include <uv.h>
 #include <cstddef>      // offsetof
@@ -15,6 +14,11 @@
 
 namespace uv
 {
+
+
+class handle;
+
+
 /*! \defgroup g__loop Event loop
     \brief The I/O event loop.
     \sa libuv documentation: [the I/O loop](http://docs.libuv.org/en/v1.x/design.html#the-i-o-loop). */
@@ -26,6 +30,8 @@ namespace uv
     \sa libuv documentation: [`uv_loop_t`](http://docs.libuv.org/en/v1.x/loop.html#uv-loop-t-event-loop). */
 class loop
 {
+  friend class handle;
+
 public: /*types*/
   using uv_t = ::uv_loop_t;
   using on_destroy_t = std::function< void(void*) >;  /*!< \brief The function type of the callback called when the loop instance is about to be destroyed. */
@@ -127,7 +133,7 @@ public: /*constructors*/
   }
 
 private: /*functions*/
-  static void walk_cb(handle::uv_t*, void*);
+  static void walk_cb(::uv_handle_t*, void*);
 
 public: /*interface*/
   /*! \brief Returns the initialized loop that can be used as a global default loop throughout the program.
@@ -135,7 +141,11 @@ public: /*interface*/
       [`uv_default_loop()`](http://docs.libuv.org/en/v1.x/loop.html#c.uv_default_loop)
       to create, initialize, and get the default loop instance as far as that one is just an ordinary loop
       instance stored in the global static variable. */
-  static loop Default() noexcept;
+  static loop Default() noexcept
+  {
+    static loop default_loop;
+    return default_loop;
+  }
 
   void swap(loop &_that) noexcept  { std::swap(uv_loop, _that.uv_loop); }
   /*! \brief The current number of existing references to the same loop as this variable refers to. */
