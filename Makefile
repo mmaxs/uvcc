@@ -10,7 +10,7 @@ windows/%: LIBUV = $(ROOT)/libuv-x64-v1.8.0.build8
 
 # CXX common settings and flags
 CXX_FILE_SUFFIX = .cpp
-CXX_HEADER_SUFFIX = .hpp
+CXX_HEADER_SUFFIXES = .hpp .h
 CXX = c++
 windows/%: CXX = x86_64-w64-mingw32-c++
 CXXSTD = -std=c++1y

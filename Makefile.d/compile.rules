@@ -41,7 +41,7 @@ $(eval $({OBJECT-DEPENDENCIES}))
 
 # ... and the rules for compiling
 $({OBJECT-FILES}): $(MAKEFILE_LIST)
-$({OBJECT-FILES}): private {compile-parts} = $(filter-out %$(CXX_HEADER_SUFFIX) $(MAKEFILE_LIST),$^)
+$({OBJECT-FILES}): private {compile-parts} = $(filter-out $(addprefix %,$(CXX_HEADER_SUFFIXES)) $(MAKEFILE_LIST),$^)
 $({OBJECT-FILES}):
 	$(info $. *** ($@: $^))
 	$(COMPILE.cc) $(CXXSTD) $(IFLAGS) $({compile-parts})  -o $@
