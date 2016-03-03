@@ -3,6 +3,7 @@
 #define UVCC_HANDLE__HPP
 
 #include "uvcc/utility.hpp"
+#include "uvcc/loop.hpp"
 
 #include <uv.h>
 #include <cstddef>      // offsetof
@@ -188,7 +189,7 @@ public: /*interface*/
   /*! \brief The libuv type tag of the handle. */
   ::uv_handle_type type() const noexcept  { return static_cast< uv_t* >(uv_handle)->type; }
   /*! \brief The libuv loop where the handle is running on. */
-  ::uv_loop_t* loop() const noexcept  { return static_cast< uv_t* >(uv_handle)->loop; }
+  uv::loop loop() const noexcept  { return uv::loop{static_cast< uv_t* >(uv_handle)->loop}; }
 
   /*! \brief The pointer to the user-defined arbitrary data. libuv and uvcc does not use this field. */
   void* const& data() const noexcept  { return static_cast< uv_t* >(uv_handle)->data; }
@@ -321,7 +322,7 @@ public: /*constructors*/
   /*! \details Create a socket with the specified flags.
       \note With `AF_UNSPEC` flag no socket is created.
       \sa libuv documentation: [`uv_tcp_init_ex()`](http://docs.libuv.org/en/v1.x/tcp.html#c.uv_tcp_init_ex). */
-  tcp(::uv_loop_t *_loop, unsigned int _flags = AF_INET)
+  tcp(uv::loop _loop, unsigned int _flags = AF_INET)
   {
     uv_handle = base< uv_t >::create();
     ::uv_tcp_init_ex(_loop, static_cast< uv_t* >(uv_handle), _flags);
@@ -329,7 +330,7 @@ public: /*constructors*/
   /*! \details Create a socket object from an existing OS' native socket descriptor.
       \sa libuv documentation: [`uv_tcp_open()`](http://docs.libuv.org/en/v1.x/tcp.html#c.uv_tcp_open),
                                [`uv_tcp_init()`](http://docs.libuv.org/en/v1.x/tcp.html#c.uv_tcp_init). */
-  tcp(::uv_loop_t *_loop, ::uv_os_sock_t _sock)
+  tcp(uv::loop _loop, ::uv_os_sock_t _sock)
   {
     uv_handle = base< uv_t >::create();
     ::uv_tcp_init(_loop, static_cast< uv_t* >(uv_handle));
