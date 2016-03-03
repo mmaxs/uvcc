@@ -428,7 +428,7 @@ namespace std
 {
 
 //! \ingroup g__handle
-template<> void swap(uv::handle &_this, uv::handle &_that) noexcept  { _this.swap(_that); }
+template<> inline void swap(uv::handle &_this, uv::handle &_that) noexcept  { _this.swap(_that); }
 
 }
 

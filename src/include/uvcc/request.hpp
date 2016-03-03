@@ -597,7 +597,7 @@ namespace std
 {
 
 //! \ingroup g__request
-template<> void swap(uv::request &_this, uv::request &_that) noexcept  { _this.swap(_that); }
+template<> inline void swap(uv::request &_this, uv::request &_that) noexcept  { _this.swap(_that); }
 
 }
 

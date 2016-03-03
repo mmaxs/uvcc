@@ -198,7 +198,7 @@ namespace std
 {
 
 //! \ingroup g__buffer
-template<> void swap(uv::buffer &_this, uv::buffer &_that) noexcept  { _this.swap(_that); }
+template<> inline void swap(uv::buffer &_this, uv::buffer &_that) noexcept  { _this.swap(_that); }
 
 }
 
