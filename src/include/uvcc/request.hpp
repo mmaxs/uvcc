@@ -4,7 +4,6 @@
 
 #include "uvcc/utility.hpp"
 #include "uvcc/buffer.hpp"
-#include "uvcc/thread.hpp"
 #include "uvcc/handle.hpp"
 
 #include <uv.h>
@@ -109,7 +108,6 @@ protected: /*types*/
     void (*Delete)(void*);  // store a proper delete operator
     ref_count rc;
     type_storage< on_destroy_t > on_destroy_storage;
-    mutex busy;
     on_request_storage_t on_request_storage;
     alignas(::uv_any_req) _UV_T_ uv_req;
 
@@ -151,10 +149,6 @@ protected: /*types*/
     void ref()  { rc.inc(); }
     void unref()  { if (rc.dec() == 0)  destroy(); }
     ref_count::type nrefs() const noexcept  { return rc.value(); }
-
-    void lock() noexcept  { busy.lock(); }
-    bool try_lock() noexcept { return busy.try_lock(); }
-    void unlock() noexcept   { busy.unlock(); }
   };
   //! \endcond
 
@@ -258,16 +252,6 @@ public: /*constructors*/
 private: /*functions*/
   template< typename = void > static void connect_cb(::uv_connect_t*, int);
 
-  static void run_protected_cb(uv_t *_uv_req, int _status)
-  {
-    ref_guard< tcp::base > unref_handle(*tcp::base::from(_uv_req->handle), adopt_ref);
-    ref_guard< base > unref(*base::from(_uv_req), adopt_ref);
-    std::lock_guard< base > unprotect(*base::from(_uv_req), std::adopt_lock);
-
-    on_request_t &f = base::from(_uv_req)->on_request();
-    if (f)  f(connect(_uv_req), _status);
-  }
-
 public: /*interface*/
   const on_request_t& on_request() const noexcept  { return base::from(uv_req)->on_request(); }
         on_request_t& on_request()       noexcept  { return base::from(uv_req)->on_request(); }
@@ -284,21 +268,6 @@ public: /*interface*/
     base::from(uv_req)->ref();
     return ::uv_tcp_connect(static_cast< uv_t* >(uv_req), _tcp, reinterpret_cast< const ::sockaddr* >(&_sa), connect_cb);
   }
-  int run_protected(tcp _tcp, const ::sockaddr *_sa)
-  {
-    tcp::base::from(_tcp.uv_handle)->ref();
-    base::from(uv_req)->ref();
-    base::from(uv_req)->lock();
-    return ::uv_tcp_connect(static_cast< uv_t* >(uv_req), _tcp, _sa, run_protected_cb);
-  }
-  int try_run_protected(tcp _tcp, const ::sockaddr *_sa)
-  {
-    int o = base::from(uv_req)->try_lock();
-    if (o != 0)  return o;
-    tcp::base::from(_tcp.uv_handle)->ref();
-    base::from(uv_req)->ref();
-    return ::uv_tcp_connect(static_cast< uv_t* >(uv_req), _tcp, _sa, run_protected_cb);
-  }
 
 public: /*conversion operators*/
   operator const uv_t*() const noexcept  { return static_cast< const uv_t* >(uv_req); }
@@ -309,7 +278,7 @@ template< typename >
 void connect::connect_cb(::uv_connect_t *_uv_req, int _status)
 {
   ref_guard< tcp::base > unref_handle(*tcp::base::from(_uv_req->handle), adopt_ref);
-  ref_guard< base > unref(*base::from(_uv_req), adopt_ref);
+  ref_guard< base > unref_req(*base::from(_uv_req), adopt_ref);
 
   on_request_t &f = base::from(_uv_req)->on_request();
   if (f)  f(connect(_uv_req), _status);
@@ -350,16 +319,6 @@ public: /*constructors*/
 private: /*functions*/
   template< typename = void > static void write_cb(::uv_write_t*, int);
 
-  static void run_protected_cb(uv_t *_uv_req, int _status)
-  {
-    ref_guard< stream::base > unref_handle(*stream::base::from(_uv_req->handle), adopt_ref);
-    ref_guard< base > unref(*base::from(_uv_req), adopt_ref);
-    std::lock_guard< base > unprotect(*base::from(_uv_req), std::adopt_lock);
-
-    on_request_t &f = base::from(_uv_req)->on_request();
-    if (f)  f(write(_uv_req), _status);
-  }
-
 public: /*interface*/
   const on_request_t& on_request() const noexcept  { return base::from(uv_req)->on_request(); }
         on_request_t& on_request()       noexcept  { return base::from(uv_req)->on_request(); }
@@ -384,34 +343,6 @@ public: /*interface*/
     return 0;
   }
 
-
-  /*! \brief The version for protected `run(stream, const buffer)` */
-  int run_protected(stream _stream, const buffer _buf)
-  {
-    stream::base::from(_stream.uv_handle)->ref();
-    base::from(uv_req)->ref();
-    base::from(uv_req)->lock();
-    return ::uv_write(static_cast< uv_t* >(uv_req), _stream, _buf, _buf.count(), run_protected_cb);
-  }
-  /*! \brief The version for protected `run(pipe, stream)` */
-  int run_protected(pipe _pipe, const stream _send_handle)
-  {
-    return 0;
-  }
-
-  int try_run_protected(stream _stream, const buffer _buf)
-  {
-    int o = base::from(uv_req)->try_lock();
-    if (o != 0)  return o;
-    stream::base::from(_stream.uv_handle)->ref();
-    base::from(uv_req)->ref();
-    return ::uv_write(static_cast< uv_t* >(uv_req), _stream, _buf, _buf.count(), run_protected_cb);
-  }
-  int try_run_protected(pipe _pipe, const stream _send_handle)
-  {
-    return 0;
-  }
-
   /*! \details The wrapper for corresponding libuv function.
       \note It tries to execute and complete immediately and does not call the request callback.
       \sa libuv documentation: [`uv_try_write()`](http://docs.libuv.org/en/v1.x/stream.html#c.uv_try_write). */
@@ -429,7 +360,7 @@ template< typename >
 void write::write_cb(::uv_write_t *_uv_req, int _status)
 {
   ref_guard< stream::base > unref_handle(*stream::base::from(_uv_req->handle), adopt_ref);
-  ref_guard< base > unref(*base::from(_uv_req), adopt_ref);
+  ref_guard< base > unref_req(*base::from(_uv_req), adopt_ref);
 
   on_request_t &f = base::from(_uv_req)->on_request();
   if (f)  f(write(_uv_req), _status);
@@ -494,7 +425,7 @@ template< typename >
 void shutdown::shutdown_cb(::uv_shutdown_t *_uv_req, int _status)
 {
   ref_guard< stream::base > unref_handle(*stream::base::from(_uv_req->handle), adopt_ref);
-  ref_guard< base > unref(*base::from(_uv_req), adopt_ref);
+  ref_guard< base > unref_req(*base::from(_uv_req), adopt_ref);
 
   on_request_t &f = base::from(_uv_req)->on_request();
   if (f)  f(shutdown(_uv_req), _status);
