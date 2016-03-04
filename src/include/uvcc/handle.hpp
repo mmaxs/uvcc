@@ -16,7 +16,15 @@
 namespace uv
 {
 /*! \defgroup g__handle Handles
-    \brief The classes representing libuv handles. */
+    \brief The classes representing libuv handles.
+    \note uvcc handle objects have no interface functions corresponding to the following libuv
+    API functions that control whether a handle is
+    [referenced by the event loop](http://docs.libuv.org/en/v1.x/handle.html#reference-counting)
+    which it has been attached to while being created and where it is running on:
+    [`uv_ref()`](http://docs.libuv.org/en/v1.x/handle.html#c.uv_ref),
+    [`uv_unref()`](http://docs.libuv.org/en/v1.x/handle.html#c.uv_unref),
+    [`uv_has_ref()`](http://docs.libuv.org/en/v1.x/handle.html#c.uv_has_ref).
+    These libuv functions can be directly applied to uvcc handle objects if necessary. */
 //! \{
 
 
@@ -179,7 +187,7 @@ public: /*interface*/
   const on_destroy_t& on_destroy() const noexcept  { return base< uv_t >::from(uv_handle)->on_destroy(); }
         on_destroy_t& on_destroy()       noexcept  { return base< uv_t >::from(uv_handle)->on_destroy(); }
 
-  /*! \brief The libuv type tag of the handle. */
+  /*! \brief The tag indicating the libuv type of the handle. */
   ::uv_handle_type type() const noexcept  { return static_cast< uv_t* >(uv_handle)->type; }
   /*! \brief The libuv loop where the handle is running on. */
   uv::loop loop() const noexcept  { return uv::loop{static_cast< uv_t* >(uv_handle)->loop}; }

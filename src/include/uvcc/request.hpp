@@ -201,7 +201,7 @@ public: /*interface*/
   const on_destroy_t& on_destroy() const noexcept  { return base< uv_t >::from(uv_req)->on_destroy(); }
         on_destroy_t& on_destroy()       noexcept  { return base< uv_t >::from(uv_req)->on_destroy(); }
 
-  /*! \brief The libuv type tag of the request. */
+  /*! \brief The tag indicating the libuv type of the request. */
   ::uv_req_type type() const noexcept  { return static_cast< uv_t* >(uv_req)->type; }
 
   /*! \brief The pointer to the user-defined arbitrary data. libuv and uvcc does not use this field. */
