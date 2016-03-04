@@ -92,17 +92,17 @@ protected: /*types*/
     base& operator =(base&&) = delete;
 
   private: /*functions*/
-    static void destroy_cb(::uv_handle_t*);
+    static void close_cb(::uv_handle_t*);
 
     void destroy()
     {
       auto t = reinterpret_cast< uv_t* >(&uv_handle);
       if (::uv_is_active(t))
-        ::uv_close(t, destroy_cb);
+        ::uv_close(t, close_cb);
       else
       {
         ::uv_close(t, nullptr);
-        destroy_cb(t);
+        close_cb(t);
       }
     }
 
@@ -239,17 +239,14 @@ public: /*conversion operators*/
   explicit operator bool() const noexcept  { return is_active(); }  /*!< \brief Equivalent to `is_active()`. */
 };
 
-
-//! \cond
 template< typename _UV_T_ >
-void handle::base< _UV_T_ >::destroy_cb(::uv_handle_t *_uv_handle)
+void handle::base< _UV_T_ >::close_cb(::uv_handle_t *_uv_handle)
 {
   base *b = from(_uv_handle);
   on_destroy_t &f = b->on_destroy_storage.value();
   if (f)  f(_uv_handle->data);
   b->Delete(b);
 }
-//! \endcond
 
 
 
@@ -263,10 +260,13 @@ class stream : public handle
 public: /*types*/
   using uv_t = ::uv_stream_t;
 
+private: /*types*/
+  using base = handle::base< uv_t >;
+
 private: /*constructors*/
   explicit stream(uv_t *_uv_handle)
   {
-    base< uv_t >::from(_uv_handle)->ref();
+    base::from(_uv_handle)->ref();
     uv_handle = _uv_handle;
   }
 
@@ -308,10 +308,13 @@ class tcp : public stream
 public: /*types*/
   using uv_t = ::uv_tcp_t;
 
+private: /*types*/
+  using base = handle::base< uv_t >;
+
 private: /*constructors*/
   explicit tcp(stream::uv_t *_uv_handle)
   {
-    base< uv_t >::from(_uv_handle)->ref();
+    base::from(_uv_handle)->ref();
     uv_handle = _uv_handle;
   }
 
@@ -329,7 +332,7 @@ public: /*constructors*/
       \sa libuv documentation: [`uv_tcp_init_ex()`](http://docs.libuv.org/en/v1.x/tcp.html#c.uv_tcp_init_ex). */
   tcp(uv::loop _loop, unsigned int _flags = AF_INET)
   {
-    uv_handle = base< uv_t >::create();
+    uv_handle = base::create();
     ::uv_tcp_init_ex(_loop, static_cast< uv_t* >(uv_handle), _flags);
   }
   /*! \details Create a socket object from an existing OS' native socket descriptor.
@@ -337,7 +340,7 @@ public: /*constructors*/
                                [`uv_tcp_init()`](http://docs.libuv.org/en/v1.x/tcp.html#c.uv_tcp_init). */
   tcp(uv::loop _loop, ::uv_os_sock_t _sock)
   {
-    uv_handle = base< uv_t >::create();
+    uv_handle = base::create();
     ::uv_tcp_init(_loop, static_cast< uv_t* >(uv_handle));
     ::uv_tcp_open(static_cast< uv_t* >(uv_handle), _sock);
   }
@@ -386,6 +389,9 @@ class pipe : public stream
 public: /*types*/
   using uv_t = ::uv_pipe_t;
 
+private: /*types*/
+  using base = handle::base< uv_t >;
+
 public: /*constructors*/
   ~pipe() = default;
 
@@ -407,6 +413,9 @@ class udp : public handle
 {
 public: /*types*/
   using uv_t = ::uv_udp_t;
+
+private: /*types*/
+  using base = handle::base< uv_t >;
 
 public: /*constructors*/
   ~udp() = default;
