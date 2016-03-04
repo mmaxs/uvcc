@@ -240,6 +240,7 @@ public: /*conversion operators*/
 };
 
 
+//! \cond
 template< typename _UV_T_ >
 void handle::base< _UV_T_ >::destroy_cb(::uv_handle_t *_uv_handle)
 {
@@ -248,6 +249,7 @@ void handle::base< _UV_T_ >::destroy_cb(::uv_handle_t *_uv_handle)
   if (f)  f(_uv_handle->data);
   b->Delete(b);
 }
+//! \endcond
 
 
 

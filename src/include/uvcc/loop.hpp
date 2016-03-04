@@ -137,8 +137,8 @@ private: /*functions*/
   static void walk_cb(::uv_handle_t*, void*);
 
 public: /*interface*/
-  /*! \brief Returns the initialized loop that can be used as a global default loop throughout the program.
-      \note This function does not need to use the libuv function
+  /*! \brief Returns the initialized loop that can be used as a global default loop throughout the program. */
+  /*! \internal \note This function does not need to use the libuv function
       [`uv_default_loop()`](http://docs.libuv.org/en/v1.x/loop.html#c.uv_default_loop)
       to create, initialize, and get the default loop instance as far as that one is just an ordinary loop
       instance stored in the global static variable. */
