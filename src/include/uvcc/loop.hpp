@@ -133,8 +133,7 @@ public: /*constructors*/
   }
 
 private: /*functions*/
-  template< typename = void >
-  static void walk_cb(::uv_handle_t*, void*);
+  template< typename = void > static void walk_cb(::uv_handle_t*, void*);
 
 public: /*interface*/
   /*! \brief Returns the initialized loop that can be used as a global default loop throughout the program. */
@@ -216,7 +215,7 @@ public: /*conversion operators*/
 namespace uv
 {
 
-template< typename _T_ >
+template< typename >
 void loop::walk_cb(::uv_handle_t *_uv_handle, void *_arg)
 {
   auto t = static_cast< walk_pack* >(_arg);
