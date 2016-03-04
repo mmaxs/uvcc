@@ -41,6 +41,9 @@ void ccb2(uv::connect _c, int _status)
     uv::write wr;
     wr.on_request() = [](uv::write _req, int _status){
           fprintf(stdout, "write: %s(%i): %s\n", ::uv_err_name(_status), _status, ::uv_strerror(_status));  fflush(stdout);
+          _req.handle().loop().walk([](handle _h, void*){
+              fprintf(stdout, "walk: 0x%p:%u\n", _h.fileno(), _h.type());  fflush(stdout);
+          }, nullptr);
     };
     static const char* msg = "Hello, uvcc!\n";
     buffer b;

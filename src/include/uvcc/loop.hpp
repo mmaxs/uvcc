@@ -133,6 +133,7 @@ public: /*constructors*/
   }
 
 private: /*functions*/
+  template< typename = void >
   static void walk_cb(::uv_handle_t*, void*);
 
 public: /*interface*/
@@ -206,6 +207,22 @@ public: /*conversion operators*/
 
 
 //! \}
+}
+
+
+#include "uvcc/handle.hpp"
+
+
+namespace uv
+{
+
+template< typename _T_ >
+void loop::walk_cb(::uv_handle_t *_uv_handle, void *_arg)
+{
+  auto t = static_cast< walk_pack* >(_arg);
+  t->func->operator ()(handle(_uv_handle), t->arg);
+}
+
 }
 
 
