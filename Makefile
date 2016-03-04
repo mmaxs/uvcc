@@ -77,6 +77,12 @@ windows/test/%: test/windows/% ;
 test/%:
 	$(MAKE) -C test $*
 
+.PHONY: doc
+doc:
+	rm -rf doc/html/*
+	doxygen doc/Doxyfile
+
+
 
 # the summary of the predefined implicit rules
 #
