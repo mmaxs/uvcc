@@ -11,6 +11,7 @@
 #include <type_traits>  // is_standard_layout enable_if_t
 #include <utility>      // swap() move()
 #include <memory>       // addressof()
+#include <string>       // string
 
 
 namespace uv
@@ -343,7 +344,7 @@ public: /*constructors*/
     uv_handle = base::create();
     ::uv_tcp_init_ex(_loop, static_cast< uv_t* >(uv_handle), _flags);
   }
-  /*! \details Create a socket object from an existing OS' native socket descriptor.
+  /*! \details Create a socket object from an existing OS native socket descriptor.
       \sa libuv documentation: [`uv_tcp_open()`](http://docs.libuv.org/en/v1.x/tcp.html#c.uv_tcp_open),
                                [`uv_tcp_init()`](http://docs.libuv.org/en/v1.x/tcp.html#c.uv_tcp_init). */
   tcp(uv::loop _loop, ::uv_os_sock_t _sock)
@@ -392,6 +393,9 @@ public: /*conversion operators*/
 };
 
 
+
+/*! \brief Pipe handle type.
+    \sa libuv documentation: [`uv_pipe_t`](http://docs.libuv.org/en/v1.x/pipe.html#uv-pipe-t-pipe-handle). */
 class pipe : public stream
 {
 public: /*types*/
@@ -409,7 +413,61 @@ public: /*constructors*/
   pipe(pipe&&) noexcept = default;
   pipe& operator =(pipe&&) noexcept = default;
 
+  /*! \details Create a pipe bound to a file path (Unix domain socket) or a name (Windows named pipe).
+      \sa libuv documentation: [`uv_pipe_init()`](http://docs.libuv.org/en/v1.x/pipe.html#c.uv_pipe_init),
+                               [`uv_pipe_bind()`](http://docs.libuv.org/en/v1.x/pipe.html#c.uv_pipe_bind). */
+  pipe(uv::loop _loop, const char* _name, bool _ipc = false)
+  {
+    uv_handle = base::create();
+    ::uv_pipe_init(_loop, static_cast< uv_t* >(uv_handle), _ipc);
+    ::uv_pipe_bind(static_cast< uv_t* >(uv_handle), _name);
+  }
+  /*! \details Create a pipe object from an existing OS native pipe descriptor.
+      \sa libuv documentation: [`uv_pipe_open()`](http://docs.libuv.org/en/v1.x/pipe.html#c.uv_pipe_open). */
+  pipe(uv::loop _loop, ::uv_file _fd, bool _ipc = false)
+  {
+    uv_handle = base::create();
+    ::uv_pipe_init(_loop, static_cast< uv_t* >(uv_handle), _ipc);
+    ::uv_pipe_open(static_cast< uv_t* >(uv_handle), _fd);
+  }
+
 public: /*intreface*/
+  /*! \brief Get the name of the Unix domain socket or the Windows named pipe for this pipe object. */
+  std::string getsockname() const noexcept
+  {
+#ifdef UNIX_PATH_MAX
+    size_t len = UNIX_PATH_MAX;
+#else
+    size_t len = 108;
+#endif
+    std::string name(len, '\0');
+    int o = 0;
+    while ( (o = ::uv_pipe_getsockname(static_cast< uv_t* >(uv_handle), const_cast< char* >(name.c_str()), &len)) != 0 and o == UV_ENOBUFS )
+        name.resize(len, '\0');
+    return name;
+  }
+  /*! \brief Get the name of the Unix domain socket or the Windows named pipe which this pipe object is connected to. */
+  std::string getpeername() const noexcept
+  {
+#ifdef UNIX_PATH_MAX
+    size_t len = UNIX_PATH_MAX;
+#else
+    size_t len = 108;
+#endif
+    std::string name(len, '\0');
+    int o = 0;
+    while ( (o = ::uv_pipe_getpeername(static_cast< uv_t* >(uv_handle), const_cast< char* >(name.c_str()), &len)) != 0 and o == UV_ENOBUFS )
+        name.resize(len, '\0');
+    return name;
+  }
+  /*! \brief Set the number of pending pipe instances when this pipe server is waiting for connections. (_Windows only_) */
+  void pending_instances(int _count) noexcept  { ::uv_pipe_pending_instances(static_cast< uv_t* >(uv_handle), _count); }
+
+  /*! \brief Used in conjunction with `pending_type()`. */
+  int pending_count() const noexcept  { return ::uv_pipe_pending_count(static_cast< uv_t* >(uv_handle)); }
+  /*! \details Used to receive handles over IPC pipes.
+      \sa libuv documentation: [`uv_pipe_pending_type()`](http://docs.libuv.org/en/v1.x/pipe.html#c.uv_pipe_pending_type). */
+  ::uv_handle_type pending_type() const noexcept  { return ::uv_pipe_pending_type(static_cast< uv_t* >(uv_handle)); }
 
 public: /*conversion operators*/
   operator const uv_t*() const noexcept  { return static_cast< const uv_t* >(uv_handle); }

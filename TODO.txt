@@ -22,4 +22,6 @@ http://docs.libuv.org/en/v1.x/stream.html#c.uv_write2
 
 [tcp]
 
-[]
+[pipe]
+http://docs.libuv.org/en/v1.x/pipe.html#c.uv_pipe_connect
+
