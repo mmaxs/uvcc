@@ -12,7 +12,7 @@
 #include <memory>       // shared_ptr
 #include <functional>   // function
 #include <utility>      // move()
-#include <type_traits>  // aligned_storage is_standard_layout
+#include <type_traits>  // aligned_storage is_standard_layout conditional_t is_void
 #include <mutex>        // lock_guard adopt_lock
 
 
@@ -53,8 +53,8 @@ class getnameinfo;
 #define ON_GETNAMEINFO_T std::function< void(int) >
 
 class request;
-#define req request  // redefine UV_REQ_TYPE_MAP() entry
-#define ON_REQ_T std::function< void() >  // a dummy declaration for UV_REQ_TYPE_MAP() being able to be used
+#define req request  // redefine the UV_REQ_TYPE_MAP() entry
+#define ON_REQ_T void  // a dummy declaration for UV_REQ_TYPE_MAP() being able to be used
 
 
 //! \cond
@@ -98,10 +98,10 @@ protected: /*types*/
   private: /*types*/
     using on_request_t = typename uv_req_traits< _UV_T_ >::on_request_t;
     using on_request_storage_t = union_storage<
-#define XX(X, x) uv_req_traits< uv_##x##_t >::on_request_t,
+#define XX(X, x) std::conditional_t< std::is_void< uv_req_traits< uv_##x##_t >::on_request_t >::value, null_t, uv_req_traits< uv_##x##_t >::on_request_t >,
         UV_REQ_TYPE_MAP(XX)
 #undef XX
-        on_request_t
+        null_t
     >;
 
   private: /*data*/
@@ -144,7 +144,8 @@ protected: /*types*/
     }
 
     on_destroy_t& on_destroy() noexcept  { return on_destroy_storage.value(); }
-    on_request_t& on_request() noexcept  { return on_request_storage.template value< on_request_t >(); }
+    template< typename _ON_REQUEST_T_ = on_request_t >  // make it to be a separate template to prevent unconditional erroneous generating this member for invalid (void) on_request_t
+    _ON_REQUEST_T_& on_request() noexcept  { return on_request_storage.template value< _ON_REQUEST_T_ >(); }
 
     void ref()  { rc.inc(); }
     void unref()  { if (rc.dec() == 0)  destroy(); }
