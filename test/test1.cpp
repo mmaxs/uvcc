@@ -31,7 +31,7 @@ struct destroy_cb2
 void ccb1(uv::connect _c, int _status)
 {
   fprintf(stdout, "ccb1: %s(%i): %s\n", ::uv_err_name(_status), _status, ::uv_strerror(_status));  fflush(stdout);
-  if (_status == 0)  ::send(_c.handle().socket(), "Hello!\n", 7, 0);
+  if (_status == 0)  ::send(static_cast< uv::tcp&& >(_c.handle()).socket(), "Hello!\n", 7, 0);
 }
 void ccb2(uv::connect _c, int _status)
 {

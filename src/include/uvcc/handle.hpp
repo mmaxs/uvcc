@@ -263,6 +263,7 @@ void handle::base< _UV_T_ >::close_cb(::uv_handle_t *_uv_handle)
     \sa libuv documentation: [`uv_stream_t`](http://docs.libuv.org/en/v1.x/stream.html#uv-stream-t-stream-handle). */
 class stream : public handle
 {
+  friend class connect;
   friend class write;
   friend class shutdown;
 
@@ -321,7 +322,7 @@ private: /*types*/
   using base = handle::base< uv_t >;
 
 private: /*constructors*/
-  explicit tcp(stream::uv_t *_uv_handle)
+  explicit tcp(uv_t *_uv_handle)
   {
     base::from(_uv_handle)->ref();
     uv_handle = _uv_handle;
@@ -398,11 +399,21 @@ public: /*conversion operators*/
     \sa libuv documentation: [`uv_pipe_t`](http://docs.libuv.org/en/v1.x/pipe.html#uv-pipe-t-pipe-handle). */
 class pipe : public stream
 {
+  friend class connect;
+  friend class write;
+
 public: /*types*/
   using uv_t = ::uv_pipe_t;
 
 private: /*types*/
   using base = handle::base< uv_t >;
+
+private: /*constructors*/
+  explicit pipe(uv_t *_uv_handle)
+  {
+    base::from(_uv_handle)->ref();
+    uv_handle = _uv_handle;
+  }
 
 public: /*constructors*/
   ~pipe() = default;
@@ -436,9 +447,9 @@ public: /*intreface*/
   std::string getsockname() const noexcept
   {
 #ifdef UNIX_PATH_MAX
-    size_t len = UNIX_PATH_MAX;
+    std::size_t len = UNIX_PATH_MAX;
 #else
-    size_t len = 108;
+    std::size_t len = 108;
 #endif
     std::string name(len, '\0');
     int o = 0;
@@ -450,9 +461,9 @@ public: /*intreface*/
   std::string getpeername() const noexcept
   {
 #ifdef UNIX_PATH_MAX
-    size_t len = UNIX_PATH_MAX;
+    std::size_t len = UNIX_PATH_MAX;
 #else
-    size_t len = 108;
+    std::size_t len = 108;
 #endif
     std::string name(len, '\0');
     int o = 0;

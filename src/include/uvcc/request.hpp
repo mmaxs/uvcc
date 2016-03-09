@@ -257,10 +257,10 @@ public: /*interface*/
   const on_request_t& on_request() const noexcept  { return base::from(uv_req)->on_request(); }
         on_request_t& on_request()       noexcept  { return base::from(uv_req)->on_request(); }
 
-  /*! \brief The `uv::tcp` stream which this connect request is running on. */
-  tcp handle() const noexcept  { return tcp(static_cast< uv_t* >(uv_req)->handle); }
+  /*! \brief The stream (`uv::tcp` or `uv::pipe`) which this connect request is running on. */
+  stream handle() const noexcept  { return stream(static_cast< uv_t* >(uv_req)->handle); }
 
-  /*! \brief Run the request.
+  /*! \brief Run the request for `uv::tcp` stream.
       \sa libuv documentation: [`uv_tcp_connect()`](http://docs.libuv.org/en/v1.x/tcp.html#c.uv_tcp_connect). */
   template< typename _T_, typename = std::enable_if_t< is_one_of< _T_, ::sockaddr_in, ::sockaddr_in6, ::sockaddr_storage >::value > >
   int run(tcp _tcp, const _T_ &_sa)
@@ -268,6 +268,14 @@ public: /*interface*/
     tcp::base::from(_tcp.uv_handle)->ref();
     base::from(uv_req)->ref();
     return ::uv_tcp_connect(static_cast< uv_t* >(uv_req), _tcp, reinterpret_cast< const ::sockaddr* >(&_sa), connect_cb);
+  }
+  /*! \brief Run the request for `uv::pipe` stream.
+      \sa libuv documentation: [`uv_pipe_connect()`](http://docs.libuv.org/en/v1.x/pipe.html#c.uv_pipe_connect). */
+  void run(pipe _pipe, const char *_name)
+  {
+    pipe::base::from(_pipe.uv_handle)->ref();
+    base::from(uv_req)->ref();
+    ::uv_pipe_connect(static_cast< uv_t* >(uv_req), _pipe, _name, connect_cb);
   }
 
 public: /*conversion operators*/
@@ -278,7 +286,7 @@ public: /*conversion operators*/
 template< typename >
 void connect::connect_cb(::uv_connect_t *_uv_req, int _status)
 {
-  ref_guard< tcp::base > unref_handle(*tcp::base::from(_uv_req->handle), adopt_ref);
+  ref_guard< stream::base > unref_handle(*stream::base::from(_uv_req->handle), adopt_ref);
   ref_guard< base > unref_req(*base::from(_uv_req), adopt_ref);
 
   on_request_t &f = base::from(_uv_req)->on_request();
@@ -319,6 +327,7 @@ public: /*constructors*/
 
 private: /*functions*/
   template< typename = void > static void write_cb(::uv_write_t*, int);
+  template< typename = void > static void write2_cb(::uv_write_t*, int);
 
 public: /*interface*/
   const on_request_t& on_request() const noexcept  { return base::from(uv_req)->on_request(); }
@@ -339,9 +348,12 @@ public: /*interface*/
   }
   /*! \brief The overload for sending handles over a pipe.
       \sa libuv documentation: [`uv_write2()`](http://docs.libuv.org/en/v1.x/stream.html#c.uv_write2). */
-  int run(pipe _pipe, const stream _send_handle)
+  int run(pipe _pipe, const buffer _buf, stream _send_handle)
   {
-    return 0;
+    stream::base::from(_send_handle.uv_handle)->ref();
+    pipe::base::from(_pipe.uv_handle)->ref();
+    base::from(uv_req)->ref();
+    return ::uv_write2(static_cast< uv_t* >(uv_req), _pipe, _buf, _buf.count(), _send_handle, write2_cb);
   }
 
   /*! \details The wrapper for corresponding libuv function.
@@ -366,7 +378,12 @@ void write::write_cb(::uv_write_t *_uv_req, int _status)
   on_request_t &f = base::from(_uv_req)->on_request();
   if (f)  f(write(_uv_req), _status);
 }
-
+template< typename >
+void write::write2_cb(::uv_write_t *_uv_req, int _status)
+{
+  ref_guard< stream::base > unref_send_handle(*stream::base::from(_uv_req->send_handle), adopt_ref);
+  write_cb(_uv_req, _status);
+}
 
 
 /*! \brief Shutdown request type. */
