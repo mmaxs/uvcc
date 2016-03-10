@@ -6,10 +6,10 @@
 #include "uvcc/loop.hpp"
 
 #include <uv.h>
-#include <cstddef>      // offsetof
+#include <cstddef>      // offsetof size_t
 #include <functional>   // function
 #include <type_traits>  // is_standard_layout enable_if_t
-#include <utility>      // swap() move()
+#include <utility>      // swap()
 #include <memory>       // addressof()
 #include <string>       // string
 
@@ -73,7 +73,7 @@ class handle
 
 public: /*types*/
   using uv_t = ::uv_handle_t;
-  using on_destroy_t = std::function< void(void*) >;
+  using on_destroy_t = std::function< void(void *_data) >;
   /*!< \brief The function type of the callback called when the handle is about to be closed and destroyed.
        \sa libuv documentation: [`uv_close_cb`](http://docs.libuv.org/en/v1.x/handle.html#c.uv_close_cb),
                                 [`uv_close()`](http://docs.libuv.org/en/v1.x/handle.html#c.uv_close). */

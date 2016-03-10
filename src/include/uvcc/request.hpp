@@ -8,12 +8,10 @@
 
 #include <uv.h>
 #include <cstddef>      // offsetof
-#include <cstdlib>      // malloc() free()
-#include <memory>       // shared_ptr
+#include <memory>       // addressof()
 #include <functional>   // function
-#include <utility>      // move()
+#include <utility>      // swap()
 #include <type_traits>  // aligned_storage is_standard_layout conditional_t is_void
-#include <mutex>        // lock_guard adopt_lock
 
 
 namespace uv
@@ -88,7 +86,7 @@ class request
 {
 public: /*types*/
   using uv_t = ::uv_req_t;
-  using on_destroy_t = std::function< void(void*) >;
+  using on_destroy_t = std::function< void(void *_data) >;
   /*!< \brief The function type of the callback called when the request object is about to be destroyed. */
 
 protected: /*types*/

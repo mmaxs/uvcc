@@ -34,7 +34,7 @@ class loop
 
 public: /*types*/
   using uv_t = ::uv_loop_t;
-  using on_destroy_t = std::function< void(void*) >;  /*!< \brief The function type of the callback called when the loop instance is about to be destroyed. */
+  using on_destroy_t = std::function< void(void *_data) >;  /*!< \brief The function type of the callback called when the loop instance is about to be destroyed. */
   using on_walk_t = std::function< void(handle _handle, void *_arg) >;
   /*!< \brief The function type of the callback called by the `walk()` function.
        \sa libuv documentation: [`uv_walk_cb`](http://docs.libuv.org/en/v1.x/loop.html#c.uv_walk_cb),
