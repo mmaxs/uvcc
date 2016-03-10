@@ -87,7 +87,11 @@ private: /*types*/
     int& status() const noexcept  { return last_error; }
   };
 
-  struct walk_pack  { on_walk_t *func; void *arg; };
+  struct walk_pack
+  {
+    const on_walk_t &func;
+    void *arg;
+  };
 
 private: /*data*/
   uv_t *uv_loop;
@@ -203,8 +207,8 @@ public: /*interface*/
   void walk(const on_walk_t &_walk_cb, void *_arg)
   {
     if (!_walk_cb)  return;
-    walk_pack o = { const_cast< on_walk_t* >(&_walk_cb), _arg };
-    ::uv_walk(uv_loop, walk_cb, &o);
+    walk_pack t{_walk_cb, _arg};
+    ::uv_walk(uv_loop, walk_cb, &t);
   }
 
 public: /*conversion operators*/
@@ -229,7 +233,7 @@ template< typename >
 void loop::walk_cb(::uv_handle_t *_uv_handle, void *_arg)
 {
   auto t = static_cast< walk_pack* >(_arg);
-  t->func->operator ()(handle(_uv_handle), t->arg);
+  t->func(handle(_uv_handle), t->arg);
 }
 
 }
