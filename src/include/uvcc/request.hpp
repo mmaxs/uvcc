@@ -3,8 +3,8 @@
 #define UVCC_REQUEST__HPP
 
 #include "uvcc/utility.hpp"
-#include "uvcc/buffer.hpp"
 #include "uvcc/handle.hpp"
+#include "uvcc/buffer.hpp"
 
 #include <uv.h>
 #include <cstddef>      // offsetof

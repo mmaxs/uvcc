@@ -2,12 +2,12 @@
 #ifndef UVCC__HPP
 #define UVCC__HPP
 
-#include "uvcc/endian.hpp"
-#include "uvcc/thread.hpp"
-#include "uvcc/buffer.hpp"
+#include "uvcc/loop.hpp"
 #include "uvcc/handle.hpp"
 #include "uvcc/request.hpp"
-#include "uvcc/loop.hpp"
+#include "uvcc/buffer.hpp"
+#include "uvcc/thread.hpp"
+#include "uvcc/endian.hpp"
 
 #endif
 
