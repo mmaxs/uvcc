@@ -105,6 +105,7 @@ protected: /*types*/
     >;
 
   private: /*data*/
+    mutable int last_error;
     void (*Delete)(void*);  // store a proper delete operator
     ref_count rc;
     type_storage< on_destroy_t > on_destroy_storage;
@@ -112,7 +113,7 @@ protected: /*types*/
     alignas(::uv_any_req) _UV_T_ uv_req;
 
   private: /*constructors*/
-    base() : Delete(default_delete< base >::Delete)
+    base() : last_error(0), Delete(default_delete< base >::Delete)
     {
       on_request_storage.template reset< on_request_t >();
     }
@@ -150,6 +151,8 @@ protected: /*types*/
     void ref()  { rc.inc(); }
     void unref()  { if (rc.dec() == 0)  destroy(); }
     ref_count::type nrefs() const noexcept  { return rc.value(); }
+
+    int& status() const noexcept  { return last_error; }
   };
   //! \endcond
 
@@ -194,10 +197,15 @@ public: /*constructors*/
     return *this;
   }
 
+protected: /*functions*/
+  int status(int _last_error) const noexcept  { return (base< uv_t >::from(uv_req)->status() = _last_error); }
+
 public: /*interface*/
   void swap(request &_that) noexcept  { std::swap(uv_req, _that.uv_req); }
   /*! \brief The current number of existing references to the same object as this request variable refers to. */
   long nrefs() const noexcept  { return base< uv_t >::from(uv_req)->nrefs(); }
+  /*! \brief The status value returned by the last executed libuv API function. */
+  int status() const noexcept  { return base< uv_t >::from(uv_req)->status(); }
 
   const on_destroy_t& on_destroy() const noexcept  { return base< uv_t >::from(uv_req)->on_destroy(); }
         on_destroy_t& on_destroy()       noexcept  { return base< uv_t >::from(uv_req)->on_destroy(); }
@@ -216,6 +224,8 @@ public: /*interface*/
 public: /*conversion operators*/
   operator const uv_t*() const noexcept  { return static_cast< const uv_t* >(uv_req); }
   operator       uv_t*()       noexcept  { return static_cast<       uv_t* >(uv_req); }
+
+  explicit operator bool() const noexcept  { return (status() == 0); }  /*!< \brief Equivalent to `(status() == 0)`. */
 };
 
 
@@ -267,7 +277,7 @@ public: /*interface*/
   {
     tcp::base::from(_tcp.uv_handle)->ref();
     base::from(uv_req)->ref();
-    return ::uv_tcp_connect(static_cast< uv_t* >(uv_req), _tcp, reinterpret_cast< const ::sockaddr* >(&_sa), connect_cb);
+    return status(::uv_tcp_connect(static_cast< uv_t* >(uv_req), _tcp, reinterpret_cast< const ::sockaddr* >(&_sa), connect_cb));
   }
   /*! \brief Run the request for `uv::pipe` stream.
       \sa libuv documentation: [`uv_pipe_connect()`](http://docs.libuv.org/en/v1.x/pipe.html#c.uv_pipe_connect). */
@@ -344,7 +354,7 @@ public: /*interface*/
   {
     stream::base::from(_stream.uv_handle)->ref();
     base::from(uv_req)->ref();
-    return ::uv_write(static_cast< uv_t* >(uv_req), _stream, _buf, _buf.count(), write_cb);
+    return status(::uv_write(static_cast< uv_t* >(uv_req), _stream, _buf, _buf.count(), write_cb));
   }
   /*! \brief The overload for sending handles over a pipe.
       \sa libuv documentation: [`uv_write2()`](http://docs.libuv.org/en/v1.x/stream.html#c.uv_write2). */
@@ -353,7 +363,7 @@ public: /*interface*/
     stream::base::from(_send_handle.uv_handle)->ref();
     pipe::base::from(_pipe.uv_handle)->ref();
     base::from(uv_req)->ref();
-    return ::uv_write2(static_cast< uv_t* >(uv_req), _pipe, _buf, _buf.count(), _send_handle, write2_cb);
+    return status(::uv_write2(static_cast< uv_t* >(uv_req), _pipe, _buf, _buf.count(), _send_handle, write2_cb));
   }
 
   /*! \details The wrapper for corresponding libuv function.
@@ -361,7 +371,7 @@ public: /*interface*/
       \sa libuv documentation: [`uv_try_write()`](http://docs.libuv.org/en/v1.x/stream.html#c.uv_try_write). */
   int try_write(stream _stream, const buffer _buf)
   {
-    return ::uv_try_write(_stream, _buf, _buf.count());
+    return status(::uv_try_write(_stream, _buf, _buf.count()));
   }
 
 public: /*conversion operators*/
@@ -431,7 +441,7 @@ public: /*interface*/
   {
     stream::base::from(_stream.uv_handle)->ref();
     base::from(uv_req)->ref();
-    return ::uv_shutdown(static_cast< uv_t* >(uv_req), _stream, shutdown_cb);
+    return status(::uv_shutdown(static_cast< uv_t* >(uv_req), _stream, shutdown_cb));
   }
 
 public: /*conversion operators*/

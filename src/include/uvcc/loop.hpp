@@ -44,15 +44,16 @@ private: /*types*/
   class instance
   {
   private: /*data*/
+    mutable int last_error;
     ref_count rc;
     type_storage< on_destroy_t > on_destroy_storage;
     uv_t uv_loop;
 
   private: /*constructors*/
-    instance()  { ::uv_loop_init(&uv_loop); }
+    instance()  { last_error = ::uv_loop_init(&uv_loop); }
 
   public: /*constructors*/
-    ~instance()  { ::uv_loop_close(&uv_loop); }
+    ~instance()  { last_error = ::uv_loop_close(&uv_loop); }
 
     instance(const instance&) = delete;
     instance& operator =(const instance&) = delete;
@@ -82,6 +83,8 @@ private: /*types*/
     void ref()  { rc.inc(); }
     void unref()  { if (rc.dec() == 0)  destroy(); }
     ref_count::type nrefs() const noexcept  { return rc.value(); }
+
+    int& status() const noexcept  { return last_error; }
   };
 
   struct walk_pack  { on_walk_t *func; void *arg; };
@@ -135,6 +138,9 @@ public: /*constructors*/
 private: /*functions*/
   template< typename = void > static void walk_cb(::uv_handle_t*, void*);
 
+protected: /*functions*/
+  int status(int _last_error) const noexcept  { return (instance::from(uv_loop)->status() = _last_error); }
+
 public: /*interface*/
   /*! \brief Returns the initialized loop that can be used as a global default loop throughout the program. */
   /*! \internal \note This function does not need to use the libuv function
@@ -150,6 +156,8 @@ public: /*interface*/
   void swap(loop &_that) noexcept  { std::swap(uv_loop, _that.uv_loop); }
   /*! \brief The current number of existing references to the same loop as this variable refers to. */
   long nrefs() const noexcept  { return instance::from(uv_loop)->nrefs(); }
+  /*! \brief The status value returned by the last executed libuv API function. */
+  int status() const noexcept  { return instance::from(uv_loop)->status(); }
 
   const on_destroy_t& on_destroy() const noexcept  { return instance::from(uv_loop)->on_destroy(); }
         on_destroy_t& on_destroy()       noexcept  { return instance::from(uv_loop)->on_destroy(); }
@@ -163,18 +171,18 @@ public: /*interface*/
       \sa libuv documentation: [`uv_loop_configure()`](http://docs.libuv.org/en/v1.x/loop.html#c.uv_loop_configure). */
   template< typename... _Args_ > int configure(::uv_loop_option _opt, _Args_&&... _args)
   {
-    return ::uv_loop_configure(uv_loop, _opt, std::forward< _Args_ >(_args)...);
+    return status(::uv_loop_configure(uv_loop, _opt, std::forward< _Args_ >(_args)...));
   }
 
   /*! \details Start the event loop.
       \sa libuv documentation: [`uv_run()`](http://docs.libuv.org/en/v1.x/loop.html#c.uv_run). */
-  int run(::uv_run_mode _mode)  { return ::uv_run(uv_loop, _mode); }
+  int run(::uv_run_mode _mode)  { return status(::uv_run(uv_loop, _mode)); }
   /*! \details Stop the event loop.
       \sa libuv documentation: [`uv_stop()`](http://docs.libuv.org/en/v1.x/loop.html#c.uv_stop). */
   void stop()  { ::uv_stop(uv_loop); }
 
   /*! \brief Returns non-zero if there are active handles or request in the loop. */
-  int is_alive() const noexcept  { return ::uv_loop_alive(uv_loop); }
+  int is_alive() const noexcept  { return status(::uv_loop_alive(uv_loop)); }
 
   /*! \details Get backend file descriptor.
       \sa libuv documentation: [`uv_backend_fd()`](http://docs.libuv.org/en/v1.x/loop.html#c.uv_backend_fd). */
@@ -201,7 +209,7 @@ public: /*conversion operators*/
   operator const uv_t*() const noexcept  { return uv_loop; }
   operator       uv_t*()       noexcept  { return uv_loop; }
 
-  explicit operator bool() const noexcept  { return is_alive(); }  /*!< \brief Equivalent to `is_alive()`. */
+  explicit operator bool() const noexcept  { return (status() == 0); }  /*!< \brief Equivalent to `(status() == 0)`. */
 };
 
 
