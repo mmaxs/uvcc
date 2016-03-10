@@ -318,7 +318,7 @@ public: /*types*/
   using storage_type = typename aligned_union< _Ts_... >::type;
 
 private: /*data*/
-  std::size_t t = 0;
+  std::size_t value_tag = 0;
   void (*Destroy)(void*) = nullptr;
   storage_type storage;
 
@@ -335,9 +335,9 @@ public: /*constructors*/
   template< typename _T_, typename = std::enable_if_t< is_convertible_to_one_of< _T_, _Ts_... >::value > >
   union_storage(const _T_ &_value)
   {
-    constexpr const std::size_t tt = is_convertible_to_one_of< _T_, _Ts_... >::value;
-    t = tt;
-    using value_type = typename std::decay< typename type_at< tt, _Ts_... >::type >::type;
+    constexpr const std::size_t t = is_convertible_to_one_of< _T_, _Ts_... >::value;
+    value_tag = t;
+    using value_type = typename std::decay< typename type_at< t, _Ts_... >::type >::type;
 
     new(static_cast< void* >(&storage)) value_type(_value);
     Destroy = default_destroy< _T_ >::Destroy;
@@ -345,9 +345,9 @@ public: /*constructors*/
   template< typename _T_, typename = std::enable_if_t< is_convertible_to_one_of< _T_, _Ts_... >::value > >
   union_storage(_T_ &&_value)
   {
-    constexpr const std::size_t tt = is_convertible_to_one_of< _T_, _Ts_... >::value;
-    t = tt;
-    using value_type = typename std::decay< typename type_at< tt, _Ts_... >::type >::type;
+    constexpr const std::size_t t = is_convertible_to_one_of< _T_, _Ts_... >::value;
+    value_tag = t;
+    using value_type = typename std::decay< typename type_at< t, _Ts_... >::type >::type;
 
     new(static_cast< void* >(&storage)) value_type(std::move(_value));
     Destroy = default_destroy< _T_ >::Destroy;
@@ -357,11 +357,11 @@ public: /*interface*/
   template< typename _T_ >
   typename std::enable_if< is_convertible_to_one_of< _T_, _Ts_... >::value >::type reset()
   {
-    if (Destroy)  { Destroy(&storage); Destroy = nullptr; t = 0; }
+    if (Destroy)  { Destroy(&storage); Destroy = nullptr; value_tag = 0; }
 
-    constexpr const std::size_t tt = is_convertible_to_one_of< _T_, _Ts_... >::value;
-    t = tt;
-    using value_type = typename std::decay< typename type_at< tt, _Ts_... >::type >::type;
+    constexpr const std::size_t t = is_convertible_to_one_of< _T_, _Ts_... >::value;
+    value_tag = t;
+    using value_type = typename std::decay< typename type_at< t, _Ts_... >::type >::type;
 
     new(static_cast< void* >(&storage)) value_type();
     Destroy = default_destroy< _T_ >::Destroy;
@@ -369,11 +369,11 @@ public: /*interface*/
   template< typename _T_, typename... _Args_ >
   typename std::enable_if< is_convertible_to_one_of< _T_, _Ts_... >::value >::type reset(_Args_&&... _args)
   {
-    if (Destroy)  { Destroy(&storage); Destroy = nullptr; t = 0; }
+    if (Destroy)  { Destroy(&storage); Destroy = nullptr; value_tag = 0; }
 
-    constexpr const std::size_t tt = is_convertible_to_one_of< _T_, _Ts_... >::value;
-    t = tt;
-    using value_type = typename std::decay< typename type_at< tt, _Ts_... >::type >::type;
+    constexpr const std::size_t t = is_convertible_to_one_of< _T_, _Ts_... >::value;
+    value_tag = t;
+    using value_type = typename std::decay< typename type_at< t, _Ts_... >::type >::type;
 
     new(static_cast< void* >(&storage)) value_type(std::forward< _Args_ >(_args)...);
     Destroy = default_destroy< _T_ >::Destroy;
@@ -383,11 +383,11 @@ public: /*interface*/
   {
     if (static_cast< void* >(&storage) == reinterpret_cast< void* >(&_value))  return;
 
-    if (Destroy)  { Destroy(&storage); Destroy = nullptr; t = 0; }
+    if (Destroy)  { Destroy(&storage); Destroy = nullptr; value_tag = 0; }
 
-    constexpr const std::size_t tt = is_convertible_to_one_of< _T_, _Ts_... >::value;
-    t = tt;
-    using value_type = typename std::decay< typename type_at< tt, _Ts_... >::type >::type;
+    constexpr const std::size_t t = is_convertible_to_one_of< _T_, _Ts_... >::value;
+    value_tag = t;
+    using value_type = typename std::decay< typename type_at< t, _Ts_... >::type >::type;
 
     new(static_cast< void* >(&storage)) value_type(_value);
     Destroy = default_destroy< _T_ >::Destroy;
@@ -397,17 +397,17 @@ public: /*interface*/
   {
     if (static_cast< void* >(&storage) == reinterpret_cast< void* >(&_value))  return;
 
-    if (Destroy)  { Destroy(&storage); Destroy = nullptr; t = 0; }
+    if (Destroy)  { Destroy(&storage); Destroy = nullptr; value_tag = 0; }
 
-    constexpr const std::size_t tt = is_convertible_to_one_of< _T_, _Ts_... >::value;
-    t = tt;
-    using value_type = typename std::decay< typename type_at< tt, _Ts_... >::type >::type;
+    constexpr const std::size_t t = is_convertible_to_one_of< _T_, _Ts_... >::value;
+    value_tag = t;
+    using value_type = typename std::decay< typename type_at< t, _Ts_... >::type >::type;
 
     new(static_cast< void* >(&storage)) value_type(std::move(_value));
     Destroy = default_destroy< _T_ >::Destroy;
   }
 
-  std::size_t tag()  { return t; }
+  std::size_t tag()  { return value_tag; }
 
   template< typename _T_, typename = std::enable_if_t< is_one_of< _T_, _Ts_... >::value > >
   const typename std::decay< _T_ >::type& value() const noexcept  { return *reinterpret_cast< const typename std::decay< _T_ >::type* >(&storage); }
