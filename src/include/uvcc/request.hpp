@@ -198,7 +198,9 @@ public: /*constructors*/
   }
 
 protected: /*functions*/
+  //! \cond
   int status(int _last_error) const noexcept  { return (base< uv_t >::from(uv_req)->status() = _last_error); }
+  //! \endcond
 
 public: /*interface*/
   void swap(request &_that) noexcept  { std::swap(uv_req, _that.uv_req); }

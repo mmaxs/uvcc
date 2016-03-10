@@ -139,7 +139,9 @@ private: /*functions*/
   template< typename = void > static void walk_cb(::uv_handle_t*, void*);
 
 protected: /*functions*/
+  //! \cond
   int status(int _last_error) const noexcept  { return (instance::from(uv_loop)->status() = _last_error); }
+  //! \endcond
 
 public: /*interface*/
   /*! \brief Returns the initialized loop that can be used as a global default loop throughout the program. */

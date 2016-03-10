@@ -186,7 +186,7 @@ public: /*conversion operators*/
   operator const uv_t*() const noexcept  { return uv_buf; }
   operator       uv_t*()       noexcept  { return uv_buf; }
 
-  explicit operator bool() const noexcept  { return base(); }  /*!< \brief Equivalent to `( base() != nullptr )`. */
+  explicit operator bool() const noexcept  { return base(); }  /*!< \brief Equivalent to `(base() != nullptr)`. */
 };
 
 
