@@ -3,8 +3,6 @@
 http://docs.libuv.org/en/v1.x/loop.html#c.uv_loop_size
 
 [handle]
-http://docs.libuv.org/en/v1.x/handle.html#c.uv_alloc_cb
-
 http://docs.libuv.org/en/v1.x/handle.html#c.uv_handle_size
 
 [request]

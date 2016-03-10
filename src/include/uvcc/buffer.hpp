@@ -10,10 +10,18 @@
 #include <utility>           // swap()
 #include <memory>            // addressof()
 #include <initializer_list>  // initializer_list
+#include <functional>        // function
 
 
 namespace uv
 {
+
+
+class handle;
+class stream;
+class udp;
+
+
 /*! \defgroup g__buffer Buffer for I/O operations */
 //! \{
 
@@ -21,6 +29,9 @@ namespace uv
 /*! \brief Encapsulates `uv_buf_t` data type and provides `uv_buf_t[]` functionality. */
 class buffer
 {
+  friend class stream;
+  friend class udp;
+
 public: /*types*/
   using uv_t = ::uv_buf_t;
 
@@ -112,6 +123,13 @@ private: /*types*/
 private: /*data*/
   uv_t *uv_buf;
 
+private: /*constructors*/
+  explicit buffer(uv_t *_uv_buf)
+  {
+    instance::from(_uv_buf)->ref();
+    uv_buf = _uv_buf;
+  }
+
 public: /*constructors*/
   ~buffer()  { if (uv_buf)  instance::from(uv_buf)->unref(); }
 
@@ -171,6 +189,9 @@ public: /*constructors*/
     return *this;
   }
 
+private: /*functions*/
+  template< typename = void > static void alloc_cb(::uv_handle_t*, std::size_t, ::uv_buf_t*);
+
 public: /*interface*/
   void swap(buffer &_that) noexcept  { std::swap(uv_buf, _that.uv_buf); }
   /*! \brief The current number of existing references to the same buffer as this variable refers to. */
@@ -190,7 +211,34 @@ public: /*conversion operators*/
 };
 
 
+/*! \brief The function type of the callback called by `stream::read_start()` and `udp::recv_start()`...
+    \details ...to equip the input operation with a preallocated buffer. The callback should return a `uv::buffer`
+    instance initialized with a `_suggested_size` (the value provided by libuv API is a constant of _65536_ bytes)
+    or with whatever size, as long as it’s > 0.
+    \sa libuv documentation: [`uv_alloc_cb`](http://docs.libuv.org/en/v1.x/handle.html#c.uv_alloc_cb). */
+using on_buffer_t = std::function< buffer(handle _handle, std::size_t _suggested_size) >;
+
+
 //! \}
+}
+
+
+#include "uvcc/handle.hpp"
+
+
+namespace uv
+{
+
+template< typename >
+void buffer::alloc_cb(::uv_handle_t *_uv_handle, std::size_t _suggested_size, ::uv_buf_t *_uv_buf)
+{
+  handle::input_cb_pack* &on_input = handle::base< ::uv_handle_t >::from(_uv_handle)->input_cb_pack();
+  buffer b = on_input->on_buffer(handle(_uv_handle), _suggested_size);
+  instance::from(b.uv_buf)->ref();
+  _uv_buf->len = b.len();
+  _uv_buf->base = reinterpret_cast< char* >(b.uv_buf);
+}
+
 }
 
 

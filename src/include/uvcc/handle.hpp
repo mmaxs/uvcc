@@ -3,13 +3,14 @@
 #define UVCC_HANDLE__HPP
 
 #include "uvcc/utility.hpp"
+#include "uvcc/buffer.hpp"
 #include "uvcc/loop.hpp"
 
 #include <uv.h>
 #include <cstddef>      // offsetof size_t
 #include <functional>   // function
 #include <type_traits>  // is_standard_layout enable_if_t
-#include <utility>      // swap()
+#include <utility>      // swap() move()
 #include <memory>       // addressof()
 #include <string>       // string
 
@@ -48,6 +49,12 @@ class udp;
 class signal;
 
 
+/* input callback function types */
+#define STREAM_ON_READ_T std::function< void(stream _stream, ssize_t _nread, buffer _buffer) >
+#define UDP_ON_RECV_T    std::function< void(udp _udp, ssize_t _nread, buffer _buffer, const ::sockaddr *_sa, unsigned int _flags) >
+
+
+
 /*! \defgroup g__handle_traits uv_handle_traits< typename >
     \brief Defines the correspondence between libuv handle data types and C++ classes representing them. */
 //! \{
@@ -62,12 +69,14 @@ UV_HANDLE_TYPE_MAP(XX)
 //! \}
 
 
+
 /*! \brief The base class for the libuv handles.
     \details Derived classes conceptually are just interfaces to the data stored
     in the base class, so there are no any virtual member functions.
     \sa libuv documentation: [`uv_handle_t`](http://docs.libuv.org/en/v1.x/handle.html#uv-handle-t-base-handle). */
 class handle
 {
+  friend class buffer;
   friend class loop;
   friend class request;
 
@@ -80,6 +89,31 @@ public: /*types*/
 
 protected: /*types*/
   //! \cond
+  struct input_cb_pack
+  {
+    on_buffer_t on_buffer;
+    union
+    {
+      STREAM_ON_READ_T stream_on_read;
+      UDP_ON_RECV_T udp_on_recv;
+    };
+
+    ~input_cb_pack()  {};  // default destructor is implicitly deleted
+
+    input_cb_pack(const on_buffer_t &_on_buffer, const STREAM_ON_READ_T &_stream_on_read)
+      : on_buffer(_on_buffer), stream_on_read(_stream_on_read)
+    {}
+    input_cb_pack(const on_buffer_t &_on_buffer, const UDP_ON_RECV_T &_udp_on_recv)
+      : on_buffer(_on_buffer), udp_on_recv(_udp_on_recv)
+    {}
+
+    input_cb_pack(const input_cb_pack&) = delete;
+    input_cb_pack& operator =(const input_cb_pack&) = delete;
+
+    input_cb_pack(input_cb_pack&&) = delete;
+    input_cb_pack& operator =(input_cb_pack&&) = delete;
+  };
+
   template< typename _UV_T_ > class base
   {
   private: /*data*/
@@ -87,10 +121,11 @@ protected: /*types*/
     void (*Delete)(void*);  // store a proper delete operator
     ref_count rc;
     type_storage< on_destroy_t > on_destroy_storage;
+    mutable input_cb_pack *on_input;
     alignas(::uv_any_handle) _UV_T_ uv_handle;
 
   private: /*constructors*/
-    base() : last_error(0), Delete(default_delete< base >::Delete)  {}
+    base() : last_error(0), Delete(default_delete< base >::Delete), on_input(nullptr)  {}
 
   public: /*constructors*/
     ~base() = default;
@@ -126,6 +161,7 @@ protected: /*types*/
     }
 
     on_destroy_t& on_destroy() noexcept  { return on_destroy_storage.value(); }
+    input_cb_pack*& input_cb_pack() const noexcept  { return on_input; }
 
     void ref()  { rc.inc(); }
     void unref() noexcept  { if (rc.dec() == 0)  destroy(); }
@@ -279,6 +315,9 @@ class stream : public handle
 
 public: /*types*/
   using uv_t = ::uv_stream_t;
+  using on_read_t = STREAM_ON_READ_T;
+  /*!< \brief The function type of the callback called by `read_start()`.
+       \sa libuv documentation: [`uv_read_cb`](http://docs.libuv.org/en/v1.x/stream.html#c.uv_read_cb). */
 
 private: /*types*/
   using base = handle::base< uv_t >;
@@ -302,7 +341,36 @@ public: /*constructors*/
   stream(stream&&) noexcept = default;
   stream& operator =(stream&&) noexcept = default;
 
+private: /*functions*/
+  template< typename = void > static void read_cb(::uv_stream_t*, ssize_t, const ::uv_buf_t*);
+
 public: /*interface*/
+  /*! \details Start reading incoming data from the stream.
+      \sa libuv documentation: [`uv_read_start()`](http://docs.libuv.org/en/v1.x/stream.html#c.uv_read_start). */
+  int read_start(const on_buffer_t &_alloc_cb, const on_read_t &_read_cb)
+  {
+    input_cb_pack* &on_input = base::from(uv_handle)->input_cb_pack();
+    if (on_input)  read_stop();
+    on_input = new input_cb_pack(_alloc_cb, _read_cb);
+    base::from(uv_handle)->ref();
+    return status(::uv_read_start(static_cast< uv_t* >(uv_handle), buffer::alloc_cb, read_cb));
+  }
+  /*! \details Stop reading data from the stream.
+      \sa libuv documentation: [`uv_read_stop()`](http://docs.libuv.org/en/v1.x/stream.html#c.uv_read_stop). */
+  int read_stop() noexcept
+  {
+    status(::uv_read_stop(static_cast< uv_t* >(uv_handle)));
+    input_cb_pack* &on_input = base::from(uv_handle)->input_cb_pack();
+    if (on_input)
+    {
+      ref_guard< base > unref(*base::from(uv_handle), adopt_ref);
+      on_input->stream_on_read.~on_read_t();
+      delete on_input;
+      on_input = nullptr;
+    };
+    return status();
+  }
+
   /*! \brief The amount of queued bytes waiting to be sent. */
   std::size_t write_queue_size() const noexcept  { return static_cast< uv_t* >(uv_handle)->write_queue_size; }
   /*! \brief Check if the stream is readable. */
@@ -317,6 +385,16 @@ public: /*conversion operators*/
   operator const uv_t*() const noexcept  { return static_cast< const uv_t* >(uv_handle); }
   operator       uv_t*()       noexcept  { return static_cast<       uv_t* >(uv_handle); }
 };
+
+template< typename >
+void stream::read_cb(::uv_stream_t *_uv_stream, ssize_t _nread, const ::uv_buf_t *_uv_buf)
+{
+  input_cb_pack* &on_input = base::from(_uv_stream)->input_cb_pack();
+  auto uv_buf = reinterpret_cast< buffer::uv_t* >(_uv_buf->base);
+  ref_guard< buffer::instance > unref(*buffer::instance::from(uv_buf), adopt_ref);
+  on_input->stream_on_read(stream(_uv_stream), _nread, buffer(uv_buf));
+}
+
 
 
 /*! \brief TCP handle type.
@@ -494,10 +572,14 @@ public: /*conversion operators*/
 };
 
 
+
 class udp : public handle
 {
 public: /*types*/
   using uv_t = ::uv_udp_t;
+  using on_recv_t = UDP_ON_RECV_T;
+  /*!< \brief The function type of the callback called by `recv_start()`.
+       \sa libuv documentation: [`uv_udp_recv_cb`](http://docs.libuv.org/en/v1.x/udp.html#c.uv_udp_recv_cb). */
 
 private: /*types*/
   using base = handle::base< uv_t >;
@@ -518,6 +600,11 @@ public: /*conversion operators*/
   operator const uv_t*() const noexcept  { return static_cast< const uv_t* >(uv_handle); }
   operator       uv_t*()       noexcept  { return static_cast<       uv_t* >(uv_handle); }
 };
+
+
+
+#undef STREAM_ON_READ_T
+#undef UDP_ON_RECV_T
 
 
 //! \}

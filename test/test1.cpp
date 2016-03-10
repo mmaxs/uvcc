@@ -80,7 +80,12 @@ int main(int _argc, char *_argv[])
   handle &h1 = c;
 
   handle h2 = h1;
-    
+
+  c.read_start(
+      [](handle, std::size_t){ return buffer(); },
+      [](stream, ssize_t, buffer){}
+  );
+  c.read_stop();
 
   //}
 
