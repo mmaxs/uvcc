@@ -883,7 +883,9 @@ EXCLUDE_PATTERNS       =
 
 EXCLUDE_SYMBOLS        = XX \
                          req \
-                         ON_*_T
+                         ON_*_T \
+                         STREAM_ON_READ_T \
+                         UDP_ON_RECV_T
 
 # The EXAMPLE_PATH tag can be used to specify one or more files or directories
 # that contain example code fragments that are included (see the \include
@@ -2093,7 +2095,9 @@ PREDEFINED             =
 # This tag requires that the tag ENABLE_PREPROCESSING is set to YES.
 
 EXPAND_AS_DEFINED      = UV_HANDLE_TYPE_MAP \
-                         UV_REQ_TYPE_MAP
+                         UV_REQ_TYPE_MAP \
+                         STREAM_ON_READ_T \
+                         UDP_ON_RECV_T
 
 # If the SKIP_FUNCTION_MACROS tag is set to YES then doxygen's preprocessor will
 # remove all references to function-like macros that are alone on a line, have
