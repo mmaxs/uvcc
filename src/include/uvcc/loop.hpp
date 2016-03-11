@@ -87,9 +87,9 @@ private: /*types*/
     int& status() const noexcept  { return last_error; }
   };
 
-  struct walk_pack
+  struct walk_cb_pack
   {
-    const on_walk_t &func;
+    const on_walk_t &on_walk;
     void *arg;
   };
 
@@ -207,7 +207,7 @@ public: /*interface*/
   void walk(const on_walk_t &_walk_cb, void *_arg)
   {
     if (!_walk_cb)  return;
-    walk_pack t{_walk_cb, _arg};
+    walk_cb_pack t{_walk_cb, _arg};
     ::uv_walk(uv_loop, walk_cb, &t);
   }
 
@@ -232,8 +232,8 @@ namespace uv
 template< typename >
 void loop::walk_cb(::uv_handle_t *_uv_handle, void *_arg)
 {
-  auto t = static_cast< walk_pack* >(_arg);
-  t->func(handle(_uv_handle), t->arg);
+  auto t = static_cast< walk_cb_pack* >(_arg);
+  t->on_walk(handle(_uv_handle), t->arg);
 }
 
 }
