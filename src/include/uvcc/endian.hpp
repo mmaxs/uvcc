@@ -3,11 +3,11 @@
 #ifndef UVCC_ENDIAN__HPP
 #define UVCC_ENDIAN__HPP
 
-#include <cstdint>      // uint*_t
+#include <cstdint>     // uint*_t
 #ifdef _WIN32
-#include <Winsock2.h>   // htons() htonl() ntohs() ntohl()
+#include <Winsock2.h>  // htons() htonl() ntohs() ntohl()
 #else
-#include <endian.h>     // htobe* be*toh
+#include <endian.h>    // htobe* be*toh
 #endif
 
 

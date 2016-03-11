@@ -3,6 +3,7 @@
 
 #include "uvcc.hpp"
 #include <cstdio>
+#include <cstring>
 #include <functional>
 #include <type_traits>
 #include <atomic>
@@ -89,8 +90,8 @@ int main(int _argc, char *_argv[])
 
     ::sockaddr_in in_loopback;
     in_loopback.sin_family = AF_INET;
-    in_loopback.sin_port   = hton16(80);  //0x5000;
-    in_loopback.sin_addr.s_addr  = 0x0100007f;
+    in_loopback.sin_port   = hton16(80);
+    in_loopback.sin_addr.s_addr  = hton32(0x7f000001);  // 127.0.0.1
     //in_loopback.sin_zero   = {0};
     
     c_req.on_request() = ccb2;

@@ -2,7 +2,6 @@
 #ifndef UVCC_UTILITY__HPP
 #define UVCC_UTILITY__HPP
 
-#include <cstring>      // memcpy()
 #include <type_traits>  // is_void is_convertible enable_if_t decay common_type aligned_storage
 #include <atomic>       // atomic memory_order_*
 #include <utility>      // forward() move()
@@ -76,6 +75,7 @@ template< typename _T_ > struct default_destroy
     //fprintf(stderr, "%s\n", __PRETTY_FUNCTION__); fflush(stderr);
   }
 };
+
 
 
 /*! \defgroup g__variadic Dealing with type lists and parameter packs */
@@ -166,6 +166,7 @@ template< typename _T_, typename... _Ts_ > constexpr auto sum(const _T_& _v, con
 { return _v + sum(_vs...); }
 
 // \}
+
 
 
 /*! \brief A reference counter with atomic increment/decrement.
@@ -264,7 +265,6 @@ private: /*data*/
 
 
 
-
 /* type_storage */
 template< typename _T_ >
 class type_storage
@@ -305,6 +305,7 @@ public: /*interface*/
 };
 
 
+
 /*! \brief A mimic of STL's `std::aligned_union` missed in gcc 4.9.2. */
 template< typename... _Ts_ >
 using aligned_union = std::aligned_storage< greatest(sizeof(_Ts_)...), greatest(alignof(_Ts_)...) >;
@@ -336,8 +337,8 @@ public: /*constructors*/
   union_storage(const _T_ &_value)
   {
     constexpr const std::size_t t = is_convertible_to_one_of< _T_, _Ts_... >::value;
-    value_tag = t;
     using value_type = typename std::decay< typename type_at< t, _Ts_... >::type >::type;
+    value_tag = t;
 
     new(static_cast< void* >(&storage)) value_type(_value);
     Destroy = default_destroy< _T_ >::Destroy;
@@ -346,8 +347,8 @@ public: /*constructors*/
   union_storage(_T_ &&_value)
   {
     constexpr const std::size_t t = is_convertible_to_one_of< _T_, _Ts_... >::value;
-    value_tag = t;
     using value_type = typename std::decay< typename type_at< t, _Ts_... >::type >::type;
+    value_tag = t;
 
     new(static_cast< void* >(&storage)) value_type(std::move(_value));
     Destroy = default_destroy< _T_ >::Destroy;
@@ -360,8 +361,8 @@ public: /*interface*/
     if (Destroy)  { Destroy(&storage); Destroy = nullptr; value_tag = 0; }
 
     constexpr const std::size_t t = is_convertible_to_one_of< _T_, _Ts_... >::value;
-    value_tag = t;
     using value_type = typename std::decay< typename type_at< t, _Ts_... >::type >::type;
+    value_tag = t;
 
     new(static_cast< void* >(&storage)) value_type();
     Destroy = default_destroy< _T_ >::Destroy;
@@ -372,8 +373,8 @@ public: /*interface*/
     if (Destroy)  { Destroy(&storage); Destroy = nullptr; value_tag = 0; }
 
     constexpr const std::size_t t = is_convertible_to_one_of< _T_, _Ts_... >::value;
-    value_tag = t;
     using value_type = typename std::decay< typename type_at< t, _Ts_... >::type >::type;
+    value_tag = t;
 
     new(static_cast< void* >(&storage)) value_type(std::forward< _Args_ >(_args)...);
     Destroy = default_destroy< _T_ >::Destroy;
@@ -386,8 +387,8 @@ public: /*interface*/
     if (Destroy)  { Destroy(&storage); Destroy = nullptr; value_tag = 0; }
 
     constexpr const std::size_t t = is_convertible_to_one_of< _T_, _Ts_... >::value;
-    value_tag = t;
     using value_type = typename std::decay< typename type_at< t, _Ts_... >::type >::type;
+    value_tag = t;
 
     new(static_cast< void* >(&storage)) value_type(_value);
     Destroy = default_destroy< _T_ >::Destroy;
@@ -400,8 +401,8 @@ public: /*interface*/
     if (Destroy)  { Destroy(&storage); Destroy = nullptr; value_tag = 0; }
 
     constexpr const std::size_t t = is_convertible_to_one_of< _T_, _Ts_... >::value;
-    value_tag = t;
     using value_type = typename std::decay< typename type_at< t, _Ts_... >::type >::type;
+    value_tag = t;
 
     new(static_cast< void* >(&storage)) value_type(std::move(_value));
     Destroy = default_destroy< _T_ >::Destroy;
