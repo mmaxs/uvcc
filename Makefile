@@ -71,11 +71,16 @@ export
 
 # project goals
 
-%: test/% ;
+%: test/% example/%;
 
 windows/test/%: test/windows/% ;
 test/%:
 	$(MAKE) -C test $*
+
+windows/example/%: example/windows/% ;
+example/%:
+	$(MAKE) -C example $*
+
 
 .PHONY: doc
 doc:

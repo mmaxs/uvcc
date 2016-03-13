@@ -1,0 +1,79 @@
+
+#include <cstdio>
+
+#include "uvcc.hpp"
+#include <cstdio>
+#include <vector>
+
+
+uv::pipe in(uv::loop::Default(), ::fileno(stdin)),
+         out(uv::loop::Default(), ::fileno(stdout));
+
+
+int main(int _argc, char *_argv[])
+{
+
+  in.read_start(
+      [](uv::handle, std::size_t) -> uv::buffer
+      {
+        const std::size_t default_size = 8192;
+        static std::vector< uv::buffer > buf_pool;
+        fprintf(stderr, "buf_pool: %zu\n", buf_pool.size()); fflush(stderr);
+
+        for (auto &b : buf_pool)  if (b.nrefs() == 1)  {
+            b.len() = default_size;
+            return b;
+        };
+
+        buf_pool.emplace_back(uv::buffer{default_size});
+        return buf_pool.back();
+      },
+      [](uv::stream _stream, ssize_t _nread, uv::buffer _buffer) -> void
+      {
+        if (_nread == UV_EOF)
+        {
+          _stream.read_stop();
+          fprintf(stderr, "read: EOF\n"); fflush(stderr);
+        }
+        else if (_nread < 0)
+        {
+          fprintf(stderr, "read error: %s(%zi): %s\n", ::uv_err_name(_nread), _nread, ::uv_strerror(_nread));
+          fflush(stderr);
+        }
+        else if (_nread > 0)
+        {
+          fprintf(stderr, "_nread: %zi\n", _nread); fflush(stderr);
+
+          auto wr = []() -> uv::write
+          {
+            static std::vector< uv::write > wr_pool;
+            fprintf(stderr, "wr_pool: %zu\n", wr_pool.size()); fflush(stderr);
+
+            auto default_on_request = [](uv::write _wr, int _status) -> void
+            {
+              if (_status < 0)
+              {
+                fprintf(stderr, "write error: %s(%i): %s\n", ::uv_err_name(_status), _status, ::uv_strerror(_status));
+                fflush(stderr);
+              };
+            };
+
+            for (auto &wr : wr_pool)  if (wr.nrefs() == 1)  {
+                wr.on_request() = default_on_request;
+                return wr;
+            };
+            wr_pool.emplace_back();
+            wr_pool.back().on_request() = default_on_request;
+            return wr_pool.back();
+          };
+
+          _buffer.len() = _nread;
+          wr().run(out, _buffer);
+
+          fprintf(stderr, "wr: done\n"); fflush(stderr);
+        };
+      }
+  );
+
+  return uv::loop::Default().run(UV_RUN_DEFAULT);
+}
