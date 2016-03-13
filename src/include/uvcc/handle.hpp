@@ -121,7 +121,7 @@ protected: /*types*/
     void (*Delete)(void*);  // store a proper delete operator
     ref_count rc;
     type_storage< on_destroy_t > on_destroy_storage;
-    mutable input_cb_pack *on_input;
+    mutable handle::input_cb_pack *on_input;
     alignas(::uv_any_handle) _UV_T_ uv_handle;
 
   private: /*constructors*/
@@ -161,7 +161,7 @@ protected: /*types*/
     }
 
     on_destroy_t& on_destroy() noexcept  { return on_destroy_storage.value(); }
-    input_cb_pack*& input_cb_pack() const noexcept  { return on_input; }
+    handle::input_cb_pack*& input_cb_pack() const noexcept  { return on_input; }
 
     void ref()  { rc.inc(); }
     void unref() noexcept  { if (rc.dec() == 0)  destroy(); }
