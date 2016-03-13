@@ -18,8 +18,11 @@ namespace uv
 
 
 class handle;
+
 class stream;
+class write;
 class udp;
+class udp_send;
 
 
 /*! \defgroup g__buffer Buffer for I/O operations */
@@ -30,7 +33,9 @@ class udp;
 class buffer
 {
   friend class stream;
+  friend class write;
   friend class udp;
+  friend class udp_send;
 
 public: /*types*/
   using uv_t = ::uv_buf_t;
