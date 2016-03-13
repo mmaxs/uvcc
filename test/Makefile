@@ -11,24 +11,13 @@ export
 .DEFAULT_GOAL = $@
 
 
-# pattern rules shall contain recipes to not to be ignored by make
-# as a user redefinition of the built-in rules to cancel them;
-# therefore we duplicate the commands from the generic rule here
-#hello% example%: $(libnetcc)
-#	# use generic rules for compiling and linking
-#	$(MAKE) -f $(ROOT)/Makefile.d/compile.rules $@
-#	$(MAKE) -f $(ROOT)/Makefile.d/link.rules $@
-
-# building the required library
-#$(libnetcc):
-#	$(MAKE) -C $(ROOT) lib/netcc
-
-
 # use generic rules for 'clean'
+.PHONY: clean
 clean:
+	# clean parts related to test sources
 	$(MAKE) -f $(ROOT)/Makefile.d/clean.rules $@
-#	# clean parts related to additional sources
-#	$(MAKE) -C $(ROOT) lib/$@
+	# clean parts related to main sources
+	$(MAKE) -C $(ROOT)/src -f $(ROOT)/Makefile.d/clean.rules $@
 
 # windows-specific builds use generic rules
 windows/%:
