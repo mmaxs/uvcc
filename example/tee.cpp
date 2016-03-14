@@ -18,7 +18,6 @@ int main(int _argc, char *_argv[])
       {
         const std::size_t default_size = 8192;
         static std::vector< uv::buffer > buf_pool;
-        fprintf(stderr, "buf_pool: %zu\n", buf_pool.size()); fflush(stderr);
 
         for (auto &b : buf_pool)  if (b.nrefs() == 1)  {
             b.len() = default_size;
@@ -26,6 +25,8 @@ int main(int _argc, char *_argv[])
         };
 
         buf_pool.emplace_back(uv::buffer{default_size});
+        fprintf(stderr, "buffer pool: %zu\n", buf_pool.size()); fflush(stderr);
+
         return buf_pool.back();
       },
       [](uv::stream _stream, ssize_t _nread, uv::buffer _buffer) -> void
@@ -42,35 +43,35 @@ int main(int _argc, char *_argv[])
         }
         else if (_nread > 0)
         {
-          fprintf(stderr, "_nread: %zi\n", _nread); fflush(stderr);
+          fprintf(stderr, "read bytes: %zi\n", _nread); fflush(stderr);
 
           auto wr = []() -> uv::write
           {
             static std::vector< uv::write > wr_pool;
-            fprintf(stderr, "wr_pool: %zu\n", wr_pool.size()); fflush(stderr);
 
-            auto default_on_request = [](uv::write _wr, int _status) -> void
+            auto default_write_cb = [](uv::write _wr, int _status) -> void
             {
               if (_status < 0)
-              {
                 fprintf(stderr, "write error: %s(%i): %s\n", ::uv_err_name(_status), _status, ::uv_strerror(_status));
-                fflush(stderr);
-              };
+              else
+                fprintf(stderr, "write: done\n");
+              fflush(stderr);
             };
 
             for (auto &wr : wr_pool)  if (wr.nrefs() == 1)  {
-                wr.on_request() = default_on_request;
+                wr.on_request() = default_write_cb;
                 return wr;
             };
+
             wr_pool.emplace_back();
-            wr_pool.back().on_request() = default_on_request;
+            wr_pool.back().on_request() = default_write_cb;
+            fprintf(stderr, "write request pool: %zu\n", wr_pool.size()); fflush(stderr);
+
             return wr_pool.back();
           };
 
           _buffer.len() = _nread;
           wr().run(out, _buffer);
-
-          fprintf(stderr, "wr: done\n"); fflush(stderr);
         };
       }
   );
