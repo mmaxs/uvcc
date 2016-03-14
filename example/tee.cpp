@@ -25,7 +25,9 @@ int main(int _argc, char *_argv[])
         };
 
         buf_pool.emplace_back(uv::buffer{default_size});
-        fprintf(stderr, "buffer pool: %zu\n", buf_pool.size()); fflush(stderr);
+        //fprintf(stderr, "new buffer: %lu\n", buf_pool.back().len());
+        fprintf(stderr, "buffer pool: %zu\n", buf_pool.size());
+        fflush(stderr);
 
         return buf_pool.back();
       },
@@ -38,12 +40,17 @@ int main(int _argc, char *_argv[])
         }
         else if (_nread < 0)
         {
-          fprintf(stderr, "read error: %s(%zi): %s\n", ::uv_err_name(_nread), _nread, ::uv_strerror(_nread));
+          fprintf(stderr, "read error: %s (%zi): %s\n", ::uv_err_name(_nread), _nread, ::uv_strerror(_nread));
           fflush(stderr);
         }
         else if (_nread > 0)
         {
-          fprintf(stderr, "read bytes: %zi\n", _nread); fflush(stderr);
+          fprintf(stderr, "read bytes: %zi\n", _nread);
+          //fprintf(stderr, "read string: '");
+          //fwrite(_buffer.base(0), 1, _nread, stderr);
+          //fprintf(stderr, "'\n");
+          //fprintf(stderr, "buffer: %lu\n", _buffer.len());
+          fflush(stderr);
 
           auto wr = []() -> uv::write
           {
@@ -52,7 +59,7 @@ int main(int _argc, char *_argv[])
             auto default_write_cb = [](uv::write _wr, int _status) -> void
             {
               if (_status < 0)
-                fprintf(stderr, "write error: %s(%i): %s\n", ::uv_err_name(_status), _status, ::uv_strerror(_status));
+                fprintf(stderr, "write error: %s (%i): %s\n", ::uv_err_name(_status), _status, ::uv_strerror(_status));
               else
                 fprintf(stderr, "write: done\n");
               fflush(stderr);

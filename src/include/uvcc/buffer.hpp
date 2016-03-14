@@ -239,9 +239,10 @@ void buffer::alloc_cb(::uv_handle_t *_uv_handle, std::size_t _suggested_size, ::
 {
   handle::input_cb_pack* &on_input = handle::base< ::uv_handle_t >::from(_uv_handle)->input_cb_pack();
   buffer b = on_input->on_buffer(handle(_uv_handle), _suggested_size);
-  instance::from(b.uv_buf)->ref();
   _uv_buf->len = b.len();
-  _uv_buf->base = reinterpret_cast< char* >(b.uv_buf);
+  _uv_buf->base = b.base();
+  instance::from(b.uv_buf)->ref();
+  on_input->uv_buf = b.uv_buf;
 }
 
 }

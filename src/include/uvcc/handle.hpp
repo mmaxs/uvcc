@@ -97,14 +97,15 @@ protected: /*types*/
       STREAM_ON_READ_T stream_on_read;
       UDP_ON_RECV_T udp_on_recv;
     };
+    buffer::uv_t *uv_buf;
 
     ~input_cb_pack()  {};  // default destructor is implicitly deleted
 
     input_cb_pack(const on_buffer_t &_on_buffer, const STREAM_ON_READ_T &_stream_on_read)
-      : on_buffer(_on_buffer), stream_on_read(_stream_on_read)
+      : on_buffer(_on_buffer), stream_on_read(_stream_on_read), uv_buf(nullptr)
     {}
     input_cb_pack(const on_buffer_t &_on_buffer, const UDP_ON_RECV_T &_udp_on_recv)
-      : on_buffer(_on_buffer), udp_on_recv(_udp_on_recv)
+      : on_buffer(_on_buffer), udp_on_recv(_udp_on_recv), uv_buf(nullptr)
     {}
 
     input_cb_pack(const input_cb_pack&) = delete;
@@ -142,6 +143,10 @@ protected: /*types*/
     void destroy()
     {
       auto t = reinterpret_cast< uv_t* >(&uv_handle);
+      if (on_input)
+      {
+        // ...
+      };
       if (::uv_is_active(t))
         ::uv_close(t, close_cb);
       else
@@ -363,10 +368,11 @@ public: /*interface*/
     input_cb_pack* &on_input = base::from(uv_handle)->input_cb_pack();
     if (on_input)
     {
-      ref_guard< base > unref(*base::from(uv_handle), adopt_ref);
+      if (on_input->uv_buf)  buffer::instance::from(on_input->uv_buf)->unref();
       on_input->stream_on_read.~on_read_t();
       delete on_input;
       on_input = nullptr;
+      base::from(uv_handle)->unref();
     };
     return status();
   }
@@ -390,9 +396,10 @@ template< typename >
 void stream::read_cb(::uv_stream_t *_uv_stream, ssize_t _nread, const ::uv_buf_t *_uv_buf)
 {
   input_cb_pack* &on_input = base::from(_uv_stream)->input_cb_pack();
-  auto uv_buf = reinterpret_cast< buffer::uv_t* >(_uv_buf->base);
-  ref_guard< buffer::instance > unref(*buffer::instance::from(uv_buf), adopt_ref);
-  on_input->stream_on_read(stream(_uv_stream), _nread, buffer(uv_buf));
+  buffer b(on_input->uv_buf);
+  buffer::instance::from(on_input->uv_buf)->unref();
+  on_input->uv_buf = nullptr;
+  on_input->stream_on_read(stream(_uv_stream), _nread, std::move(b));
 }
 
 
