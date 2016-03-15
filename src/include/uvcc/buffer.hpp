@@ -100,8 +100,8 @@ private: /*types*/
   private: /*functions*/
     static std::size_t alignment_padding(const std::size_t _extra_buf_count) noexcept
     {
-      std::size_t base_size = sizeof(instance) + _extra_buf_count*sizeof(uv_t);
-      std::size_t proper_size = (base_size + alignof(std::max_align_t) - 1) & ~(alignof(std::max_align_t) - 1);
+      const std::size_t base_size = sizeof(instance) + _extra_buf_count*sizeof(uv_t);
+      const std::size_t proper_size = (base_size + alignof(std::max_align_t) - 1) & ~(alignof(std::max_align_t) - 1);
       return proper_size - base_size;
     }
 
@@ -116,6 +116,10 @@ private: /*types*/
     {
       static_assert(std::is_standard_layout< instance >::value, "not a standard layout type");
       return reinterpret_cast< instance* >(reinterpret_cast< char* >(_uv_buf) - offsetof(instance, uv_buf_));
+    }
+    static uv_t* from(uv_t _uv_buf) noexcept
+    {
+      return reinterpret_cast< uv_t* >(reinterpret_cast< char* >(_uv_buf.base) - alignment_padding(0) - sizeof(uv_t));
     }
 
     std::size_t buf_count()  { return buf_count_; }
@@ -237,12 +241,12 @@ namespace uv
 template< typename >
 void buffer::alloc_cb(::uv_handle_t *_uv_handle, std::size_t _suggested_size, ::uv_buf_t *_uv_buf)
 {
-  handle::input_cb_pack* &on_input = handle::base< ::uv_handle_t >::from(_uv_handle)->input_cb_pack();
+  handle::input_cb_pack* on_input = handle::base< ::uv_handle_t >::from(_uv_handle)->input_cb_pack();
   buffer b = on_input->on_buffer(handle(_uv_handle), _suggested_size);
   _uv_buf->len = b.len();
   _uv_buf->base = b.base();
   instance::from(b.uv_buf)->ref();
-  on_input->uv_buf = b.uv_buf;
+  //on_input->uv_buf = b.uv_buf;
 }
 
 }
