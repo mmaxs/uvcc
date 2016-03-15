@@ -199,7 +199,7 @@ public: /*constructors*/
   }
 
 private: /*functions*/
-  template< typename = void > static void alloc_cb(::uv_handle_t*, std::size_t, ::uv_buf_t*);
+  //template< typename = void > static void alloc_cb(::uv_handle_t*, std::size_t, ::uv_buf_t*);
 
 public: /*interface*/
   void swap(buffer &_that) noexcept  { std::swap(uv_buf, _that.uv_buf); }
@@ -224,7 +224,15 @@ public: /*conversion operators*/
     \details ...to equip the input operation with a preallocated buffer. The callback should return a `uv::buffer`
     instance initialized with a `_suggested_size` (the value provided by libuv API is a constant of _65536_ bytes)
     or with whatever size, as long as it’s > 0.
-    \sa libuv documentation: [`uv_alloc_cb`](http://docs.libuv.org/en/v1.x/handle.html#c.uv_alloc_cb). */
+    \sa libuv documentation: [`uv_alloc_cb`](http://docs.libuv.org/en/v1.x/handle.html#c.uv_alloc_cb).
+    \details The following is an example of the trivial ready for general use callback:
+    ```
+    buffer alloc_cb(handle, std::size_t _suggested_size)
+    {
+      return buffer{_suggested_size};
+    }
+    ```
+    */
 using on_buffer_t = std::function< buffer(handle _handle, std::size_t _suggested_size) >;
 
 
@@ -237,7 +245,7 @@ using on_buffer_t = std::function< buffer(handle _handle, std::size_t _suggested
 
 namespace uv
 {
-
+/*
 template< typename >
 void buffer::alloc_cb(::uv_handle_t *_uv_handle, std::size_t _suggested_size, ::uv_buf_t *_uv_buf)
 {
@@ -248,7 +256,7 @@ void buffer::alloc_cb(::uv_handle_t *_uv_handle, std::size_t _suggested_size, ::
   instance::from(b.uv_buf)->ref();
   //on_input->uv_buf = b.uv_buf;
 }
-
+*/
 }
 
 
