@@ -46,9 +46,9 @@ See descriptions for `uv::buffer`'s constructors.
 
 For the following example here is the diagram illustrating the internals of the `uv::buffer` object while executing `foo(BUF)`:
 ```
-uv::buffer BUF{100, 200, 0, 300};
+buffer BUF{100, 200, 0, 300};
 
-void foo(uv::buffer _b)  { /*...*/ }
+void foo(buffer _b)  { /*...*/ }
 
 int main() {
   foo(BUF);
@@ -56,7 +56,7 @@ int main() {
 ```
 \verbatim
 
-         BUF                       uv::buffer::instance
+         BUF                         buffer::instance
  ╔═══════════════╗       ╔═════════════════════════════════════╗
  ║ uv_buf_t* ptr ╫────┐  ║ ref_count rc = 2                    ║
  ╚═══════════════╝    │  ╟─────────────────────────────────────╢

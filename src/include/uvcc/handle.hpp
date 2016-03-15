@@ -49,11 +49,6 @@ class udp;
 class signal;
 
 
-/* input callback function types */
-//#define STREAM_ON_READ_T std::function< void(stream _stream, ssize_t _nread, buffer _buffer) >
-//#define UDP_ON_RECV_T    std::function< void(udp _udp, ssize_t _nread, buffer _buffer, const ::sockaddr *_sa, unsigned int _flags) >
-
-
 
 /*! \defgroup g__handle_traits uv_handle_traits< typename >
     \brief Defines the correspondence between libuv handle data types and C++ classes representing them. */
@@ -112,31 +107,6 @@ protected: /*types*/
 
     explicit operator bool() const noexcept  { return data; }
   };
-  /*struct input_cb_pack
-  {
-    on_buffer_t on_buffer;
-    union
-    {
-      STREAM_ON_READ_T stream_on_read;
-      UDP_ON_RECV_T udp_on_recv;
-    };
-    //buffer::uv_t *uv_buf;
-
-    ~input_cb_pack()  {};  // default destructor is implicitly deleted
-
-    input_cb_pack(const on_buffer_t &_on_buffer, const STREAM_ON_READ_T &_stream_on_read)
-      : on_buffer(_on_buffer), stream_on_read(_stream_on_read)//, uv_buf(nullptr)
-    {}
-    input_cb_pack(const on_buffer_t &_on_buffer, const UDP_ON_RECV_T &_udp_on_recv)
-      : on_buffer(_on_buffer), udp_on_recv(_udp_on_recv)//, uv_buf(nullptr)
-    {}
-
-    input_cb_pack(const input_cb_pack&) = delete;
-    input_cb_pack& operator =(const input_cb_pack&) = delete;
-
-    input_cb_pack(input_cb_pack&&) = delete;
-    input_cb_pack& operator =(input_cb_pack&&) = delete;
-  };*/
 
   template< typename _UV_T_ > class base
   {
@@ -146,11 +116,10 @@ protected: /*types*/
     ref_count rc;
     type_storage< on_destroy_t > on_destroy_storage;
     mutable handle::supplemental requisite;
-    //mutable handle::input_cb_pack *on_input;
     alignas(::uv_any_handle) _UV_T_ uv_handle;
 
   private: /*constructors*/
-    base() : last_error(0), Delete(default_delete< base >::Delete)/*, on_input(nullptr)*/  {}
+    base() : last_error(0), Delete(default_delete< base >::Delete)  {}
 
   public: /*constructors*/
     ~base() = default;
@@ -187,7 +156,6 @@ protected: /*types*/
 
     on_destroy_t& on_destroy() noexcept  { return on_destroy_storage.value(); }
     handle::supplemental& supplemental() const noexcept  { return requisite; }
-    //handle::input_cb_pack*& input_cb_pack() const noexcept  { return on_input; }
 
     void ref()  { rc.inc(); }
     void unref() noexcept  { if (rc.dec() == 0)  destroy(); }
@@ -342,7 +310,6 @@ class stream : public handle
 public: /*types*/
   using uv_t = ::uv_stream_t;
   using on_read_t = std::function< void(stream _stream, ssize_t _nread, buffer _buffer) >;
-  //using on_read_t = STREAM_ON_READ_T;
   /*!< \brief The function type of the callback called by `read_start()`.
        \sa libuv documentation: [`uv_read_cb`](http://docs.libuv.org/en/v1.x/stream.html#c.uv_read_cb). */
 
@@ -388,12 +355,6 @@ public: /*interface*/
     requisite.init< read_cb_pack >(_alloc_cb, _read_cb);
     base::from(uv_handle)->ref();
     return status(::uv_read_start(static_cast< uv_t* >(uv_handle), alloc_cb, read_cb));
-    /*
-    input_cb_pack* &on_input = base::from(uv_handle)->input_cb_pack();
-    if (on_input)  read_stop();
-    on_input = new input_cb_pack(_alloc_cb, _read_cb);
-    base::from(uv_handle)->ref();
-    return status(::uv_read_start(static_cast< uv_t* >(uv_handle), buffer::alloc_cb, read_cb));*/
   }
   /*! \details Stop reading data from the stream.
       \sa libuv documentation: [`uv_read_stop()`](http://docs.libuv.org/en/v1.x/stream.html#c.uv_read_stop). */
@@ -406,17 +367,6 @@ public: /*interface*/
       ref_guard< base > unref(*base::from(uv_handle), adopt_ref);
       requisite.destroy();
     };
-    /*
-    status(::uv_read_stop(static_cast< uv_t* >(uv_handle)));
-    input_cb_pack* &on_input = base::from(uv_handle)->input_cb_pack();
-    if (on_input)
-    {
-      //if (on_input->uv_buf)  buffer::instance::from(on_input->uv_buf)->unref();
-      on_input->stream_on_read.~on_read_t();
-      delete on_input;
-      on_input = nullptr;
-      base::from(uv_handle)->unref();
-    };*/
     return status();
   }
 
@@ -449,14 +399,6 @@ void stream::read_cb(::uv_stream_t *_uv_stream, ssize_t _nread, const ::uv_buf_t
   buffer::uv_t *uv_buf = buffer::instance::from(*_uv_buf);
   ref_guard< buffer::instance > unref(*buffer::instance::from(uv_buf), adopt_ref);
   base::from(_uv_stream)->supplemental().get< read_cb_pack >().on_read(stream(_uv_stream), _nread, buffer(uv_buf));
-  /*
-  input_cb_pack* on_input = base::from(_uv_stream)->input_cb_pack();
-  //buffer b(on_input->uv_buf);
-  //buffer::instance::from(on_input->uv_buf)->unref();
-  //on_input->uv_buf = nullptr;
-  buffer::uv_t *uv_buf = buffer::instance::from(*_uv_buf);
-  ref_guard< buffer::instance > unref(*buffer::instance::from(uv_buf), adopt_ref);
-  on_input->stream_on_read(stream(_uv_stream), _nread, buffer(uv_buf));*/
 }
 
 
@@ -642,7 +584,6 @@ class udp : public handle
 public: /*types*/
   using uv_t = ::uv_udp_t;
   using on_recv_t = std::function< void(udp _udp, ssize_t _nread, buffer _buffer, const ::sockaddr *_sa, unsigned int _flags) >;
-  //using on_recv_t = UDP_ON_RECV_T;
   /*!< \brief The function type of the callback called by `recv_start()`.
        \sa libuv documentation: [`uv_udp_recv_cb`](http://docs.libuv.org/en/v1.x/udp.html#c.uv_udp_recv_cb). */
 

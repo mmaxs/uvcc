@@ -198,9 +198,6 @@ public: /*constructors*/
     return *this;
   }
 
-private: /*functions*/
-  //template< typename = void > static void alloc_cb(::uv_handle_t*, std::size_t, ::uv_buf_t*);
-
 public: /*interface*/
   void swap(buffer &_that) noexcept  { std::swap(uv_buf, _that.uv_buf); }
   /*! \brief The current number of existing references to the same buffer as this variable refers to. */
@@ -237,26 +234,6 @@ using on_buffer_t = std::function< buffer(handle _handle, std::size_t _suggested
 
 
 //! \}
-}
-
-
-#include "uvcc/handle.hpp"
-
-
-namespace uv
-{
-/*
-template< typename >
-void buffer::alloc_cb(::uv_handle_t *_uv_handle, std::size_t _suggested_size, ::uv_buf_t *_uv_buf)
-{
-  handle::input_cb_pack* on_input = handle::base< ::uv_handle_t >::from(_uv_handle)->input_cb_pack();
-  buffer b = on_input->on_buffer(handle(_uv_handle), _suggested_size);
-  _uv_buf->len = b.len();
-  _uv_buf->base = b.base();
-  instance::from(b.uv_buf)->ref();
-  //on_input->uv_buf = b.uv_buf;
-}
-*/
 }
 
 
