@@ -389,17 +389,19 @@ public: /*conversion operators*/
 template< typename >
 void stream::alloc_cb(::uv_handle_t *_uv_handle, std::size_t _suggested_size, ::uv_buf_t *_uv_buf)
 {
-  buffer b = base::from(_uv_handle)->supplemental().get< read_cb_pack >().on_buffer(stream(reinterpret_cast< uv_t* >(_uv_handle)), _suggested_size);
+  const on_buffer_t &alloc_cb = base::from(_uv_handle)->supplemental().get< read_cb_pack >().on_buffer;
+  buffer b = alloc_cb(stream(reinterpret_cast< uv_t* >(_uv_handle)), _suggested_size);
   buffer::instance::from(b.uv_buf)->ref();
-  _uv_buf->len = b.len();
-  _uv_buf->base = b.base();
+  *_uv_buf = b[0];
 }
 template< typename >
 void stream::read_cb(::uv_stream_t *_uv_stream, ssize_t _nread, const ::uv_buf_t *_uv_buf)
 {
-  buffer::uv_t *uv_buf = buffer::instance::from(*_uv_buf);
-  ref_guard< buffer::instance > unref(*buffer::instance::from(uv_buf), adopt_ref);
-  base::from(_uv_stream)->supplemental().get< read_cb_pack >().on_read(stream(_uv_stream), _nread, buffer(uv_buf));
+  const on_read_t &read_cb = base::from(_uv_stream)->supplemental().get< read_cb_pack >().on_read;
+  if (_uv_buf->base)
+    read_cb(stream(_uv_stream), _nread, buffer(buffer::instance::from(*_uv_buf)));
+  else
+    read_cb(stream(_uv_stream), _nread, buffer());
 }
 
 
