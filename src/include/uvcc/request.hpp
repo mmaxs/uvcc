@@ -103,7 +103,7 @@ protected: /*types*/
     >;
 
   private: /*data*/
-    mutable int last_error;
+    mutable int uv_error;
     void (*Delete)(void*);  // store a proper delete operator
     ref_count rc;
     type_storage< on_destroy_t > on_destroy_storage;
@@ -111,7 +111,7 @@ protected: /*types*/
     alignas(::uv_any_req) _UV_T_ uv_req;
 
   private: /*constructors*/
-    base() : last_error(0), Delete(default_delete< base >::Delete)
+    base() : uv_error(0), Delete(default_delete< base >::Delete)
     {
       on_request_storage.template reset< on_request_t >();
     }
@@ -150,7 +150,7 @@ protected: /*types*/
     void unref()  { if (rc.dec() == 0)  destroy(); }
     ref_count::type nrefs() const noexcept  { return rc.value(); }
 
-    int& status() const noexcept  { return last_error; }
+    int& uv_status() const noexcept  { return uv_error; }
   };
   //! \endcond
 
@@ -197,7 +197,7 @@ public: /*constructors*/
 
 protected: /*functions*/
   //! \cond
-  int status(int _last_error) const noexcept  { return (base< uv_t >::from(uv_req)->status() = _last_error); }
+  int uv_status(int _value) const noexcept  { return (base< uv_t >::from(uv_req)->uv_status() = _value); }
   //! \endcond
 
 public: /*interface*/
@@ -205,7 +205,7 @@ public: /*interface*/
   /*! \brief The current number of existing references to the same object as this request variable refers to. */
   long nrefs() const noexcept  { return base< uv_t >::from(uv_req)->nrefs(); }
   /*! \brief The status value returned by the last executed libuv API function. */
-  int status() const noexcept  { return base< uv_t >::from(uv_req)->status(); }
+  int uv_status() const noexcept  { return base< uv_t >::from(uv_req)->uv_status(); }
 
   const on_destroy_t& on_destroy() const noexcept  { return base< uv_t >::from(uv_req)->on_destroy(); }
         on_destroy_t& on_destroy()       noexcept  { return base< uv_t >::from(uv_req)->on_destroy(); }
@@ -222,10 +222,10 @@ public: /*interface*/
   int cancel() noexcept  { return ::uv_cancel(static_cast< uv_t* >(uv_req)); }
 
 public: /*conversion operators*/
-  operator const uv_t*() const noexcept  { return static_cast< const uv_t* >(uv_req); }
-  operator       uv_t*()       noexcept  { return static_cast<       uv_t* >(uv_req); }
+  explicit operator const uv_t*() const noexcept  { return static_cast< const uv_t* >(uv_req); }
+  explicit operator       uv_t*()       noexcept  { return static_cast<       uv_t* >(uv_req); }
 
-  explicit operator bool() const noexcept  { return (status() == 0); }  /*!< \brief Equivalent to `(status() == 0)`. */
+  explicit operator bool() const noexcept  { return (uv_status() == 0); }  /*!< \brief Equivalent to `(uv_status() == 0)`. */
 };
 
 
@@ -273,11 +273,11 @@ public: /*interface*/
   /*! \brief Run the request for `uv::tcp` stream.
       \sa libuv documentation: [`uv_tcp_connect()`](http://docs.libuv.org/en/v1.x/tcp.html#c.uv_tcp_connect). */
   template< typename _T_, typename = std::enable_if_t< is_one_of< _T_, ::sockaddr_in, ::sockaddr_in6, ::sockaddr_storage >::value > >
-  int run(tcp _tcp, const _T_ &_sa)
+  int run(tcp _tcp, const _T_ &_sockaddr)
   {
     tcp::base::from(_tcp.uv_handle)->ref();
     base::from(uv_req)->ref();
-    return status(::uv_tcp_connect(static_cast< uv_t* >(uv_req), _tcp, reinterpret_cast< const ::sockaddr* >(&_sa), connect_cb));
+    return uv_status(::uv_tcp_connect(static_cast< uv_t* >(uv_req), static_cast< tcp::uv_t* >(_tcp), reinterpret_cast< const ::sockaddr* >(&_sockaddr), connect_cb));
   }
   /*! \brief Run the request for `uv::pipe` stream.
       \sa libuv documentation: [`uv_pipe_connect()`](http://docs.libuv.org/en/v1.x/pipe.html#c.uv_pipe_connect). */
@@ -285,12 +285,12 @@ public: /*interface*/
   {
     pipe::base::from(_pipe.uv_handle)->ref();
     base::from(uv_req)->ref();
-    ::uv_pipe_connect(static_cast< uv_t* >(uv_req), _pipe, _name, connect_cb);
+    ::uv_pipe_connect(static_cast< uv_t* >(uv_req), static_cast< pipe::uv_t* >(_pipe), _name, connect_cb);
   }
 
 public: /*conversion operators*/
-  operator const uv_t*() const noexcept  { return static_cast< const uv_t* >(uv_req); }
-  operator       uv_t*()       noexcept  { return static_cast<       uv_t* >(uv_req); }
+  explicit operator const uv_t*() const noexcept  { return static_cast< const uv_t* >(uv_req); }
+  explicit operator       uv_t*()       noexcept  { return static_cast<       uv_t* >(uv_req); }
 };
 
 template< typename >
@@ -356,7 +356,7 @@ public: /*interface*/
     //buffer::instance::from(_buf.uv_buf)->ref();
     base::from(uv_req)->ref();
 
-    return status(::uv_write(static_cast< uv_t* >(uv_req), _stream, _buf, _buf.count(), write_cb));
+    return uv_status(::uv_write(static_cast< uv_t* >(uv_req), static_cast< stream::uv_t* >(_stream), static_cast< const buffer::uv_t* >(_buf), _buf.count(), write_cb));
   }
   /*! \brief The overload for sending handles over a pipe.
       \sa libuv documentation: [`uv_write2()`](http://docs.libuv.org/en/v1.x/stream.html#c.uv_write2). */
@@ -367,7 +367,7 @@ public: /*interface*/
     stream::base::from(_send_handle.uv_handle)->ref();
     base::from(uv_req)->ref();
 
-    return status(::uv_write2(static_cast< uv_t* >(uv_req), _pipe, _buf, _buf.count(), _send_handle, write2_cb));
+    return uv_status(::uv_write2(static_cast< uv_t* >(uv_req), static_cast< stream::uv_t* >(_pipe), static_cast< const buffer::uv_t* >(_buf), _buf.count(), static_cast< stream::uv_t* >(_send_handle), write2_cb));
   }
 
   /*! \details The wrapper for corresponding libuv function.
@@ -375,12 +375,12 @@ public: /*interface*/
       \sa libuv documentation: [`uv_try_write()`](http://docs.libuv.org/en/v1.x/stream.html#c.uv_try_write). */
   int try_write(stream _stream, const buffer _buf)
   {
-    return status(::uv_try_write(_stream, _buf, _buf.count()));
+    return uv_status(::uv_try_write(static_cast< stream::uv_t* >(_stream), static_cast< const buffer::uv_t* >(_buf), _buf.count()));
   }
 
 public: /*conversion operators*/
-  operator const uv_t*() const noexcept  { return static_cast< const uv_t* >(uv_req); }
-  operator       uv_t*()       noexcept  { return static_cast<       uv_t* >(uv_req); }
+  explicit operator const uv_t*() const noexcept  { return static_cast< const uv_t* >(uv_req); }
+  explicit operator       uv_t*()       noexcept  { return static_cast<       uv_t* >(uv_req); }
 };
 
 template< typename >
@@ -445,12 +445,12 @@ public: /*interface*/
   {
     stream::base::from(_stream.uv_handle)->ref();
     base::from(uv_req)->ref();
-    return status(::uv_shutdown(static_cast< uv_t* >(uv_req), _stream, shutdown_cb));
+    return uv_status(::uv_shutdown(static_cast< uv_t* >(uv_req), static_cast< stream::uv_t* >(_stream), shutdown_cb));
   }
 
 public: /*conversion operators*/
-  operator const uv_t*() const noexcept  { return static_cast< const uv_t* >(uv_req); }
-  operator       uv_t*()       noexcept  { return static_cast<       uv_t* >(uv_req); }
+  explicit operator const uv_t*() const noexcept  { return static_cast< const uv_t* >(uv_req); }
+  explicit operator       uv_t*()       noexcept  { return static_cast<       uv_t* >(uv_req); }
 };
 
 template< typename >
@@ -484,8 +484,8 @@ public: /*constructors*/
   udp_send& operator =(udp_send&&) noexcept = default;
 
 public: /*conversion operators*/
-  operator const uv_t*() const noexcept  { return static_cast< const uv_t* >(uv_req); }
-  operator       uv_t*()       noexcept  { return static_cast<       uv_t* >(uv_req); }
+  explicit operator const uv_t*() const noexcept  { return static_cast< const uv_t* >(uv_req); }
+  explicit operator       uv_t*()       noexcept  { return static_cast<       uv_t* >(uv_req); }
 };
 
 
@@ -508,8 +508,8 @@ public: /*constructors*/
   fs& operator =(fs&&) noexcept = default;
 
 public: /*conversion operators*/
-  operator const uv_t*() const noexcept  { return static_cast< const uv_t* >(uv_req); }
-  operator       uv_t*()       noexcept  { return static_cast<       uv_t* >(uv_req); }
+  explicit operator const uv_t*() const noexcept  { return static_cast< const uv_t* >(uv_req); }
+  explicit operator       uv_t*()       noexcept  { return static_cast<       uv_t* >(uv_req); }
 };
 
 
@@ -532,8 +532,8 @@ public: /*constructors*/
   work& operator =(work&&) noexcept = default;
 
 public: /*conversion operators*/
-  operator const uv_t*() const noexcept  { return static_cast< const uv_t* >(uv_req); }
-  operator       uv_t*()       noexcept  { return static_cast<       uv_t* >(uv_req); }
+  explicit operator const uv_t*() const noexcept  { return static_cast< const uv_t* >(uv_req); }
+  explicit operator       uv_t*()       noexcept  { return static_cast<       uv_t* >(uv_req); }
 };
 
 
@@ -556,8 +556,8 @@ public: /*constructors*/
   getaddrinfo& operator =(getaddrinfo&&) noexcept = default;
 
 public: /*conversion operators*/
-  operator const uv_t*() const noexcept  { return static_cast< const uv_t* >(uv_req); }
-  operator       uv_t*()       noexcept  { return static_cast<       uv_t* >(uv_req); }
+  explicit operator const uv_t*() const noexcept  { return static_cast< const uv_t* >(uv_req); }
+  explicit operator       uv_t*()       noexcept  { return static_cast<       uv_t* >(uv_req); }
 };
 
 
@@ -580,8 +580,8 @@ public: /*constructors*/
   getnameinfo& operator =(getnameinfo&&) noexcept = default;
 
 public: /*conversion operators*/
-  operator const uv_t*() const noexcept  { return static_cast< const uv_t* >(uv_req); }
-  operator       uv_t*()       noexcept  { return static_cast<       uv_t* >(uv_req); }
+  explicit operator const uv_t*() const noexcept  { return static_cast< const uv_t* >(uv_req); }
+  explicit operator       uv_t*()       noexcept  { return static_cast<       uv_t* >(uv_req); }
 };
 
 

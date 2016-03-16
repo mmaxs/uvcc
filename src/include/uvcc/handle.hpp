@@ -111,7 +111,7 @@ protected: /*types*/
   template< typename _UV_T_ > class base
   {
   private: /*data*/
-    mutable int last_error;
+    mutable int uv_error;
     void (*Delete)(void*);  // store a proper delete operator
     ref_count rc;
     type_storage< on_destroy_t > on_destroy_storage;
@@ -119,7 +119,7 @@ protected: /*types*/
     alignas(::uv_any_handle) _UV_T_ uv_handle;
 
   private: /*constructors*/
-    base() : last_error(0), Delete(default_delete< base >::Delete)  {}
+    base() : uv_error(0), Delete(default_delete< base >::Delete)  {}
 
   public: /*constructors*/
     ~base() = default;
@@ -161,7 +161,7 @@ protected: /*types*/
     void unref() noexcept  { if (rc.dec() == 0)  destroy(); }
     ref_count::type nrefs() const noexcept  { return rc.value(); }
 
-    int& status() const noexcept  { return last_error; }
+    int& uv_status() const noexcept  { return uv_error; }
   };
   //! \endcond
 
@@ -215,7 +215,7 @@ public: /*constructors*/
 
 protected: /*functions*/
   //! \cond
-  int status(int _last_error) const noexcept  { return (base< uv_t >::from(uv_handle)->status() = _last_error); }
+  int uv_status(int _value) const noexcept  { return (base< uv_t >::from(uv_handle)->uv_status() = _value); }
   //! \endcond
 
 public: /*interface*/
@@ -223,7 +223,7 @@ public: /*interface*/
   /*! \brief The current number of existing references to the same object as this handle variable refers to. */
   long nrefs() const noexcept  { return base< uv_t >::from(uv_handle)->nrefs(); }
   /*! \brief The status value returned by the last executed libuv API function. */
-  int status() const noexcept  { return base< uv_t >::from(uv_handle)->status(); }
+  int uv_status() const noexcept  { return base< uv_t >::from(uv_handle)->uv_status(); }
 
   const on_destroy_t& on_destroy() const noexcept  { return base< uv_t >::from(uv_handle)->on_destroy(); }
         on_destroy_t& on_destroy()       noexcept  { return base< uv_t >::from(uv_handle)->on_destroy(); }
@@ -239,34 +239,34 @@ public: /*interface*/
 
   /*! \details Check if the handle is active.
       \sa libuv documentation: [`uv_is_active()`](http://docs.libuv.org/en/v1.x/handle.html#c.uv_is_active). */
-  int is_active() const noexcept  { return status(::uv_is_active(*this)); }
+  int is_active() const noexcept  { return uv_status(::uv_is_active(static_cast< uv_t* >(uv_handle))); }
   /*! \details Check if the handle is closing or closed.
       \sa libuv documentation: [`uv_is_closing()`](http://docs.libuv.org/en/v1.x/handle.html#c.uv_is_closing). */
-  int is_closing() const noexcept { return status(::uv_is_closing(*this)); }
+  int is_closing() const noexcept { return uv_status(::uv_is_closing(static_cast< uv_t* >(uv_handle))); }
 
   /*! \details _Get_ the size of the send buffer that the operating system uses for the socket.
       \sa libuv documentation: [`uv_send_buffer_size()`](http://docs.libuv.org/en/v1.x/handle.html#c.uv_send_buffer_size). */
   unsigned int send_buffer_size() const noexcept
   {
     unsigned int v = 0;
-    status(::uv_send_buffer_size(static_cast< uv_t* >(uv_handle), (int*)&v));
+    uv_status(::uv_send_buffer_size(static_cast< uv_t* >(uv_handle), (int*)&v));
     return v;
   }
   /*! \details _Set_ the size of the send buffer that the operating system uses for the socket.
       \sa libuv documentation: [`uv_send_buffer_size()`](http://docs.libuv.org/en/v1.x/handle.html#c.uv_send_buffer_size). */
-  void send_buffer_size(const unsigned int _v) noexcept  { status(::uv_send_buffer_size(static_cast< uv_t* >(uv_handle), (int*)&_v)); }
+  void send_buffer_size(const unsigned int _value) noexcept  { uv_status(::uv_send_buffer_size(static_cast< uv_t* >(uv_handle), (int*)&_value)); }
 
   /*! \details _Get_ the size of the receive buffer that the operating system uses for the socket.
       \sa libuv documentation: [`uv_recv_buffer_size()`](http://docs.libuv.org/en/v1.x/handle.html#c.uv_recv_buffer_size). */
   unsigned int recv_buffer_size() const noexcept
   {
     unsigned int v = 0;
-    status(::uv_recv_buffer_size(static_cast< uv_t* >(uv_handle), (int*)&v));
+    uv_status(::uv_recv_buffer_size(static_cast< uv_t* >(uv_handle), (int*)&v));
     return v;
   }
   /*! \details _Set_ the size of the receive buffer that the operating system uses for the socket.
       \sa libuv documentation: [`uv_recv_buffer_size()`](http://docs.libuv.org/en/v1.x/handle.html#c.uv_recv_buffer_size). */
-  void recv_buffer_size(const unsigned int _v) noexcept  { status(::uv_recv_buffer_size(static_cast< uv_t* >(uv_handle), (int*)&_v)); }
+  void recv_buffer_size(const unsigned int _value) noexcept  { uv_status(::uv_recv_buffer_size(static_cast< uv_t* >(uv_handle), (int*)&_value)); }
 
   /*! \details Get the platform dependent file descriptor.
       \sa libuv documentation: [`uv_fileno()`](http://docs.libuv.org/en/v1.x/handle.html#c.uv_fileno). */
@@ -277,15 +277,15 @@ public: /*interface*/
 #else
     ::uv_os_fd_t fd = -1;
 #endif
-    status(::uv_fileno(*this, &fd));
+    uv_status(::uv_fileno(static_cast< uv_t* >(uv_handle), &fd));
     return fd;
   }
 
 public: /*conversion operators*/
-  operator const uv_t*() const noexcept  { return static_cast< const uv_t* >(uv_handle); }
-  operator       uv_t*()       noexcept  { return static_cast<       uv_t* >(uv_handle); }
+  explicit operator const uv_t*() const noexcept  { return static_cast< const uv_t* >(uv_handle); }
+  explicit operator       uv_t*()       noexcept  { return static_cast<       uv_t* >(uv_handle); }
 
-  explicit operator bool() const noexcept  { return (status() == 0); }  /*!< \brief Equivalent to `(status() == 0)`. */
+  explicit operator bool() const noexcept  { return (uv_status() == 0); }  /*!< \brief Equivalent to `(uv_status() == 0)`. */
 };
 
 template< typename _UV_T_ >
@@ -354,35 +354,35 @@ public: /*interface*/
     if (requisite)  read_stop();
     requisite.init< read_cb_pack >(_alloc_cb, _read_cb);
     base::from(uv_handle)->ref();
-    return status(::uv_read_start(static_cast< uv_t* >(uv_handle), alloc_cb, read_cb));
+    return uv_status(::uv_read_start(static_cast< uv_t* >(uv_handle), alloc_cb, read_cb));
   }
   /*! \details Stop reading data from the stream.
       \sa libuv documentation: [`uv_read_stop()`](http://docs.libuv.org/en/v1.x/stream.html#c.uv_read_stop). */
   int read_stop() noexcept
   {
-    status(::uv_read_stop(static_cast< uv_t* >(uv_handle)));
+    uv_status(::uv_read_stop(static_cast< uv_t* >(uv_handle)));
     auto &requisite = base::from(uv_handle)->supplemental();
     if (requisite)
     {
       ref_guard< base > unref(*base::from(uv_handle), adopt_ref);
       requisite.destroy();
     };
-    return status();
+    return uv_status();
   }
 
   /*! \brief The amount of queued bytes waiting to be sent. */
   std::size_t write_queue_size() const noexcept  { return static_cast< uv_t* >(uv_handle)->write_queue_size; }
   /*! \brief Check if the stream is readable. */
-  bool is_readable() const noexcept  { return status(::uv_is_readable(static_cast< uv_t* >(uv_handle))); }
+  bool is_readable() const noexcept  { return uv_status(::uv_is_readable(static_cast< uv_t* >(uv_handle))); }
   /*! \brief Check if the stream is writable. */
-  bool is_writable() const noexcept  { return status(::uv_is_writable(static_cast< uv_t* >(uv_handle))); }
+  bool is_writable() const noexcept  { return uv_status(::uv_is_writable(static_cast< uv_t* >(uv_handle))); }
   /*! \details Enable or disable blocking mode for the stream.
       \sa libuv documentation: [`uv_stream_set_blocking()`](http://docs.libuv.org/en/v1.x/stream.html#c.uv_stream_set_blocking). */
-  int set_blocking(bool _enable) noexcept  { return status(::uv_stream_set_blocking(static_cast< uv_t* >(uv_handle), _enable)); }
+  int set_blocking(bool _enable) noexcept  { return uv_status(::uv_stream_set_blocking(static_cast< uv_t* >(uv_handle), _enable)); }
 
 public: /*conversion operators*/
-  operator const uv_t*() const noexcept  { return static_cast< const uv_t* >(uv_handle); }
-  operator       uv_t*()       noexcept  { return static_cast<       uv_t* >(uv_handle); }
+  explicit operator const uv_t*() const noexcept  { return static_cast< const uv_t* >(uv_handle); }
+  explicit operator       uv_t*()       noexcept  { return static_cast<       uv_t* >(uv_handle); }
 };
 
 template< typename >
@@ -437,7 +437,7 @@ public: /*constructors*/
   tcp(uv::loop _loop, unsigned int _flags = AF_INET)
   {
     uv_handle = base::create();
-    status(::uv_tcp_init_ex(_loop, static_cast< uv_t* >(uv_handle), _flags));
+    uv_status(::uv_tcp_init_ex(static_cast< uv::loop::uv_t* >(_loop), static_cast< uv_t* >(uv_handle), _flags));
   }
   /*! \details Create a socket object from an existing OS native socket descriptor.
       \sa libuv documentation: [`uv_tcp_open()`](http://docs.libuv.org/en/v1.x/tcp.html#c.uv_tcp_open),
@@ -445,8 +445,8 @@ public: /*constructors*/
   tcp(uv::loop _loop, ::uv_os_sock_t _sock)
   {
     uv_handle = base::create();
-    if (status(::uv_tcp_init(_loop, static_cast< uv_t* >(uv_handle))) != 0)  return;
-    status(::uv_tcp_open(static_cast< uv_t* >(uv_handle), _sock));
+    if (uv_status(::uv_tcp_init(static_cast< uv::loop::uv_t* >(_loop), static_cast< uv_t* >(uv_handle))) != 0)  return;
+    uv_status(::uv_tcp_open(static_cast< uv_t* >(uv_handle), _sock));
   }
 
 public: /*intreface*/
@@ -454,37 +454,37 @@ public: /*intreface*/
   ::uv_os_sock_t socket() const noexcept  { return (::uv_os_sock_t)fileno(); }
 
   /*! \brief Enable or disable Nagle’s algorithm on the socket. */
-  int nodelay(bool _enable) noexcept  { return status(::uv_tcp_nodelay(static_cast< uv_t* >(uv_handle), _enable)); }
+  int nodelay(bool _enable) noexcept  { return uv_status(::uv_tcp_nodelay(static_cast< uv_t* >(uv_handle), _enable)); }
   /*! \details Enable or disable TCP keep-alive.
       \arg `_delay` is the initial delay in seconds, ignored when `_enable = false`. */
-  int keepalive(bool _enable, unsigned int _delay) noexcept  { return status(::uv_tcp_keepalive(static_cast< uv_t* >(uv_handle), _enable, _delay)); }
+  int keepalive(bool _enable, unsigned int _delay) noexcept  { return uv_status(::uv_tcp_keepalive(static_cast< uv_t* >(uv_handle), _enable, _delay)); }
   /*! \details Enable or disable simultaneous asynchronous accept requests that are queued by the operating system when listening for new TCP connections.
       \sa libuv documentation: [`uv_tcp_simultaneous_accepts()`](http://docs.libuv.org/en/v1.x/tcp.html#c.uv_tcp_simultaneous_accepts). */
-  int simultaneous_accepts(bool _enable) noexcept  { return status(::uv_tcp_simultaneous_accepts(static_cast< uv_t* >(uv_handle), _enable)); }
+  int simultaneous_accepts(bool _enable) noexcept  { return uv_status(::uv_tcp_simultaneous_accepts(static_cast< uv_t* >(uv_handle), _enable)); }
   /*! \details Bind the handle to an address and port.
       \sa libuv documentation: [`uv_tcp_bind()`](http://docs.libuv.org/en/v1.x/tcp.html#c.uv_tcp_bind). */
   template< typename _T_, typename = std::enable_if_t< is_one_of< _T_, ::sockaddr_in, ::sockaddr_in6, ::sockaddr_storage >::value > >
-  int bind(const _T_ &_sa, unsigned int _flags) noexcept  { return status(::uv_tcp_bind(static_cast< uv_t* >(uv_handle), reinterpret_cast< const ::sockaddr* >(&_sa), _flags)); }
+  int bind(const _T_ &_sa, unsigned int _flags) noexcept  { return uv_status(::uv_tcp_bind(static_cast< uv_t* >(uv_handle), reinterpret_cast< const ::sockaddr* >(&_sa), _flags)); }
   /*! \details Get the address which this handle is bound to.
       \sa libuv documentation: [`uv_tcp_getsockname()`](http://docs.libuv.org/en/v1.x/tcp.html#c.uv_tcp_getsockname). */
   template< typename _T_, typename = std::enable_if_t< is_one_of< _T_, ::sockaddr_in, ::sockaddr_in6, ::sockaddr_storage >::value > >
-  int getsockname(_T_ &_sa) const noexcept
+  int getsockname(_T_ &_sockaddr) const noexcept
   {
     int z = sizeof(_T_);
-    return status(::uv_tcp_getsockname(static_cast< uv_t* >(uv_handle), reinterpret_cast< ::sockaddr* >(&_sa), &z));
+    return uv_status(::uv_tcp_getsockname(static_cast< uv_t* >(uv_handle), reinterpret_cast< ::sockaddr* >(&_sockaddr), &z));
   }
   /*! \details Get the address of the remote peer connected to this handle.
       \sa libuv documentation: [`uv_tcp_getpeername()`](http://docs.libuv.org/en/v1.x/tcp.html#c.uv_tcp_getpeername). */
   template< typename _T_, typename = std::enable_if_t< is_one_of< _T_, ::sockaddr_in, ::sockaddr_in6, ::sockaddr_storage >::value > >
-  int getpeername(_T_ &_sa) const noexcept
+  int getpeername(_T_ &_sockaddr) const noexcept
   {
     int z = sizeof(_T_);
-    return status(::uv_tcp_getpeername(static_cast< uv_t* >(uv_handle), reinterpret_cast< ::sockaddr* >(&_sa), &z));
+    return uv_status(::uv_tcp_getpeername(static_cast< uv_t* >(uv_handle), reinterpret_cast< ::sockaddr* >(&_sockaddr), &z));
   }
 
 public: /*conversion operators*/
-  operator const uv_t*() const noexcept  { return static_cast< const uv_t* >(uv_handle); }
-  operator       uv_t*()       noexcept  { return static_cast<       uv_t* >(uv_handle); }
+  explicit operator const uv_t*() const noexcept  { return static_cast< const uv_t* >(uv_handle); }
+  explicit operator       uv_t*()       noexcept  { return static_cast<       uv_t* >(uv_handle); }
 };
 
 
@@ -524,16 +524,16 @@ public: /*constructors*/
   pipe(uv::loop _loop, const char* _name, bool _ipc = false)
   {
     uv_handle = base::create();
-    if (status(::uv_pipe_init(_loop, static_cast< uv_t* >(uv_handle), _ipc)) != 0)  return;
-    status(::uv_pipe_bind(static_cast< uv_t* >(uv_handle), _name));
+    if (uv_status(::uv_pipe_init(static_cast< uv::loop::uv_t* >(_loop), static_cast< uv_t* >(uv_handle), _ipc)) != 0)  return;
+    uv_status(::uv_pipe_bind(static_cast< uv_t* >(uv_handle), _name));
   }
   /*! \details Create a pipe object from an existing OS native pipe descriptor.
       \sa libuv documentation: [`uv_pipe_open()`](http://docs.libuv.org/en/v1.x/pipe.html#c.uv_pipe_open). */
   pipe(uv::loop _loop, ::uv_file _fd, bool _ipc = false)
   {
     uv_handle = base::create();
-    if (status(::uv_pipe_init(_loop, static_cast< uv_t* >(uv_handle), _ipc)) != 0)  return;
-    status(::uv_pipe_open(static_cast< uv_t* >(uv_handle), _fd));
+    if (uv_status(::uv_pipe_init(static_cast< uv::loop::uv_t* >(_loop), static_cast< uv_t* >(uv_handle), _ipc)) != 0)  return;
+    uv_status(::uv_pipe_open(static_cast< uv_t* >(uv_handle), _fd));
   }
 
 public: /*intreface*/
@@ -546,7 +546,7 @@ public: /*intreface*/
     std::size_t len = 108;
 #endif
     std::string name(len, '\0');
-    while ( status(::uv_pipe_getsockname(static_cast< uv_t* >(uv_handle), const_cast< char* >(name.c_str()), &len)) != 0 and status() == UV_ENOBUFS )
+    while ( uv_status(::uv_pipe_getsockname(static_cast< uv_t* >(uv_handle), const_cast< char* >(name.c_str()), &len)) != 0 and uv_status() == UV_ENOBUFS )
         name.resize(len, '\0');
     return name;
   }
@@ -559,7 +559,7 @@ public: /*intreface*/
     std::size_t len = 108;
 #endif
     std::string name(len, '\0');
-    while ( status(::uv_pipe_getpeername(static_cast< uv_t* >(uv_handle), const_cast< char* >(name.c_str()), &len)) != 0 and status() == UV_ENOBUFS )
+    while ( uv_status(::uv_pipe_getpeername(static_cast< uv_t* >(uv_handle), const_cast< char* >(name.c_str()), &len)) != 0 and uv_status() == UV_ENOBUFS )
         name.resize(len, '\0');
     return name;
   }
@@ -573,8 +573,8 @@ public: /*intreface*/
   ::uv_handle_type pending_type() const noexcept  { return ::uv_pipe_pending_type(static_cast< uv_t* >(uv_handle)); }
 
 public: /*conversion operators*/
-  operator const uv_t*() const noexcept  { return static_cast< const uv_t* >(uv_handle); }
-  operator       uv_t*()       noexcept  { return static_cast<       uv_t* >(uv_handle); }
+  explicit operator const uv_t*() const noexcept  { return static_cast< const uv_t* >(uv_handle); }
+  explicit operator       uv_t*()       noexcept  { return static_cast<       uv_t* >(uv_handle); }
 };
 
 
@@ -603,14 +603,9 @@ public: /*intreface*/
   ::uv_os_sock_t socket() const noexcept  { return (::uv_os_sock_t)fileno(); }
 
 public: /*conversion operators*/
-  operator const uv_t*() const noexcept  { return static_cast< const uv_t* >(uv_handle); }
-  operator       uv_t*()       noexcept  { return static_cast<       uv_t* >(uv_handle); }
+  explicit operator const uv_t*() const noexcept  { return static_cast< const uv_t* >(uv_handle); }
+  explicit operator       uv_t*()       noexcept  { return static_cast<       uv_t* >(uv_handle); }
 };
-
-
-
-#undef STREAM_ON_READ_T
-#undef UDP_ON_RECV_T
 
 
 //! \}
