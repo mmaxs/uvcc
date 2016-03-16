@@ -26,7 +26,8 @@ namespace uv
     [`uv_ref()`](http://docs.libuv.org/en/v1.x/handle.html#c.uv_ref),
     [`uv_unref()`](http://docs.libuv.org/en/v1.x/handle.html#c.uv_unref),
     [`uv_has_ref()`](http://docs.libuv.org/en/v1.x/handle.html#c.uv_has_ref).
-    These libuv functions can be directly applied to uvcc handle objects if necessary. */
+    These libuv functions can be directly applied to uvcc handle objects
+    (with explicit casting the handle object to `uv_handle_t*`) if necessary. */
 //! \{
 
 
