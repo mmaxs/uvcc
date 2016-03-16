@@ -1,5 +1,4 @@
 
-
 #include <uv.h>
 #include <cstdio>
 
@@ -44,7 +43,7 @@ void write_cb(uv_write_t *_wr, int _o)
 }
 
 
-
+// ["translation noise"](https://books.google.ru/books?id=Uemuaza3fTEC&pg=PT26&dq=%22translation+noise%22&hl=en&sa=X&ved=0ahUKEwigoJ3Dq8bLAhVoc3IKHQGQCFYQ6AEIGTAA)
 int main(int _argc, char *_argv[])
 {
   int o = 0;
