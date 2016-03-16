@@ -210,8 +210,8 @@ public: /*interface*/
   decltype(uv_t::len)& len(const std::size_t _i = 0) const noexcept  { return uv_buf[_i].len; }  /*!< \brief The `.len` field of the `_i`-th buffer structure. */
 
 public: /*conversion operators*/
-  operator const uv_t*() const noexcept  { return uv_buf; }
-  operator       uv_t*()       noexcept  { return uv_buf; }
+  explicit operator const uv_t*() const noexcept  { return uv_buf; }
+  explicit operator       uv_t*()       noexcept  { return uv_buf; }
 
   explicit operator bool() const noexcept  { return base(); }  /*!< \brief Equivalent to `(base() != nullptr)`. */
 };

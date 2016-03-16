@@ -212,8 +212,8 @@ public: /*interface*/
   }
 
 public: /*conversion operators*/
-  operator const uv_t*() const noexcept  { return uv_loop; }
-  operator       uv_t*()       noexcept  { return uv_loop; }
+  explicit operator const uv_t*() const noexcept  { return uv_loop; }
+  explicit operator       uv_t*()       noexcept  { return uv_loop; }
 
   explicit operator bool() const noexcept  { return (status() == 0); }  /*!< \brief Equivalent to `(status() == 0)`. */
 };
