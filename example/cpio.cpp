@@ -1,0 +1,70 @@
+
+
+#include <uv.h>
+#include <cstdio>
+
+
+#define ERR(prefix, code)  do{\
+    fflush(stdout);\
+    fprintf(stderr, "%s: %s (%i): %s\n", prefix, uv_err_name(code), (int)code, uv_strerror(code));\
+    fflush(stderr);\
+}while(0)
+
+
+
+uv_pipe_t in, out;
+
+
+void alloc_cb(uv_handle_t *_handle, size_t _suggested_size, uv_buf_t *_buf)
+{
+  _buf->base = new char[_suggested_size];
+  _buf->len = _suggested_size;
+}
+
+
+void write_cb(uv_write_t *_wr, int _o)
+{
+  if (_o < 0)  ERR("write", _o);
+}
+
+
+void read_cb(uv_stream_t *_stream, ssize_t _nread, const uv_buf_t *_buf)
+{
+  if (_nread == UV_EOF)
+    uv_read_stop(_stream);
+  else if (_nread < 0)
+    ERR("read", _nread);
+  else if (_nread >0)
+  {
+    uv_buf_t buf = uv_buf_init(_buf->base, _nread);
+    uv_write_t wr;
+    uv_write(&wr, reinterpret_cast< uv_stream_t* >(&out), &buf, 1, write_cb);
+    //delete _buf->base;
+  };
+}
+
+
+
+int main(int _argc, char *_argv[])
+{
+  int o = 0;
+
+  uv_loop_t *loop = uv_default_loop();
+
+  uv_pipe_init(loop, &in, 0);
+  o = uv_pipe_open(&in, fileno(stdin));
+  if (o < 0)  ERR("stdin open", o);
+  //o = uv_stream_set_blocking(reinterpret_cast< uv_stream_t* >(&in), 1);
+  //if (o < 0)  ERR("stdin restore blocking mode", o);
+
+  uv_pipe_init(loop, &out, 0);
+  o = uv_pipe_open(&out, fileno(stdout));
+  if (o < 0)  ERR("stdout open", o);
+  //o = uv_stream_set_blocking(reinterpret_cast< uv_stream_t* >(&out), 1);
+  //if (o < 0)  ERR("stdout restore blocking mode", o);
+
+  uv_read_start(reinterpret_cast< uv_stream_t* >(&in), alloc_cb, read_cb);
+
+  return  uv_run(loop, UV_RUN_DEFAULT);
+}
+

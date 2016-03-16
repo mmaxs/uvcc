@@ -13,6 +13,19 @@ uv::pipe in(uv::loop::Default(), ::fileno(stdin)),
 int main(int _argc, char *_argv[])
 {
 
+  if (in.status() != 0)
+  {
+    fprintf(stderr, "stdin open error: %s (%i): %s\n", ::uv_err_name(in.status()), in.status(), ::uv_strerror(in.status()));
+    fflush(stderr);
+    return in.status();
+  };
+  if (out.status() != 0)
+  {
+    fprintf(stderr, "stdout open error: %s (%i): %s\n", ::uv_err_name(out.status()), out.status(), ::uv_strerror(out.status()));
+    fflush(stderr);
+    return out.status();
+  };
+
   in.read_start(
       [](uv::handle, std::size_t) -> uv::buffer
       {
