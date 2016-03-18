@@ -5,7 +5,9 @@
 #include <type_traits>  // is_void is_convertible enable_if_t decay common_type aligned_storage
 #include <atomic>       // atomic memory_order_*
 #include <utility>      // forward() move()
+#include <memory>       // addressof()
 #include <stdexcept>    // runtime_error
+#include <typeinfo>     //
 
 
 namespace uv
@@ -265,7 +267,9 @@ private: /*data*/
 
 
 
-/* type_storage */
+/*! \brief A wrapper providing the feature of being a _standard layout type_ for any given type.
+    \note All the member functions creating a new value in the storage from their arguments
+    use the _curly brace initialization_. */
 template< typename _T_ >
 class type_storage
 {
@@ -278,7 +282,7 @@ private: /*data*/
 
 public: /*constructors*/
   ~type_storage()   { value().~value_type(); }
-  type_storage()  { new(static_cast< void* >(&storage)) value_type(); }
+  type_storage()  { new(static_cast< void* >(&storage)) value_type{}; }
 
   type_storage(const type_storage&) = delete;
   type_storage& operator =(const type_storage&) = delete;
@@ -288,15 +292,15 @@ public: /*constructors*/
 
   template< typename... _Args_ > type_storage(_Args_&&... _args)
   {
-    new(static_cast< void* >(&storage)) value_type(std::forward< _Args_ >(_args)...);
+    new(static_cast< void* >(&storage)) value_type{std::forward< _Args_ >(_args)...};
   }
   type_storage(const value_type &_value)
   {
-    new(static_cast< void* >(&storage)) value_type(_value);
+    new(static_cast< void* >(&storage)) value_type{_value};
   }
   type_storage(value_type &&_value)
   {
-    new(static_cast< void* >(&storage)) value_type(std::move(_value));
+    new(static_cast< void* >(&storage)) value_type{std::move(_value)};
   }
 
 public: /*interface*/
@@ -311,7 +315,13 @@ template< typename... _Ts_ >
 using aligned_union = std::aligned_storage< greatest(sizeof(_Ts_)...), greatest(alignof(_Ts_)...) >;
 
 
-/* union_storage */
+/*! \brief A tagged union that provide a storage space being a _standard layout type_
+    suited for all its type variants specified in the type list `_Ts_`.
+    \details Only values from the specified set of types `_Ts_` are created and stored in the union
+    even though the values of any types that are implicitly convertible to one of the types
+    from `_Ts_` list are acceptable for copy- or move-initialization `reset()` functions.
+    \note All the member functions creating a new value in the union from their arguments
+    use the _curly brace initialization_. */
 template< typename... _Ts_ >
 class union_storage   
 {
@@ -319,13 +329,13 @@ public: /*types*/
   using storage_type = typename aligned_union< _Ts_... >::type;
 
 private: /*data*/
-  std::size_t value_tag = 0;
+  const std::type_info *type_tag = nullptr;
   void (*Destroy)(void*) = nullptr;
   storage_type storage;
 
 public: /*constructors*/
-  ~union_storage()  { if (Destroy)  Destroy(&storage); }
-  union_storage() = default;
+  ~union_storage()  { destroy(); }
+  union_storage() = default;  /*!< \brief Create an uninitialized union storage. */
 
   union_storage(const union_storage&) = delete;
   union_storage& operator =(const union_storage&) = delete;
@@ -333,87 +343,112 @@ public: /*constructors*/
   union_storage(union_storage&&) = delete;
   union_storage& operator =(union_storage&&) = delete;
 
+  /*! \brief Create a union with a copy-initialized value from the specified one. */
   template< typename _T_, typename = std::enable_if_t< is_convertible_to_one_of< _T_, _Ts_... >::value > >
   union_storage(const _T_ &_value)
   {
-    constexpr const std::size_t t = is_convertible_to_one_of< _T_, _Ts_... >::value;
-    using value_type = typename std::decay< typename type_at< t, _Ts_... >::type >::type;
-    value_tag = t;
+    constexpr const std::size_t tag = is_convertible_to_one_of< _T_, _Ts_... >::value;
+    using type = typename std::decay< typename type_at< tag, _Ts_... >::type >::type;
 
-    new(static_cast< void* >(&storage)) value_type(_value);
-    Destroy = default_destroy< _T_ >::Destroy;
+    new(static_cast< void* >(&storage)) type{_value};
+    Destroy = default_destroy< type >::Destroy;
+    type_tag = &typeid(type);
   }
+  /*! \brief Create a union with a move-initialized value from the specified value. */
   template< typename _T_, typename = std::enable_if_t< is_convertible_to_one_of< _T_, _Ts_... >::value > >
   union_storage(_T_ &&_value)
   {
-    constexpr const std::size_t t = is_convertible_to_one_of< _T_, _Ts_... >::value;
-    using value_type = typename std::decay< typename type_at< t, _Ts_... >::type >::type;
-    value_tag = t;
+    constexpr const std::size_t tag = is_convertible_to_one_of< _T_, _Ts_... >::value;
+    using type = typename std::decay< typename type_at< tag, _Ts_... >::type >::type;
 
-    new(static_cast< void* >(&storage)) value_type(std::move(_value));
-    Destroy = default_destroy< _T_ >::Destroy;
+    new(static_cast< void* >(&storage)) type{std::move(_value)};
+    Destroy = default_destroy< type >::Destroy;
+    type_tag = &typeid(type);
+  }
+
+private: /*functions*/
+  void destroy() noexcept
+  {
+    if (Destroy)  Destroy(&storage);
+    Destroy = nullptr;
+    type_tag = nullptr;
   }
 
 public: /*interface*/
+  /*! \name Functions to reinitialize the union storage:
+      \note The previously stored value is destroyed. */
+  //! \{
+  /*! \brief Reinitialize the union storage with a default created value of the one of the type from `_Ts_` list
+      that the specified type is convertible to. */
   template< typename _T_ >
   typename std::enable_if< is_convertible_to_one_of< _T_, _Ts_... >::value >::type reset()
   {
-    if (Destroy)  { Destroy(&storage); Destroy = nullptr; value_tag = 0; }
+    constexpr const std::size_t tag = is_convertible_to_one_of< _T_, _Ts_... >::value;
+    using type = typename std::decay< typename type_at< tag, _Ts_... >::type >::type;
 
-    constexpr const std::size_t t = is_convertible_to_one_of< _T_, _Ts_... >::value;
-    using value_type = typename std::decay< typename type_at< t, _Ts_... >::type >::type;
-    value_tag = t;
+    destroy();
 
-    new(static_cast< void* >(&storage)) value_type();
-    Destroy = default_destroy< _T_ >::Destroy;
+    new(static_cast< void* >(&storage)) type{};
+    Destroy = default_destroy< type >::Destroy;
+    type_tag = &typeid(type);
   }
+  /*! \brief Ditto but the value is created from the arguments forwarded to the type constructor. */
   template< typename _T_, typename... _Args_ >
   typename std::enable_if< is_convertible_to_one_of< _T_, _Ts_... >::value >::type reset(_Args_&&... _args)
   {
-    if (Destroy)  { Destroy(&storage); Destroy = nullptr; value_tag = 0; }
+    constexpr const std::size_t tag = is_convertible_to_one_of< _T_, _Ts_... >::value;
+    using type = typename std::decay< typename type_at< tag, _Ts_... >::type >::type;
 
-    constexpr const std::size_t t = is_convertible_to_one_of< _T_, _Ts_... >::value;
-    using value_type = typename std::decay< typename type_at< t, _Ts_... >::type >::type;
-    value_tag = t;
+    destroy();
 
-    new(static_cast< void* >(&storage)) value_type(std::forward< _Args_ >(_args)...);
-    Destroy = default_destroy< _T_ >::Destroy;
+    new(static_cast< void* >(&storage)) type{std::forward< _Args_ >(_args)...};
+    Destroy = default_destroy< type >::Destroy;
+    type_tag = &typeid(type);
   }
+  /*! \brief Ditto but the value is copy-created from the specified argument. */
   template< typename _T_ >
   typename std::enable_if< is_convertible_to_one_of< _T_, _Ts_... >::value >::type reset(const _T_ &_value)
   {
-    if (static_cast< void* >(&storage) == reinterpret_cast< void* >(&_value))  return;
+    constexpr const std::size_t tag = is_convertible_to_one_of< _T_, _Ts_... >::value;
+    using type = typename std::decay< typename type_at< tag, _Ts_... >::type >::type;
 
-    if (Destroy)  { Destroy(&storage); Destroy = nullptr; value_tag = 0; }
+    if (reinterpret_cast< type* >(&storage) == static_cast< type* >(std::addressof(_value)))  return;  // cast _T_* to type*
 
-    constexpr const std::size_t t = is_convertible_to_one_of< _T_, _Ts_... >::value;
-    using value_type = typename std::decay< typename type_at< t, _Ts_... >::type >::type;
-    value_tag = t;
+    destroy();
 
-    new(static_cast< void* >(&storage)) value_type(_value);
-    Destroy = default_destroy< _T_ >::Destroy;
+    new(static_cast< void* >(&storage)) type{_value};
+    Destroy = default_destroy< type >::Destroy;
+    type_tag = &typeid(type);
   }
+  /*! \brief Ditto but the value is move-created from the specified argument. */
   template< typename _T_ >
   typename std::enable_if< is_convertible_to_one_of< _T_, _Ts_... >::value >::type reset(_T_ &&_value)
   {
-    if (static_cast< void* >(&storage) == reinterpret_cast< void* >(&_value))  return;
+    constexpr const std::size_t tag = is_convertible_to_one_of< _T_, _Ts_... >::value;
+    using type = typename std::decay< typename type_at< tag, _Ts_... >::type >::type;
 
-    if (Destroy)  { Destroy(&storage); Destroy = nullptr; value_tag = 0; }
+    if (reinterpret_cast< type* >(&storage) == static_cast< type* >(std::addressof(_value)))  return;  // cast _T_* to type*
 
-    constexpr const std::size_t t = is_convertible_to_one_of< _T_, _Ts_... >::value;
-    using value_type = typename std::decay< typename type_at< t, _Ts_... >::type >::type;
-    value_tag = t;
+    destroy();
 
-    new(static_cast< void* >(&storage)) value_type(std::move(_value));
-    Destroy = default_destroy< _T_ >::Destroy;
+    new(static_cast< void* >(&storage)) type{std::move(_value)};
+    Destroy = default_destroy< type >::Destroy;
+    type_tag = &typeid(type);
   }
+  //! \}
 
-  std::size_t tag()  { return value_tag; }
+  /*! \brief The type tag of the stored value.
+      \details It's just a pointer referring to the static global constant object returned by the
+      `typeid()` operator for the type of the value currently stored in this `union_storage` variable. */
+  const std::type_info* tag() const noexcept  { return type_tag; }
 
+  /*! \name Functions to get the value stored in the union: */
+  //! \{
   template< typename _T_, typename = std::enable_if_t< is_one_of< _T_, _Ts_... >::value > >
-  const typename std::decay< _T_ >::type& value() const noexcept  { return *reinterpret_cast< const typename std::decay< _T_ >::type* >(&storage); }
+  const typename std::decay< _T_ >::type& get() const noexcept  { return *reinterpret_cast< const typename std::decay< _T_ >::type* >(&storage); }
   template< typename _T_, typename = std::enable_if_t< is_one_of< _T_, _Ts_... >::value > >
-        typename std::decay< _T_ >::type& value()       noexcept  { return *reinterpret_cast<       typename std::decay< _T_ >::type* >(&storage); }
+        typename std::decay< _T_ >::type& get()       noexcept  { return *reinterpret_cast<       typename std::decay< _T_ >::type* >(&storage); }
+  //! \}
 };
 
 

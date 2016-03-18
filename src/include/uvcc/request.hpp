@@ -144,7 +144,7 @@ protected: /*types*/
 
     on_destroy_t& on_destroy() noexcept  { return on_destroy_storage.value(); }
     template< typename _ON_REQUEST_T_ = on_request_t >  // make it to be a separate template to prevent unconditional erroneous generating this member for invalid (void) on_request_t
-    _ON_REQUEST_T_& on_request() noexcept  { return on_request_storage.template value< _ON_REQUEST_T_ >(); }
+    _ON_REQUEST_T_& on_request() noexcept  { return on_request_storage.template get< _ON_REQUEST_T_ >(); }
 
     void ref()  { rc.inc(); }
     void unref()  { if (rc.dec() == 0)  destroy(); }
