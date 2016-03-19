@@ -267,7 +267,7 @@ private: /*data*/
 
 
 
-/*! \brief A wrapper providing the feature of being a _standard layout type_ for any given type.
+/*! \brief A wrapper providing the feature of being a _standard layout type_ for the given type `_T_`.
     \note All the member functions creating a new value in the storage from their arguments
     use the _curly brace initialization_. */
 template< typename _T_ >
