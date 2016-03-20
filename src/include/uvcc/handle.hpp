@@ -52,7 +52,7 @@ class signal;
 
 
 /*! \defgroup g__handle_traits uv_handle_traits< typename >
-    \brief Defines the correspondence between libuv handle data types and C++ classes representing them. */
+    \brief Show the correspondence between libuv handle data types and C++ classes representing them. */
 //! \{
 #define BUGGY_DOXYGEN
 #undef BUGGY_DOXYGEN
@@ -86,27 +86,22 @@ public: /*types*/
 
 protected: /*types*/
   //! \cond
+  using supplemental_data_t = null_t;
+
   template< typename _HANDLE_ > class base
   {
   private: /*types*/
     using uv_t = typename _HANDLE_::uv_t;
-    template< typename _T_ > class substitute_if_nonexistent
-    {
-      template< typename _U_ > static typename _U_::supplemental_data_t test(typename _U_::supplemental_data_t*);
-      template< typename > static _T_ test(...);
-
-      public:
-      using supplemental_data_t = decltype(test< std::decay_t< _HANDLE_ > >(nullptr));
-    };
-    using supplemental_data_t = typename substitute_if_nonexistent< null_t >::supplemental_data_t;
+    using supplemental_data_t = typename _HANDLE_::supplemental_data_t;
 
   private: /*data*/
     mutable int uv_error;
     void (*Delete)(void*);  // store a proper delete operator
     ref_count rc;
-    type_storage< handle::on_destroy_t > on_destroy;
-    mutable type_storage< supplemental_data_t > supplemental_data;
-    alignas(::uv_any_handle) uv_t uv_handle;
+    type_storage< on_destroy_t > on_destroy_storage;
+    alignas(64) mutable type_storage< supplemental_data_t > supplemental_data_storage;
+    static_assert(sizeof(supplemental_data_storage) <= 64, "non-static layout structure");
+    alignas(64) uv_t uv_handle;
 
   private: /*constructors*/
     base() : uv_error(0), Delete(default_delete< base >::Delete)  {}
@@ -144,8 +139,8 @@ protected: /*types*/
       return reinterpret_cast< base* >(static_cast< char* >(_uv_handle) - offsetof(base, uv_handle));
     }
 
-    on_destroy_t& destroy_cb() noexcept  { return on_destroy.value(); }
-    supplemental_data_t& supplemental() const noexcept  { return supplemental_data.value(); }
+    on_destroy_t& on_destroy() noexcept  { return on_destroy_storage.value(); }
+    supplemental_data_t& supplemental_data() const noexcept  { return supplemental_data_storage.value(); }
 
     void ref()  { rc.inc(); }
     void unref() noexcept  { if (rc.dec() == 0)  destroy(); }
@@ -215,8 +210,8 @@ public: /*interface*/
   /*! \brief The status value returned by the last executed libuv API function. */
   int uv_status() const noexcept  { return base< handle >::from(uv_handle)->uv_status(); }
 
-  const on_destroy_t& on_destroy() const noexcept  { return base< handle >::from(uv_handle)->destroy_cb(); }
-        on_destroy_t& on_destroy()       noexcept  { return base< handle >::from(uv_handle)->destroy_cb(); }
+  const on_destroy_t& on_destroy() const noexcept  { return base< handle >::from(uv_handle)->on_destroy(); }
+        on_destroy_t& on_destroy()       noexcept  { return base< handle >::from(uv_handle)->on_destroy(); }
 
   /*! \brief The tag indicating the libuv type of the handle. */
   ::uv_handle_type type() const noexcept  { return static_cast< uv_t* >(uv_handle)->type; }
@@ -281,10 +276,10 @@ public: /*conversion operators*/
 template< typename _HANDLE_ >
 void handle::base< _HANDLE_ >::close_cb(::uv_handle_t *_uv_handle)
 {
-  auto b = from(_uv_handle);
-  auto &f = b->destroy_cb();
-  if (f)  f(_uv_handle->data);
-  b->Delete(b);
+  auto base = from(_uv_handle);
+  auto &destroy_cb = base->on_destroy();
+  if (destroy_cb)  destroy_cb(_uv_handle->data);
+  base->Delete(base);
 }
 
 
@@ -346,7 +341,7 @@ public: /*interface*/
       \sa libuv documentation: [`uv_read_start()`](http://docs.libuv.org/en/v1.x/stream.html#c.uv_read_start). */
   int read_start(const on_buffer_t &_alloc_cb, const on_read_t &_read_cb)
   {
-    auto &cb = base::from(uv_handle)->supplemental();
+    auto &cb = base::from(uv_handle)->supplemental_data();
     if (cb.on_read)  read_stop();
     cb = {_alloc_cb, _read_cb};
     base::from(uv_handle)->ref();
@@ -357,7 +352,7 @@ public: /*interface*/
   int read_stop() noexcept
   {
     uv_status(::uv_read_stop(static_cast< uv_t* >(uv_handle)));
-    auto &cb = base::from(uv_handle)->supplemental();
+    auto &cb = base::from(uv_handle)->supplemental_data();
     if (cb.on_read)
     {
       cb.on_read = on_read_t();
@@ -384,7 +379,7 @@ public: /*conversion operators*/
 template< typename >
 void stream::alloc_cb(::uv_handle_t *_uv_handle, std::size_t _suggested_size, ::uv_buf_t *_uv_buf)
 {
-  auto &alloc_cb = base::from(_uv_handle)->supplemental().on_buffer;
+  auto &alloc_cb = base::from(_uv_handle)->supplemental_data().on_buffer;
   buffer b = alloc_cb(stream(reinterpret_cast< uv_t* >(_uv_handle)), _suggested_size);
   buffer::instance::from(b.uv_buf)->ref();
   *_uv_buf = b[0];
@@ -392,7 +387,7 @@ void stream::alloc_cb(::uv_handle_t *_uv_handle, std::size_t _suggested_size, ::
 template< typename >
 void stream::read_cb(::uv_stream_t *_uv_stream, ssize_t _nread, const ::uv_buf_t *_uv_buf)
 {
-  auto &read_cb = base::from(_uv_stream)->supplemental().on_read;
+  auto &read_cb = base::from(_uv_stream)->supplemental_data().on_read;
   if (_uv_buf->base)
     read_cb(stream(_uv_stream), _nread, buffer(buffer::instance::from(*_uv_buf)));
   else
