@@ -88,7 +88,7 @@ protected: /*types*/
   //! \cond
   using supplemental_data_t = null_t;
 
-  template< typename _HANDLE_ > class base
+  template< class _HANDLE_ > class base
   {
   private: /*types*/
     using uv_t = typename _HANDLE_::uv_t;
@@ -273,7 +273,7 @@ public: /*conversion operators*/
   explicit operator bool() const noexcept  { return (uv_status() == 0); }  /*!< \brief Equivalent to `(uv_status() == 0)`. */
 };
 
-template< typename _HANDLE_ >
+template< class _HANDLE_ >
 void handle::base< _HANDLE_ >::close_cb(::uv_handle_t *_uv_handle)
 {
   auto base = from(_uv_handle);
