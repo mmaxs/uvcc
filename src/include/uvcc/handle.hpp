@@ -389,7 +389,12 @@ void stream::read_cb(::uv_stream_t *_uv_stream, ssize_t _nread, const ::uv_buf_t
 {
   auto &read_cb = instance::from(_uv_stream)->supplemental_data().on_read;
   if (_uv_buf->base)
-    read_cb(stream(_uv_stream), _nread, buffer(buffer::instance::from(*_uv_buf)));
+  {
+    ::uv_buf_t *uv_buf = buffer::instance::from(*_uv_buf);
+    buffer b(uv_buf);
+    buffer::instance::from(uv_buf)->unref();
+    read_cb(stream(_uv_stream), _nread, std::move(b));
+  }
   else
     read_cb(stream(_uv_stream), _nread, buffer());
 }
