@@ -36,6 +36,8 @@ void read_cb(uv_stream_t *_stream, ssize_t _nread, const uv_buf_t *_buf)
   };
 }
 
+// [Preserve uv_write_t->bufs in uv_write() (#1059)](https://github.com/joyent/libuv/issues/1059)
+// [Please expose bufs in uv_fs_t's result for uv_fs_read operations. (#1557)](https://github.com/joyent/libuv/issues/1557)
 void write_cb(uv_write_t *_wr, int _o)
 {
   if (_o < 0)  ERR("write", _o);
