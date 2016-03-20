@@ -90,33 +90,29 @@ protected: /*types*/
   {
   private: /*types*/
     using uv_t = typename _HANDLE_::uv_t;
-    class supplemental
+    template< typename _T_ > class substitute_if_nonexistent
     {
-      template< typename _T_ > static typename _T_::supplemental_data_t test(typename _T_::supplemental_data_t*);
-      template< typename > static null_t test(...);
+      template< typename _U_ > static typename _U_::supplemental_data_t test(typename _U_::supplemental_data_t*);
+      template< typename > static _T_ test(...);
 
       public:
-      using data_t = decltype(test< _HANDLE_ >(nullptr));
+      using supplemental_data_t = decltype(test< std::decay_t< _HANDLE_ > >(nullptr));
     };
-    using supplemental_data_t = typename supplemental::data_t;
+    using supplemental_data_t = typename substitute_if_nonexistent< null_t >::supplemental_data_t;
 
   private: /*data*/
     mutable int uv_error;
     void (*Delete)(void*);  // store a proper delete operator
     ref_count rc;
     type_storage< handle::on_destroy_t > on_destroy;
-    union
-    {
-      ::uv_any_handle _;
-      uv_t uv_handle;
-    };
     mutable type_storage< supplemental_data_t > supplemental_data;
+    alignas(::uv_any_handle) uv_t uv_handle;
 
   private: /*constructors*/
     base() : uv_error(0), Delete(default_delete< base >::Delete)  {}
 
   public: /*constructors*/
-    ~base() = default;  // TODO: isn't it deleted by default? so it should be defined manually
+    ~base() = default;
 
     base(const base&) = delete;
     base& operator =(const base&) = delete;
