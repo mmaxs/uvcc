@@ -205,6 +205,10 @@ public: /*conversion operators*/
 /*! \brief Connect request type. */
 class connect : public request
 {
+  //! \cond
+  friend class request::instance< connect >;
+  //! \endcond
+
 public: /*types*/
   using uv_t = ::uv_connect_t;
   using on_request_t = std::function< void(connect, int) >;
@@ -270,8 +274,8 @@ void connect::connect_cb(::uv_connect_t *_uv_req, int _status)
   ref_guard< stream::instance > unref_handle(*stream::instance::from(_uv_req->handle), adopt_ref);
   ref_guard< instance > unref_req(*instance::from(_uv_req), adopt_ref);
 
-  on_request_t &f = instance::from(_uv_req)->on_request();
-  if (f)  f(connect(_uv_req), _status);
+  on_request_t &cb = instance::from(_uv_req)->on_request();
+  if (cb)  cb(connect(_uv_req), _status);
 }
 
 
@@ -279,6 +283,10 @@ void connect::connect_cb(::uv_connect_t *_uv_req, int _status)
 /*! \brief Write request type. */
 class write : public request
 {
+  //! \cond
+  friend class request::instance< write >;
+  //! \endcond
+
 public: /*types*/
   using uv_t = ::uv_write_t;
   using on_request_t = std::function< void(write, int) >;
@@ -288,6 +296,11 @@ public: /*types*/
 
 private: /*types*/
   using instance = request::instance< write >;
+
+protected: /*types*/
+  //! \cond
+  using supplemental_data_t = buffer;
+  //! \endcond
 
 private: /*constructors*/
   explicit write(uv_t *_uv_req)
@@ -324,7 +337,7 @@ public: /*interface*/
   int run(stream _stream, const buffer _buf)
   {
     stream::instance::from(_stream.uv_handle)->ref();
-    //buffer::instance::from(_buf.uv_buf)->ref();
+    instance::from(uv_req)->supplemental_data() = _buf;
     instance::from(uv_req)->ref();
 
     return uv_status(::uv_write(static_cast< uv_t* >(uv_req), static_cast< stream::uv_t* >(_stream), static_cast< const buffer::uv_t* >(_buf), _buf.count(), write_cb));
@@ -334,7 +347,7 @@ public: /*interface*/
   int run(pipe _pipe, const buffer _buf, stream _send_handle)
   {
     pipe::instance::from(_pipe.uv_handle)->ref();
-    //buffer::instance::from(_buf.uv_buf)->ref();
+    instance::from(uv_req)->supplemental_data() = _buf;
     stream::instance::from(_send_handle.uv_handle)->ref();
     instance::from(uv_req)->ref();
 
@@ -357,11 +370,12 @@ public: /*conversion operators*/
 template< typename >
 void write::write_cb(::uv_write_t *_uv_req, int _status)
 {
+  buffer b(std::move(instance::from(_uv_req)->supplemental_data()));
   ref_guard< stream::instance > unref_handle(*stream::instance::from(_uv_req->handle), adopt_ref);
   ref_guard< instance > unref_req(*instance::from(_uv_req), adopt_ref);
 
-  on_request_t &f = instance::from(_uv_req)->on_request();
-  if (f)  f(write(_uv_req), _status);
+  on_request_t &cb = instance::from(_uv_req)->on_request();
+  if (cb)  cb(write(_uv_req), _status);
 }
 template< typename >
 void write::write2_cb(::uv_write_t *_uv_req, int _status)
@@ -374,6 +388,10 @@ void write::write2_cb(::uv_write_t *_uv_req, int _status)
 /*! \brief Shutdown request type. */
 class shutdown : public request
 {
+  //! \cond
+  friend class request::instance< shutdown >;
+  //! \endcond
+
 public: /*types*/
   using uv_t = ::uv_shutdown_t;
   using on_request_t = std::function< void(shutdown, int) >;
@@ -430,14 +448,18 @@ void shutdown::shutdown_cb(::uv_shutdown_t *_uv_req, int _status)
   ref_guard< stream::instance > unref_handle(*stream::instance::from(_uv_req->handle), adopt_ref);
   ref_guard< instance > unref_req(*instance::from(_uv_req), adopt_ref);
 
-  on_request_t &f = instance::from(_uv_req)->on_request();
-  if (f)  f(shutdown(_uv_req), _status);
+  on_request_t &cb = instance::from(_uv_req)->on_request();
+  if (cb)  cb(shutdown(_uv_req), _status);
 }
 
 
 
 class udp_send : public request
 {
+  //! \cond
+  friend class request::instance< udp_send >;
+  //! \endcond
+
 public: /*types*/
   using uv_t = ::uv_udp_send_t;
   using on_request_t = std::function< void(int) >;
@@ -463,6 +485,10 @@ public: /*conversion operators*/
 
 class fs : public request
 {
+  //! \cond
+  friend class request::instance< fs >;
+  //! \endcond
+
 public: /*types*/
   using uv_t = ::uv_fs_t;
   using on_request_t = std::function< void(int) >;
@@ -488,6 +514,10 @@ public: /*conversion operators*/
 
 class work : public request
 {
+  //! \cond
+  friend class request::instance< work >;
+  //! \endcond
+
 public: /*types*/
   using uv_t = ::uv_work_t;
   using on_request_t = std::function< void(int) >;
@@ -513,6 +543,10 @@ public: /*conversion operators*/
 
 class getaddrinfo : public request
 {
+  //! \cond
+  friend class request::instance< getaddrinfo >;
+  //! \endcond
+
 public: /*types*/
   using uv_t = ::uv_getaddrinfo_t;
   using on_request_t = std::function< void(int) >;
@@ -539,6 +573,10 @@ public: /*conversion operators*/
 
 class getnameinfo : public request
 {
+  //! \cond
+  friend class request::instance< getnameinfo >;
+  //! \endcond
+
 public: /*types*/
   using uv_t = ::uv_getnameinfo_t;
   using on_request_t = std::function< void(int) >;
@@ -572,6 +610,7 @@ namespace std
 template<> inline void swap(uv::request &_this, uv::request &_that) noexcept  { _this.swap(_that); }
 
 }
+
 
 
 #endif
