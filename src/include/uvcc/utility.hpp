@@ -173,7 +173,7 @@ template< typename _T_, typename... _Ts_ > constexpr auto sum(const _T_& _v, con
 
 
 /*! \brief A reference counter with atomic increment/decrement.
-    \details The default constructor creates a new `ref_count` object with the value = **1**.
+    \details The default constructor creates a new `ref_count` object with the count value = **1**.
 
     Atomic operations on the `ref_count` object provide the following memory ordering semantics:
      Member function | Memory ordering
