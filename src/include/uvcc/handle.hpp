@@ -72,9 +72,10 @@ UV_HANDLE_TYPE_MAP(XX)
     \sa libuv documentation: [`uv_handle_t`](http://docs.libuv.org/en/v1.x/handle.html#uv-handle-t-base-handle). */
 class handle
 {
-  //friend class buffer;
+  //! \cond
   friend class loop;
   friend class request;
+  //! \endcond
 
 public: /*types*/
   using uv_t = ::uv_handle_t;
@@ -85,39 +86,31 @@ public: /*types*/
 
 protected: /*types*/
   //! \cond
-  struct supplemental
+  template< typename _HANDLE_ > class base
   {
-    void (*Delete)(void*) = nullptr;
-    void *data = nullptr;
-
-    ~supplemental()  { destroy(); }
-    supplemental() = default;
-
-    template< typename _T_, typename... _Args_ > void init(_Args_&&... _args)
+  private: /*types*/
+    using uv_t = typename _HANDLE_::uv_t;
+    class supplemental
     {
-      data = new _T_{std::forward< _Args_ >(_args)...};
-      Delete = default_delete< _T_ >::Delete;
-    }
-    template < typename _T_ > _T_& get()  { return *static_cast< _T_* >(data); }
-    void destroy() noexcept
-    {
-      if (Delete)  Delete(data);
-      data = nullptr;
-      Delete = nullptr;
-    }
+      template< typename _T_ > static typename _T_::supplemental_data_t test(typename _T_::supplemental_data_t*);
+      template< typename > static null_t test(...);
 
-    explicit operator bool() const noexcept  { return data; }
-  };
+      public:
+      using data_t = decltype(test< _HANDLE_ >(nullptr));
+    };
+    using supplemental_data_t = typename supplemental::data_t;
 
-  template< typename _UV_T_ > class base
-  {
   private: /*data*/
     mutable int uv_error;
     void (*Delete)(void*);  // store a proper delete operator
     ref_count rc;
-    type_storage< on_destroy_t > on_destroy_storage;
-    mutable handle::supplemental requisite;
-    alignas(::uv_any_handle) _UV_T_ uv_handle;
+    type_storage< handle::on_destroy_t > on_destroy;
+    union
+    {
+      ::uv_any_handle _;
+      uv_t uv_handle;
+    };
+    mutable type_storage< supplemental_data_t > supplemental_data;
 
   private: /*constructors*/
     base() : uv_error(0), Delete(default_delete< base >::Delete)  {}
@@ -136,7 +129,7 @@ protected: /*types*/
 
     void destroy()
     {
-      auto t = reinterpret_cast< uv_t* >(&uv_handle);
+      auto t = reinterpret_cast< ::uv_handle_t* >(&uv_handle);
       if (::uv_is_active(t))
         ::uv_close(t, close_cb);
       else
@@ -155,8 +148,8 @@ protected: /*types*/
       return reinterpret_cast< base* >(static_cast< char* >(_uv_handle) - offsetof(base, uv_handle));
     }
 
-    on_destroy_t& on_destroy() noexcept  { return on_destroy_storage.value(); }
-    handle::supplemental& supplemental() const noexcept  { return requisite; }
+    on_destroy_t& destroy_cb() noexcept  { return on_destroy.value(); }
+    supplemental_data_t& supplemental() const noexcept  { return supplemental_data.value(); }
 
     void ref()  { rc.inc(); }
     void unref() noexcept  { if (rc.dec() == 0)  destroy(); }
@@ -174,7 +167,7 @@ protected: /*data*/
 private: /*constructors*/
   explicit handle(uv_t *_uv_handle)
   {
-    base< uv_t >::from(_uv_handle)->ref();
+    base< handle >::from(_uv_handle)->ref();
     uv_handle = _uv_handle;
   }
 
@@ -182,21 +175,21 @@ protected: /*constructors*/
   handle() noexcept : uv_handle(nullptr)  {}
 
 public: /*constructors*/
-  ~handle()  { if (uv_handle)  base< uv_t >::from(uv_handle)->unref(); }
+  ~handle()  { if (uv_handle)  base< handle >::from(uv_handle)->unref(); }
 
   handle(const handle &_that)
   {
-    base< uv_t >::from(_that.uv_handle)->ref();
+    base< handle >::from(_that.uv_handle)->ref();
     uv_handle = _that.uv_handle;
   }
   handle& operator =(const handle &_that)
   {
     if (this != &_that)
     {
-      base< uv_t >::from(_that.uv_handle)->ref();
+      base< handle >::from(_that.uv_handle)->ref();
       auto t = uv_handle;
       uv_handle = _that.uv_handle;
-      base< uv_t >::from(t)->unref();
+      base< handle >::from(t)->unref();
     };
     return *this;
   }
@@ -209,25 +202,25 @@ public: /*constructors*/
       auto t = uv_handle;
       uv_handle = _that.uv_handle;
       _that.uv_handle = nullptr;
-      base< uv_t >::from(t)->unref();
+      base< handle >::from(t)->unref();
     };
     return *this;
   }
 
 protected: /*functions*/
   //! \cond
-  int uv_status(int _value) const noexcept  { return (base< uv_t >::from(uv_handle)->uv_status() = _value); }
+  int uv_status(int _value) const noexcept  { return (base< handle >::from(uv_handle)->uv_status() = _value); }
   //! \endcond
 
 public: /*interface*/
   void swap(handle &_that) noexcept  { std::swap(uv_handle, _that.uv_handle); }
   /*! \brief The current number of existing references to the same object as this handle variable refers to. */
-  long nrefs() const noexcept  { return base< uv_t >::from(uv_handle)->nrefs(); }
+  long nrefs() const noexcept  { return base< handle >::from(uv_handle)->nrefs(); }
   /*! \brief The status value returned by the last executed libuv API function. */
-  int uv_status() const noexcept  { return base< uv_t >::from(uv_handle)->uv_status(); }
+  int uv_status() const noexcept  { return base< handle >::from(uv_handle)->uv_status(); }
 
-  const on_destroy_t& on_destroy() const noexcept  { return base< uv_t >::from(uv_handle)->on_destroy(); }
-        on_destroy_t& on_destroy()       noexcept  { return base< uv_t >::from(uv_handle)->on_destroy(); }
+  const on_destroy_t& on_destroy() const noexcept  { return base< handle >::from(uv_handle)->destroy_cb(); }
+        on_destroy_t& on_destroy()       noexcept  { return base< handle >::from(uv_handle)->destroy_cb(); }
 
   /*! \brief The tag indicating the libuv type of the handle. */
   ::uv_handle_type type() const noexcept  { return static_cast< uv_t* >(uv_handle)->type; }
@@ -289,11 +282,11 @@ public: /*conversion operators*/
   explicit operator bool() const noexcept  { return (uv_status() == 0); }  /*!< \brief Equivalent to `(uv_status() == 0)`. */
 };
 
-template< typename _UV_T_ >
-void handle::base< _UV_T_ >::close_cb(::uv_handle_t *_uv_handle)
+template< typename _HANDLE_ >
+void handle::base< _HANDLE_ >::close_cb(::uv_handle_t *_uv_handle)
 {
-  base *b = from(_uv_handle);
-  on_destroy_t &f = b->on_destroy_storage.value();
+  auto b = from(_uv_handle);
+  auto &f = b->destroy_cb();
   if (f)  f(_uv_handle->data);
   b->Delete(b);
 }
@@ -304,9 +297,12 @@ void handle::base< _UV_T_ >::close_cb(::uv_handle_t *_uv_handle)
     \sa libuv documentation: [`uv_stream_t`](http://docs.libuv.org/en/v1.x/stream.html#uv-stream-t-stream-handle). */
 class stream : public handle
 {
+  //! \cond
+  friend class handle::base< stream >;
   friend class connect;
   friend class write;
   friend class shutdown;
+  //! \endcond
 
 public: /*types*/
   using uv_t = ::uv_stream_t;
@@ -314,14 +310,17 @@ public: /*types*/
   /*!< \brief The function type of the callback called by `read_start()`.
        \sa libuv documentation: [`uv_read_cb`](http://docs.libuv.org/en/v1.x/stream.html#c.uv_read_cb). */
 
-private: /*types*/
-  using base = handle::base< uv_t >;
-
-  struct read_cb_pack
+protected: /*types*/
+  //! \cond
+  struct supplemental_data_t
   {
-    const on_buffer_t on_buffer;
-    const on_read_t on_read;
+    on_buffer_t on_buffer;
+    on_read_t on_read;
   };
+  //! \endcond
+
+private: /*types*/
+  using base = handle::base< stream >;
 
 private: /*constructors*/
   explicit stream(uv_t *_uv_handle)
@@ -351,9 +350,9 @@ public: /*interface*/
       \sa libuv documentation: [`uv_read_start()`](http://docs.libuv.org/en/v1.x/stream.html#c.uv_read_start). */
   int read_start(const on_buffer_t &_alloc_cb, const on_read_t &_read_cb)
   {
-    auto &requisite = base::from(uv_handle)->supplemental();
-    if (requisite)  read_stop();
-    requisite.init< read_cb_pack >(_alloc_cb, _read_cb);
+    auto &cb = base::from(uv_handle)->supplemental();
+    if (cb.on_read)  read_stop();
+    cb = {_alloc_cb, _read_cb};
     base::from(uv_handle)->ref();
     return uv_status(::uv_read_start(static_cast< uv_t* >(uv_handle), alloc_cb, read_cb));
   }
@@ -362,11 +361,11 @@ public: /*interface*/
   int read_stop() noexcept
   {
     uv_status(::uv_read_stop(static_cast< uv_t* >(uv_handle)));
-    auto &requisite = base::from(uv_handle)->supplemental();
-    if (requisite)
+    auto &cb = base::from(uv_handle)->supplemental();
+    if (cb.on_read)
     {
-      ref_guard< base > unref(*base::from(uv_handle), adopt_ref);
-      requisite.destroy();
+      cb.on_read = on_read_t();
+      base::from(uv_handle)->unref();
     };
     return uv_status();
   }
@@ -389,7 +388,7 @@ public: /*conversion operators*/
 template< typename >
 void stream::alloc_cb(::uv_handle_t *_uv_handle, std::size_t _suggested_size, ::uv_buf_t *_uv_buf)
 {
-  const on_buffer_t &alloc_cb = base::from(_uv_handle)->supplemental().get< read_cb_pack >().on_buffer;
+  auto &alloc_cb = base::from(_uv_handle)->supplemental().on_buffer;
   buffer b = alloc_cb(stream(reinterpret_cast< uv_t* >(_uv_handle)), _suggested_size);
   buffer::instance::from(b.uv_buf)->ref();
   *_uv_buf = b[0];
@@ -397,7 +396,7 @@ void stream::alloc_cb(::uv_handle_t *_uv_handle, std::size_t _suggested_size, ::
 template< typename >
 void stream::read_cb(::uv_stream_t *_uv_stream, ssize_t _nread, const ::uv_buf_t *_uv_buf)
 {
-  const on_read_t &read_cb = base::from(_uv_stream)->supplemental().get< read_cb_pack >().on_read;
+  auto &read_cb = base::from(_uv_stream)->supplemental().on_read;
   if (_uv_buf->base)
     read_cb(stream(_uv_stream), _nread, buffer(buffer::instance::from(*_uv_buf)));
   else
@@ -410,13 +409,16 @@ void stream::read_cb(::uv_stream_t *_uv_stream, ssize_t _nread, const ::uv_buf_t
     \sa libuv documentation: [`uv_tcp_t`](http://docs.libuv.org/en/v1.x/tcp.html#uv-tcp-t-tcp-handle). */
 class tcp : public stream
 {
+  //! \cond
+  friend class handle::base< tcp >;
   friend class connect;
+  //! \endcond
 
 public: /*types*/
   using uv_t = ::uv_tcp_t;
 
 private: /*types*/
-  using base = handle::base< uv_t >;
+  using base = handle::base< tcp >;
 
 private: /*constructors*/
   explicit tcp(uv_t *_uv_handle)
@@ -496,14 +498,17 @@ public: /*conversion operators*/
     \sa libuv documentation: [`uv_pipe_t`](http://docs.libuv.org/en/v1.x/pipe.html#uv-pipe-t-pipe-handle). */
 class pipe : public stream
 {
+  //! \cond
+  friend class handle::base< pipe >;
   friend class connect;
   friend class write;
+  //! \endcond
 
 public: /*types*/
   using uv_t = ::uv_pipe_t;
 
 private: /*types*/
-  using base = handle::base< uv_t >;
+  using base = handle::base< pipe >;
 
 private: /*constructors*/
   explicit pipe(uv_t *_uv_handle)
@@ -584,6 +589,10 @@ public: /*conversion operators*/
 
 class udp : public handle
 {
+  //! \cond
+  friend class handle::base< udp >;
+  //! \endcond
+
 public: /*types*/
   using uv_t = ::uv_udp_t;
   using on_recv_t = std::function< void(udp _udp, ssize_t _nread, buffer _buffer, const ::sockaddr *_sa, unsigned int _flags) >;
@@ -591,7 +600,7 @@ public: /*types*/
        \sa libuv documentation: [`uv_udp_recv_cb`](http://docs.libuv.org/en/v1.x/udp.html#c.uv_udp_recv_cb). */
 
 private: /*types*/
-  using base = handle::base< uv_t >;
+  using base = handle::base< udp >;
 
 public: /*constructors*/
   ~udp() = default;

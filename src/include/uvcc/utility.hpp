@@ -86,8 +86,9 @@ template< typename _T_ > struct default_destroy
 #undef BUGGY_DOXYGEN
 
 /*! \brief The type of an absent entity.
-    \details Used to substitute invalid and `void` types in various metaprogramming expressions e.g. like `sizeof()`, `alignof()`. */
+    \details Used to substitute nonexistent and `void` types in various template expressions e.g. like `sizeof()`, `alignof()`. */
 struct null_t  { null_t() = delete; };
+
 
 /*! \brief Checks if a type `_T_` belongs to a type list `_Ts_`.
     \details Provides the constexpr `value` that is equal to the index of the given type `_T_`
