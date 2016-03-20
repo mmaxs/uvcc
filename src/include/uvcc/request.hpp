@@ -20,62 +20,35 @@ namespace uv
     \brief The classes representing libuv requests. */
 //! \{
 
-/*! \defgroup g__request_traits uv_req_traits< typename >
-    \brief Defines signatures of request callback functions and the correspondence
-    between libuv request data types and C++ classes representing them. */
-//! \{
 
 /* libuv requests */
-class connect;
-#define ON_CONNECT_T std::function< void(connect, int) >
-
-class write;
-#define ON_WRITE_T std::function< void(write, int) >
-
-class shutdown;
-#define ON_SHUTDOWN_T std::function< void(shutdown, int) >
-
-class udp_send;
-#define ON_UDP_SEND_T std::function< void(int) >
-
-class fs;
-#define ON_FS_T std::function< void(int) >
-
-class work;
-#define ON_WORK_T std::function< void(int) >
-
-class getaddrinfo;
-#define ON_GETADDRINFO_T std::function< void(int) >
-
-class getnameinfo;
-#define ON_GETNAMEINFO_T std::function< void(int) >
-
 class request;
-#define req request  // redefine the UV_REQ_TYPE_MAP() entry
-#define ON_REQ_T void  // a dummy declaration for UV_REQ_TYPE_MAP() being able to be used
+class connect;
+class write;
+class shutdown;
+class udp_send;
+class fs;
+class work;
+class getaddrinfo;
+class getnameinfo;
 
 
+
+/*! \defgroup g__request_traits uv_req_traits< typename >
+    \brief The correspondence between libuv request data types and C++ classes representing them. */
+//! \{
+#define BUGGY_DOXYGEN
+#undef BUGGY_DOXYGEN
 //! \cond
 template< typename _UV_T_ > struct uv_req_traits  {};
 //! \endcond
-#define XX(X, x) template<> struct uv_req_traits< uv_##x##_t >\
-{\
-  using type = x;\
-  using on_request_t = ON_##X##_T;\
-};
+#define req request  // redefine the UV_REQ_TYPE_MAP() entry
+#define XX(X, x) template<> struct uv_req_traits< uv_##x##_t >  { using type = x; };
 UV_REQ_TYPE_MAP(XX)
 #undef XX
-
 #undef req
-#undef ON_CONNECT_T
-#undef ON_WRITE_T
-#undef ON_SHUTDOWN_T
-#undef ON_UDP_SEND_T
-#undef ON_FS_T
-#undef ON_WORK_T
-#undef ON_GETADDRINFO_T
-#undef ON_GETNAMEINFO_T
 //! \}
+
 
 
 /*! \brief The base class for the libuv requests.
@@ -88,63 +61,62 @@ public: /*types*/
   using uv_t = ::uv_req_t;
   using on_destroy_t = std::function< void(void *_data) >;
   /*!< \brief The function type of the callback called when the request object is about to be destroyed. */
+  using on_request_t = void;
 
 protected: /*types*/
   //! \cond
-  template< typename _UV_T_ > class base
+  using supplemental_data_t = struct {};
+
+  template< class _REQUEST_ > class instance
   {
   private: /*types*/
-    using on_request_t = typename uv_req_traits< _UV_T_ >::on_request_t;
-    using on_request_storage_t = union_storage<
-#define XX(X, x) std::conditional_t< std::is_void< uv_req_traits< uv_##x##_t >::on_request_t >::value, null_t, uv_req_traits< uv_##x##_t >::on_request_t >,
-        UV_REQ_TYPE_MAP(XX)
-#undef XX
-        null_t
-    >;
+    using uv_t = typename _REQUEST_::uv_t;
+    using on_request_t = std::conditional_t< std::is_void< typename _REQUEST_::on_request_t >::value, null_t, typename _REQUEST_::on_request_t >;
+    using supplemental_data_t = typename _REQUEST_::supplemental_data_t;
 
   private: /*data*/
     mutable int uv_error;
     void (*Delete)(void*);  // store a proper delete operator
     ref_count rc;
     type_storage< on_destroy_t > on_destroy_storage;
-    on_request_storage_t on_request_storage;
-    alignas(::uv_any_req) _UV_T_ uv_req;
+    alignas(32) type_storage< on_request_t > on_request_storage;
+    static_assert(sizeof(on_request_storage) <= 32, "non-static layout structure");
+    alignas(32) mutable type_storage< supplemental_data_t > supplemental_data_storage;
+    static_assert(sizeof(supplemental_data_storage) <= 32, "non-static layout structure");
+    alignas(32) uv_t uv_req;
 
   private: /*constructors*/
-    base() : uv_error(0), Delete(default_delete< base >::Delete)
-    {
-      on_request_storage.template reset< on_request_t >();
-    }
+    instance() : uv_error(0), Delete(default_delete< instance >::Delete)  {}
 
   public: /*constructors*/
-    ~base() = default;
+    ~instance() = default;
 
-    base(const base&) = delete;
-    base& operator =(const base&) = delete;
+    instance(const instance&) = delete;
+    instance& operator =(const instance&) = delete;
 
-    base(base&&) = delete;
-    base& operator =(base&&) = delete;
+    instance(instance&&) = delete;
+    instance& operator =(instance&&) = delete;
 
   private: /*functions*/
     void destroy()
     {
-      on_destroy_t &f = on_destroy_storage.value();
-      if (f)  f(uv_req.data);
+      on_destroy_t &destroy_cb = on_destroy_storage.value();
+      if (destroy_cb)  destroy_cb(uv_req.data);
       Delete(this);
     }
 
   public: /*interface*/
-    static void* create()  { return std::addressof((new base())->uv_req); }
+    static void* create()  { return std::addressof((new instance())->uv_req); }
 
-    constexpr static base* from(void *_uv_req) noexcept
+    constexpr static instance* from(void *_uv_req) noexcept
     {
-      static_assert(std::is_standard_layout< base >::value, "not a standard layout type");
-      return reinterpret_cast< base* >(static_cast< char* >(_uv_req) - offsetof(base, uv_req));
+      static_assert(std::is_standard_layout< instance >::value, "not a standard layout type");
+      return reinterpret_cast< instance* >(static_cast< char* >(_uv_req) - offsetof(instance, uv_req));
     }
 
     on_destroy_t& on_destroy() noexcept  { return on_destroy_storage.value(); }
-    template< typename _ON_REQUEST_T_ = on_request_t >  // make it to be a separate template to prevent unconditional erroneous generating this member for invalid (void) on_request_t
-    _ON_REQUEST_T_& on_request() noexcept  { return on_request_storage.template get< _ON_REQUEST_T_ >(); }
+    on_request_t& on_request() noexcept  { return on_request_storage.value(); }
+    supplemental_data_t& supplemental_data() const noexcept  { return supplemental_data_storage.value(); }
 
     void ref()  { rc.inc(); }
     void unref()  { if (rc.dec() == 0)  destroy(); }
@@ -163,21 +135,21 @@ protected: /*constructors*/
   request() noexcept : uv_req(nullptr)  {}
 
 public: /*constructors*/
-  ~request()  { if (uv_req)  base< uv_t >::from(uv_req)->unref(); }
+  ~request()  { if (uv_req)  instance< request >::from(uv_req)->unref(); }
 
   request(const request &_that)
   {
-    base< uv_t >::from(_that.uv_req)->ref();
+    instance< request >::from(_that.uv_req)->ref();
     uv_req = _that.uv_req;
   }
   request& operator =(const request &_that)
   {
     if (this != &_that)
     {
-      base< uv_t >::from(_that.uv_req)->ref();
+      instance< request >::from(_that.uv_req)->ref();
       auto t = uv_req;
       uv_req = _that.uv_req;
-      base< uv_t >::from(t)->unref();
+      instance< request >::from(t)->unref();
     };
     return *this;
   }
@@ -190,25 +162,25 @@ public: /*constructors*/
       auto t = uv_req;
       uv_req = _that.uv_req;
       _that.uv_req = nullptr;
-      base< uv_t >::from(t)->unref();
+      instance< request >::from(t)->unref();
     };
     return *this;
   }
 
 protected: /*functions*/
   //! \cond
-  int uv_status(int _value) const noexcept  { return (base< uv_t >::from(uv_req)->uv_status() = _value); }
+  int uv_status(int _value) const noexcept  { return (instance< request >::from(uv_req)->uv_status() = _value); }
   //! \endcond
 
 public: /*interface*/
   void swap(request &_that) noexcept  { std::swap(uv_req, _that.uv_req); }
   /*! \brief The current number of existing references to the same object as this request variable refers to. */
-  long nrefs() const noexcept  { return base< uv_t >::from(uv_req)->nrefs(); }
+  long nrefs() const noexcept  { return instance< request >::from(uv_req)->nrefs(); }
   /*! \brief The status value returned by the last executed libuv API function. */
-  int uv_status() const noexcept  { return base< uv_t >::from(uv_req)->uv_status(); }
+  int uv_status() const noexcept  { return instance< request >::from(uv_req)->uv_status(); }
 
-  const on_destroy_t& on_destroy() const noexcept  { return base< uv_t >::from(uv_req)->on_destroy(); }
-        on_destroy_t& on_destroy()       noexcept  { return base< uv_t >::from(uv_req)->on_destroy(); }
+  const on_destroy_t& on_destroy() const noexcept  { return instance< request >::from(uv_req)->on_destroy(); }
+        on_destroy_t& on_destroy()       noexcept  { return instance< request >::from(uv_req)->on_destroy(); }
 
   /*! \brief The tag indicating the libuv type of the request. */
   ::uv_req_type type() const noexcept  { return static_cast< uv_t* >(uv_req)->type; }
@@ -235,24 +207,23 @@ class connect : public request
 {
 public: /*types*/
   using uv_t = ::uv_connect_t;
-  using on_request_t = typename uv_req_traits< uv_t >::on_request_t;
+  using on_request_t = std::function< void(connect, int) >;
   /*!< \brief The function type of the callback called after a connection request is done.
-       See \ref g__request_traits
        \sa libuv documentation: [`uv_connect_cb`](http://docs.libuv.org/en/v1.x/stream.html#c.uv_connect_cb). */
 
 private: /*types*/
-  using base = request::base< uv_t >;
+  using instance = request::instance< connect >;
 
 private: /*constructors*/
   explicit connect(uv_t *_uv_req)
   {
-    base::from(_uv_req)->ref();
+    instance::from(_uv_req)->ref();
     uv_req = _uv_req;
   }
 
 public: /*constructors*/
   ~connect() = default;
-  connect()  { uv_req = base::create(); }
+  connect()  { uv_req = instance::create(); }
 
   connect(const connect&) = default;
   connect& operator =(const connect&) = default;
@@ -264,8 +235,8 @@ private: /*functions*/
   template< typename = void > static void connect_cb(::uv_connect_t*, int);
 
 public: /*interface*/
-  const on_request_t& on_request() const noexcept  { return base::from(uv_req)->on_request(); }
-        on_request_t& on_request()       noexcept  { return base::from(uv_req)->on_request(); }
+  const on_request_t& on_request() const noexcept  { return instance::from(uv_req)->on_request(); }
+        on_request_t& on_request()       noexcept  { return instance::from(uv_req)->on_request(); }
 
   /*! \brief The stream (`uv::tcp` or `uv::pipe`) which this connect request is running on. */
   stream handle() const noexcept  { return stream(static_cast< uv_t* >(uv_req)->handle); }
@@ -275,16 +246,16 @@ public: /*interface*/
   template< typename _T_, typename = std::enable_if_t< is_one_of< _T_, ::sockaddr_in, ::sockaddr_in6, ::sockaddr_storage >::value > >
   int run(tcp _tcp, const _T_ &_sockaddr)
   {
-    tcp::base::from(_tcp.uv_handle)->ref();
-    base::from(uv_req)->ref();
+    tcp::instance::from(_tcp.uv_handle)->ref();
+    instance::from(uv_req)->ref();
     return uv_status(::uv_tcp_connect(static_cast< uv_t* >(uv_req), static_cast< tcp::uv_t* >(_tcp), reinterpret_cast< const ::sockaddr* >(&_sockaddr), connect_cb));
   }
   /*! \brief Run the request for `uv::pipe` stream.
       \sa libuv documentation: [`uv_pipe_connect()`](http://docs.libuv.org/en/v1.x/pipe.html#c.uv_pipe_connect). */
   void run(pipe _pipe, const char *_name)
   {
-    pipe::base::from(_pipe.uv_handle)->ref();
-    base::from(uv_req)->ref();
+    pipe::instance::from(_pipe.uv_handle)->ref();
+    instance::from(uv_req)->ref();
     ::uv_pipe_connect(static_cast< uv_t* >(uv_req), static_cast< pipe::uv_t* >(_pipe), _name, connect_cb);
   }
 
@@ -296,10 +267,10 @@ public: /*conversion operators*/
 template< typename >
 void connect::connect_cb(::uv_connect_t *_uv_req, int _status)
 {
-  ref_guard< stream::base > unref_handle(*stream::base::from(_uv_req->handle), adopt_ref);
-  ref_guard< base > unref_req(*base::from(_uv_req), adopt_ref);
+  ref_guard< stream::instance > unref_handle(*stream::instance::from(_uv_req->handle), adopt_ref);
+  ref_guard< instance > unref_req(*instance::from(_uv_req), adopt_ref);
 
-  on_request_t &f = base::from(_uv_req)->on_request();
+  on_request_t &f = instance::from(_uv_req)->on_request();
   if (f)  f(connect(_uv_req), _status);
 }
 
@@ -310,24 +281,24 @@ class write : public request
 {
 public: /*types*/
   using uv_t = ::uv_write_t;
-  using on_request_t = typename uv_req_traits< uv_t >::on_request_t;
+  using on_request_t = std::function< void(write, int) >;
   /*!< \brief The function type of the callback called after data was written on a stream.
        See \ref g__request_traits
        \sa libuv documentation: [`uv_write_cb`](http://docs.libuv.org/en/v1.x/stream.html#c.uv_write_cb). */
 
 private: /*types*/
-  using base = request::base< uv_t >;
+  using instance = request::instance< write >;
 
 private: /*constructors*/
   explicit write(uv_t *_uv_req)
   {
-    base::from(_uv_req)->ref();
+    instance::from(_uv_req)->ref();
     uv_req = _uv_req;
   }
 
 public: /*constructors*/
   ~write() = default;
-  write()  { uv_req = base::create(); }
+  write()  { uv_req = instance::create(); }
 
   write(const write&) = default;
   write& operator =(const write&) = default;
@@ -340,8 +311,8 @@ private: /*functions*/
   template< typename = void > static void write2_cb(::uv_write_t*, int);
 
 public: /*interface*/
-  const on_request_t& on_request() const noexcept  { return base::from(uv_req)->on_request(); }
-        on_request_t& on_request()       noexcept  { return base::from(uv_req)->on_request(); }
+  const on_request_t& on_request() const noexcept  { return instance::from(uv_req)->on_request(); }
+        on_request_t& on_request()       noexcept  { return instance::from(uv_req)->on_request(); }
 
   /*! \brief The stream which this write request is running on. */
   stream handle() const noexcept  { return stream(static_cast< uv_t* >(uv_req)->handle); }
@@ -352,9 +323,9 @@ public: /*interface*/
       \sa libuv documentation: [`uv_write()`](http://docs.libuv.org/en/v1.x/stream.html#c.uv_write). */
   int run(stream _stream, const buffer _buf)
   {
-    stream::base::from(_stream.uv_handle)->ref();
+    stream::instance::from(_stream.uv_handle)->ref();
     //buffer::instance::from(_buf.uv_buf)->ref();
-    base::from(uv_req)->ref();
+    instance::from(uv_req)->ref();
 
     return uv_status(::uv_write(static_cast< uv_t* >(uv_req), static_cast< stream::uv_t* >(_stream), static_cast< const buffer::uv_t* >(_buf), _buf.count(), write_cb));
   }
@@ -362,10 +333,10 @@ public: /*interface*/
       \sa libuv documentation: [`uv_write2()`](http://docs.libuv.org/en/v1.x/stream.html#c.uv_write2). */
   int run(pipe _pipe, const buffer _buf, stream _send_handle)
   {
-    pipe::base::from(_pipe.uv_handle)->ref();
+    pipe::instance::from(_pipe.uv_handle)->ref();
     //buffer::instance::from(_buf.uv_buf)->ref();
-    stream::base::from(_send_handle.uv_handle)->ref();
-    base::from(uv_req)->ref();
+    stream::instance::from(_send_handle.uv_handle)->ref();
+    instance::from(uv_req)->ref();
 
     return uv_status(::uv_write2(static_cast< uv_t* >(uv_req), static_cast< stream::uv_t* >(_pipe), static_cast< const buffer::uv_t* >(_buf), _buf.count(), static_cast< stream::uv_t* >(_send_handle), write2_cb));
   }
@@ -386,16 +357,16 @@ public: /*conversion operators*/
 template< typename >
 void write::write_cb(::uv_write_t *_uv_req, int _status)
 {
-  ref_guard< stream::base > unref_handle(*stream::base::from(_uv_req->handle), adopt_ref);
-  ref_guard< base > unref_req(*base::from(_uv_req), adopt_ref);
+  ref_guard< stream::instance > unref_handle(*stream::instance::from(_uv_req->handle), adopt_ref);
+  ref_guard< instance > unref_req(*instance::from(_uv_req), adopt_ref);
 
-  on_request_t &f = base::from(_uv_req)->on_request();
+  on_request_t &f = instance::from(_uv_req)->on_request();
   if (f)  f(write(_uv_req), _status);
 }
 template< typename >
 void write::write2_cb(::uv_write_t *_uv_req, int _status)
 {
-  ref_guard< stream::base > unref_send_handle(*stream::base::from(_uv_req->send_handle), adopt_ref);
+  ref_guard< stream::instance > unref_send_handle(*stream::instance::from(_uv_req->send_handle), adopt_ref);
   write_cb(_uv_req, _status);
 }
 
@@ -405,24 +376,24 @@ class shutdown : public request
 {
 public: /*types*/
   using uv_t = ::uv_shutdown_t;
-  using on_request_t = typename uv_req_traits< uv_t >::on_request_t;
+  using on_request_t = std::function< void(shutdown, int) >;
   /*!< \brief The function type of the callback called after a shutdown request has been completed.
        See \ref g__request_traits
        \sa libuv documentation: [`uv_shutdown_cb`](http://docs.libuv.org/en/v1.x/stream.html#c.uv_shutdown_cb). */
 
 private: /*types*/
-  using base = request::base< uv_t >;
+  using instance = request::instance< shutdown >;
 
 private: /*constructors*/
   explicit shutdown(uv_t *_uv_req)
   {
-    base::from(_uv_req)->ref();
+    instance::from(_uv_req)->ref();
     uv_req = _uv_req;
   }
 
 public: /*constructors*/
   ~shutdown() = default;
-  shutdown()  { uv_req = base::create(); }
+  shutdown()  { uv_req = instance::create(); }
 
   shutdown(const shutdown&) = default;
   shutdown& operator =(const shutdown&) = default;
@@ -434,8 +405,8 @@ private: /*functions*/
   template< typename = void > static void shutdown_cb(::uv_shutdown_t*, int);
 
 public: /*interface*/
-  const on_request_t& on_request() const noexcept  { return base::from(uv_req)->on_request(); }
-        on_request_t& on_request()       noexcept  { return base::from(uv_req)->on_request(); }
+  const on_request_t& on_request() const noexcept  { return instance::from(uv_req)->on_request(); }
+        on_request_t& on_request()       noexcept  { return instance::from(uv_req)->on_request(); }
 
   /*! \brief The stream which this shutdown request is running on. */
   stream handle() const noexcept  { return stream(static_cast< uv_t* >(uv_req)->handle); }
@@ -443,8 +414,8 @@ public: /*interface*/
   /*! \brief Run the request. */
   int run(stream _stream)
   {
-    stream::base::from(_stream.uv_handle)->ref();
-    base::from(uv_req)->ref();
+    stream::instance::from(_stream.uv_handle)->ref();
+    instance::from(uv_req)->ref();
     return uv_status(::uv_shutdown(static_cast< uv_t* >(uv_req), static_cast< stream::uv_t* >(_stream), shutdown_cb));
   }
 
@@ -456,10 +427,10 @@ public: /*conversion operators*/
 template< typename >
 void shutdown::shutdown_cb(::uv_shutdown_t *_uv_req, int _status)
 {
-  ref_guard< stream::base > unref_handle(*stream::base::from(_uv_req->handle), adopt_ref);
-  ref_guard< base > unref_req(*base::from(_uv_req), adopt_ref);
+  ref_guard< stream::instance > unref_handle(*stream::instance::from(_uv_req->handle), adopt_ref);
+  ref_guard< instance > unref_req(*instance::from(_uv_req), adopt_ref);
 
-  on_request_t &f = base::from(_uv_req)->on_request();
+  on_request_t &f = instance::from(_uv_req)->on_request();
   if (f)  f(shutdown(_uv_req), _status);
 }
 
@@ -469,10 +440,10 @@ class udp_send : public request
 {
 public: /*types*/
   using uv_t = ::uv_udp_send_t;
-  using on_request_t = typename uv_req_traits< uv_t >::on_request_t;
+  using on_request_t = std::function< void(int) >;
 
 private: /*types*/
-  using base = request::base< uv_t >;
+  using instance = request::instance< udp_send >;
 
 public: /*constructors*/
   ~udp_send() = default;
@@ -489,14 +460,15 @@ public: /*conversion operators*/
 };
 
 
+
 class fs : public request
 {
 public: /*types*/
   using uv_t = ::uv_fs_t;
-  using on_request_t = typename uv_req_traits< uv_t >::on_request_t;
+  using on_request_t = std::function< void(int) >;
 
 private: /*types*/
-  using base = request::base< uv_t >;
+  using instance = request::instance< fs >;
 
 public: /*constructors*/
   ~fs() = default;
@@ -513,14 +485,15 @@ public: /*conversion operators*/
 };
 
 
+
 class work : public request
 {
 public: /*types*/
   using uv_t = ::uv_work_t;
-  using on_request_t = typename uv_req_traits< uv_t >::on_request_t;
+  using on_request_t = std::function< void(int) >;
 
 private: /*types*/
-  using base = request::base< uv_t >;
+  using instance = request::instance< work >;
 
 public: /*constructors*/
   ~work() = default;
@@ -537,18 +510,20 @@ public: /*conversion operators*/
 };
 
 
+
 class getaddrinfo : public request
 {
 public: /*types*/
   using uv_t = ::uv_getaddrinfo_t;
-  using on_request_t = typename uv_req_traits< uv_t >::on_request_t;
+  using on_request_t = std::function< void(int) >;
 
 private: /*types*/
-  using base = request::base< uv_t >;
+  using instance = request::instance< getaddrinfo >;
 
 public: /*constructors*/
   ~getaddrinfo() = default;
 
+ 
   getaddrinfo(const getaddrinfo&) = default;
   getaddrinfo& operator =(const getaddrinfo&) = default;
 
@@ -561,14 +536,15 @@ public: /*conversion operators*/
 };
 
 
+
 class getnameinfo : public request
 {
 public: /*types*/
   using uv_t = ::uv_getnameinfo_t;
-  using on_request_t = typename uv_req_traits< uv_t >::on_request_t;
+  using on_request_t = std::function< void(int) >;
 
 private: /*types*/
-  using base = request::base< uv_t >;
+  using instance = request::instance< getnameinfo >;
 
 public: /*constructors*/
   ~getnameinfo() = default;
