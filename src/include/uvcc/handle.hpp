@@ -116,7 +116,7 @@ protected: /*types*/
     base() : uv_error(0), Delete(default_delete< base >::Delete)  {}
 
   public: /*constructors*/
-    ~base() = default;
+    ~base() = default;  // TODO: isn't it deleted by default? so it should be defined manually
 
     base(const base&) = delete;
     base& operator =(const base&) = delete;
