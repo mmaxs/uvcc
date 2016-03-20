@@ -131,25 +131,28 @@ protected: /*data*/
   void *uv_req;
   //! \endcond
 
+private: /*constructors*/
+  explicit request(uv_t *_uv_req)
+  {
+    if (_uv_req)  instance< request >::from(_uv_req)->ref();
+    uv_req = _uv_req;
+  }
+
 protected: /*constructors*/
   request() noexcept : uv_req(nullptr)  {}
 
 public: /*constructors*/
   ~request()  { if (uv_req)  instance< request >::from(uv_req)->unref(); }
 
-  request(const request &_that)
-  {
-    instance< request >::from(_that.uv_req)->ref();
-    uv_req = _that.uv_req;
-  }
+  request(const request &_that) : request(static_cast< uv_t* >(_that.uv_req))  {}
   request& operator =(const request &_that)
   {
     if (this != &_that)
     {
-      instance< request >::from(_that.uv_req)->ref();
+      if (_that.uv_req)  instance< request >::from(_that.uv_req)->ref();
       auto t = uv_req;
       uv_req = _that.uv_req;
-      instance< request >::from(t)->unref();
+      if (t)  instance< request >::from(t)->unref();
     };
     return *this;
   }
@@ -162,7 +165,7 @@ public: /*constructors*/
       auto t = uv_req;
       uv_req = _that.uv_req;
       _that.uv_req = nullptr;
-      instance< request >::from(t)->unref();
+      if (t)  instance< request >::from(t)->unref();
     };
     return *this;
   }
@@ -221,7 +224,7 @@ private: /*types*/
 private: /*constructors*/
   explicit connect(uv_t *_uv_req)
   {
-    instance::from(_uv_req)->ref();
+    if (_uv_req)  instance::from(_uv_req)->ref();
     uv_req = _uv_req;
   }
 
@@ -305,7 +308,7 @@ protected: /*types*/
 private: /*constructors*/
   explicit write(uv_t *_uv_req)
   {
-    instance::from(_uv_req)->ref();
+    if (_uv_req)  instance::from(_uv_req)->ref();
     uv_req = _uv_req;
   }
 
@@ -405,7 +408,7 @@ private: /*types*/
 private: /*constructors*/
   explicit shutdown(uv_t *_uv_req)
   {
-    instance::from(_uv_req)->ref();
+    if (_uv_req)  instance::from(_uv_req)->ref();
     uv_req = _uv_req;
   }
 

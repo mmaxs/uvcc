@@ -158,7 +158,7 @@ protected: /*data*/
 private: /*constructors*/
   explicit handle(uv_t *_uv_handle)
   {
-    instance< handle >::from(_uv_handle)->ref();
+    if (_uv_handle)  instance< handle >::from(_uv_handle)->ref();
     uv_handle = _uv_handle;
   }
 
@@ -168,19 +168,15 @@ protected: /*constructors*/
 public: /*constructors*/
   ~handle()  { if (uv_handle)  instance< handle >::from(uv_handle)->unref(); }
 
-  handle(const handle &_that)
-  {
-    instance< handle >::from(_that.uv_handle)->ref();
-    uv_handle = _that.uv_handle;
-  }
+  handle(const handle &_that) : handle(static_cast< uv_t* >(_that.uv_handle))  {}
   handle& operator =(const handle &_that)
   {
     if (this != &_that)
     {
-      instance< handle >::from(_that.uv_handle)->ref();
+      if (_that.uv_handle)  instance< handle >::from(_that.uv_handle)->ref();
       auto t = uv_handle;
       uv_handle = _that.uv_handle;
-      instance< handle >::from(t)->unref();
+      if (t)  instance< handle >::from(t)->unref();
     };
     return *this;
   }
@@ -193,7 +189,7 @@ public: /*constructors*/
       auto t = uv_handle;
       uv_handle = _that.uv_handle;
       _that.uv_handle = nullptr;
-      instance< handle >::from(t)->unref();
+      if (t)  instance< handle >::from(t)->unref();
     };
     return *this;
   }
@@ -316,7 +312,7 @@ private: /*types*/
 private: /*constructors*/
   explicit stream(uv_t *_uv_handle)
   {
-    instance::from(_uv_handle)->ref();
+    if (_uv_handle)  instance::from(_uv_handle)->ref();
     uv_handle = _uv_handle;
   }
 
@@ -419,7 +415,7 @@ private: /*types*/
 private: /*constructors*/
   explicit tcp(uv_t *_uv_handle)
   {
-    instance::from(_uv_handle)->ref();
+    if (_uv_handle)  instance::from(_uv_handle)->ref();
     uv_handle = _uv_handle;
   }
 
@@ -509,7 +505,7 @@ private: /*types*/
 private: /*constructors*/
   explicit pipe(uv_t *_uv_handle)
   {
-    instance::from(_uv_handle)->ref();
+    if (_uv_handle)  instance::from(_uv_handle)->ref();
     uv_handle = _uv_handle;
   }
 
