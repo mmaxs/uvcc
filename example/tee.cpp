@@ -39,9 +39,9 @@ int main(int _argc, char *_argv[])
         for (auto &b : buf_pool)  if (b.nrefs() == 1)  {
             b.len() = default_size;
             return b;
-        } else {
+        }; /*else {
             fprintf(stderr, "buffer nrefs: %li\n", b.nrefs());  fflush(stderr);
-        };
+        };*/
 
         buf_pool.emplace_back(uv::buffer{default_size});
         fprintf(stderr, "buffer pool: %zu\n", buf_pool.size());  fflush(stderr);
