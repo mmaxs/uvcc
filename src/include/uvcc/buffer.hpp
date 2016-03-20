@@ -135,7 +135,7 @@ private: /*data*/
 private: /*constructors*/
   explicit buffer(uv_t *_uv_buf)
   {
-    instance::from(_uv_buf)->ref();
+    if (_uv_buf)  instance::from(_uv_buf)->ref();
     uv_buf = _uv_buf;
   }
 
@@ -168,19 +168,15 @@ public: /*constructors*/
       `uv_buf_t` buffer structures. */
   explicit buffer(const std::initializer_list< std::size_t > &_len_values) : uv_buf(instance::create(_len_values))  {}
 
-  buffer(const buffer &_that)
-  {
-    instance::from(_that.uv_buf)->ref();
-    uv_buf = _that.uv_buf;
-  }
+  buffer(const buffer &_that) : buffer(_that.uv_buf)  {}
   buffer& operator =(const buffer &_that)
   {
     if (this != &_that)
     {
-      instance::from(_that.uv_buf)->ref();
+      if (_that.uv_buf)  instance::from(_that.uv_buf)->ref();
       auto t = uv_buf;
       uv_buf = _that.uv_buf;
-      instance::from(t)->unref();
+      if (t)  instance::from(t)->unref();
     };
     return *this;
   }
@@ -193,7 +189,7 @@ public: /*constructors*/
       auto t = uv_buf;
       uv_buf = _that.uv_buf;
       _that.uv_buf = nullptr;
-      instance::from(t)->unref();
+      if (t)  instance::from(t)->unref();
     };
     return *this;
   }
