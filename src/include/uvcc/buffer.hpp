@@ -117,9 +117,9 @@ private: /*types*/
       static_assert(std::is_standard_layout< instance >::value, "not a standard layout type");
       return reinterpret_cast< instance* >(reinterpret_cast< char* >(_uv_buf) - offsetof(instance, uv_buf_));
     }
-    static uv_t* from(uv_t _uv_buf) noexcept
+    static uv_t* from_base(decltype(uv_t::base) _base) noexcept
     {
-      return reinterpret_cast< uv_t* >(reinterpret_cast< char* >(_uv_buf.base) - alignment_padding(0) - sizeof(uv_t));
+      return reinterpret_cast< uv_t* >(reinterpret_cast< char* >(_base) - alignment_padding(0) - sizeof(uv_t));
     }
 
     std::size_t buf_count()  { return buf_count_; }

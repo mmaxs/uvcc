@@ -386,10 +386,12 @@ void stream::read_cb(::uv_stream_t *_uv_stream, ssize_t _nread, const ::uv_buf_t
   auto &read_cb = instance::from(_uv_stream)->supplemental_data().on_read;
   if (_uv_buf->base)
   {
-    ::uv_buf_t *uv_buf = buffer::instance::from(*_uv_buf);
-    buffer b(uv_buf);
-    buffer::instance::from(uv_buf)->unref();
-    read_cb(stream(_uv_stream), _nread, std::move(b));
+    ::uv_buf_t *uv_buf = buffer::instance::from_base(_uv_buf->base);
+    ref_guard< buffer::instance > unref(*buffer::instance::from(uv_buf), adopt_ref);
+    read_cb(stream(_uv_stream), _nread, buffer(uv_buf));
+    // don't forget to specify adopt_ref flag when using ref_guard to unref the object
+    // don't use ref_guard unless it really needs to hold on the object until the scope end
+    // use move/transfer semantics instead if you need just pass the object to another function for further processing
   }
   else
     read_cb(stream(_uv_stream), _nread, buffer());
