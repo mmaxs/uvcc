@@ -1,6 +1,7 @@
 
 #include <uv.h>
-#include <cstdio>
+#include <stdlib.h>
+#include <stdio.h>
 
 
 #define ERR(prefix, code)  do {\
@@ -16,7 +17,7 @@ uv_pipe_t in, out;
 
 void alloc_cb(uv_handle_t*, size_t _suggested_size, uv_buf_t *_buf)
 {
-  *_buf = uv_buf_init(new char[_suggested_size], _suggested_size);
+  *_buf = uv_buf_init((char*)malloc(_suggested_size), _suggested_size);
 }
 
 void write_cb(uv_write_t*, int);
@@ -30,22 +31,23 @@ void read_cb(uv_stream_t *_stream, ssize_t _nread, const uv_buf_t *_buf)
   else if (_nread >0)
   {
     uv_buf_t buf = uv_buf_init(_buf->base, _nread);
-    uv_write_t *wr = new uv_write_t;  // should be allocated on the heap, \see [libuv + C++ segfaults](http://stackoverflow.com/questions/29319392/libuv-c-segfaults)
-    uv_write(wr, reinterpret_cast< uv_stream_t* >(&out), &buf, 1, write_cb);
-    //delete _buf->base;  // \see [Lifetime of buffers on uv_write (#344)](https://github.com/joyent/libuv/issues/344)
+    uv_write_t *wr = (uv_write_t*)malloc(sizeof(uv_write_t));  /* should be allocated on the heap, \see [libuv + C++ segfaults](http://stackoverflow.com/questions/29319392/libuv-c-segfaults) */
+    uv_write(wr, (uv_stream_t*)&out, &buf, 1, write_cb);
+    /* free(_buf->base);
+       \see [Lifetime of buffers on uv_write (#344)](https://github.com/joyent/libuv/issues/344) */
   };
 }
 
-// [Preserve uv_write_t->bufs in uv_write() (#1059)](https://github.com/joyent/libuv/issues/1059)
-// [Please expose bufs in uv_fs_t's result for uv_fs_read operations. (#1557)](https://github.com/joyent/libuv/issues/1557)
+/* [Preserve uv_write_t->bufs in uv_write() (#1059)](https://github.com/joyent/libuv/issues/1059)
+   [Please expose bufs in uv_fs_t's result for uv_fs_read operations. (#1557)](https://github.com/joyent/libuv/issues/1557) */
 void write_cb(uv_write_t *_wr, int _o)
 {
   if (_o < 0)  ERR("write", _o);
-  delete _wr;
+  free(_wr);
 }
 
 
-// ["translation noise"](https://books.google.ru/books?id=Uemuaza3fTEC&pg=PT26&dq=%22translation+noise%22&hl=en&sa=X&ved=0ahUKEwigoJ3Dq8bLAhVoc3IKHQGQCFYQ6AEIGTAA)
+/* ["translation noise"](https://books.google.ru/books?id=Uemuaza3fTEC&pg=PT26&dq=%22translation+noise%22&hl=en&sa=X&ved=0ahUKEwigoJ3Dq8bLAhVoc3IKHQGQCFYQ6AEIGTAA) */
 int main(int _argc, char *_argv[])
 {
   int o = 0;
@@ -66,7 +68,7 @@ int main(int _argc, char *_argv[])
     return o;
   }
 
-  uv_read_start(reinterpret_cast< uv_stream_t* >(&in), alloc_cb, read_cb);
+  uv_read_start((uv_stream_t*)&in, alloc_cb, read_cb);
 
   return uv_run(loop, UV_RUN_DEFAULT);
 }
