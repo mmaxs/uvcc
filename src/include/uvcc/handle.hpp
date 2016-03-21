@@ -294,8 +294,12 @@ class stream : public handle
 public: /*types*/
   using uv_t = ::uv_stream_t;
   using on_read_t = std::function< void(stream _stream, ssize_t _nread, buffer _buffer) >;
-  /*!< \brief The function type of the callback called by `read_start()`.
-       \sa libuv documentation: [`uv_read_cb`](http://docs.libuv.org/en/v1.x/stream.html#c.uv_read_cb). */
+  /*!< \brief The function type of the callback called by `read_start()` when data was read from a stream.
+       \sa libuv documentation: [`uv_read_cb`](http://docs.libuv.org/en/v1.x/stream.html#c.uv_read_cb).
+       \warning The libuv API usually calls back the user `uv_read_cb` function with a _null-initialized_ `uv_buf_t`
+       buffer structure (where `buf->base = nullptr` and `buf->len = 0`) on error and EOF and does not try to retrieve
+       something from the [`uv_alloc_cb`](http://docs.libuv.org/en/v1.x/handle.html#c.uv_alloc_cb) callback in
+       such a cases, so the uvcc `on_read_t` callback is provided with a dummy _null-initialized_ buffer. */
 
 protected: /*types*/
   //! \cond
