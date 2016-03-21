@@ -36,15 +36,16 @@ int main(int _argc, char *_argv[])
         const std::size_t default_size = 8192;
         static std::vector< uv::buffer > buf_pool;
 
-        for (auto &b : buf_pool)  if (b.nrefs() == 1)  {
-            b.len() = default_size;
-            return b;
+        for (std::size_t i = 0; i < buf_pool.size(); ++i)  if (buf_pool[i].nrefs() == 1)  {
+            buf_pool[i].len() = default_size;
+            fprintf(stderr, "[buffer pool]: item #%zu of %zu\n", i+1, buf_pool.size());  fflush(stderr);
+            return buf_pool[i];
         }; /*else {
-            fprintf(stderr, "buffer nrefs: %li\n", b.nrefs());  fflush(stderr);
+            fprintf(stderr, "[buffer pool]: item #%zu nrefs: %li\n", i+1, buf_pool[i].nrefs());  fflush(stderr);
         };*/
 
         buf_pool.emplace_back(uv::buffer{default_size});
-        fprintf(stderr, "buffer pool: %zu\n", buf_pool.size());  fflush(stderr);
+        fprintf(stderr, "[buffer pool]: new item #%zu\n", buf_pool.size());  fflush(stderr);
         return buf_pool.back();
       },
       [](uv::stream _stream, ssize_t _nread, uv::buffer _buffer) -> void  // read_cb
@@ -71,7 +72,7 @@ int main(int _argc, char *_argv[])
 
             wr_pool.emplace_back();
             wr_pool.back().on_request() = default_write_cb;
-            fprintf(stderr, "write request pool: %zu\n", wr_pool.size());  fflush(stderr);
+            fprintf(stderr, "[write request pool]: new item #%zu\n", wr_pool.size());  fflush(stderr);
             return wr_pool.back();
           };
 
