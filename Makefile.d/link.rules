@@ -17,7 +17,7 @@ include $(ROOT)/Makefile.d/common.defs
 
 
 # the object files (adjusted to build paths)
-{OBJECT-FILES} = $(call !!,$(call _OBJS,$(CXX_FILE_SUFFIX),$(wildcard $(SOURCES))))
+{OBJECT-FILES} = $(call !!,$(call _OBJS,$(CXX_FILE_SUFFIXES),$(wildcard $(SOURCES))))
 
 
 # the build subdirectory being supposed for the main goal
@@ -25,17 +25,17 @@ include $(ROOT)/Makefile.d/common.defs
 
 
 # use secondary expansion to make target-specific and automatic variables
-# to be properly expanded in pattern rule prerequisites
+# to be properly expanded in rule prerequisites
 .SECONDEXPANSION:
 
 
 # the rules for linking and producing an executable or a shared library
 $(MAKECMDGOALS): private {ld-out} ?= $(if $(LDOUT),$(LDOUT),$@)
 $(MAKECMDGOALS): private {target-build-dir} = $(call !,$({ld-out}))
-$(MAKECMDGOALS): private {source-file} = $(if $(wildcard $@$(CXX_FILE_SUFFIX)),$@$(CXX_FILE_SUFFIX))
-$(MAKECMDGOALS): private {object-file} = $(call !!,$(call _OBJS,$(CXX_FILE_SUFFIX),$({source-file})))
-$(MAKECMDGOALS): private {link-parts} = $(if $(findstring $({object-file}),$({OBJECT-FILES})),,$({source-file})) $({OBJECT-FILES})
-$(MAKECMDGOALS): $$({source-file}) $$({OBJECT-FILES}) $$(MAKEFILE_LIST) | $$({target-build-dir})
+$(MAKECMDGOALS): private {source-files} = $(foreach {suffix},$(CXX_FILE_SUFFIXES),$(wildcard $@$({suffix})))
+$(MAKECMDGOALS): private {object-files} = $(call !!,$(call _OBJS,$(CXX_FILE_SUFFIXES),$({source-files})))
+$(MAKECMDGOALS): private {link-parts} = $(if $(filter $({object-files}),$({OBJECT-FILES})),,$({source-files})) $({OBJECT-FILES})
+$(MAKECMDGOALS): $$({source-files}) $$({OBJECT-FILES}) $$(MAKEFILE_LIST) | $$({target-build-dir})
 	$(info $. *** ($@: $^))
 	$(LINK.cc) $(LDSTATIC) $({link-parts}) $(LDLIBS)  -o $(call !!,$({ld-out}))
 

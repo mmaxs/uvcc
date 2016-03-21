@@ -17,7 +17,7 @@ include $(ROOT)/Makefile.d/common.defs
 
 
 # the object files (adjusted to build paths)
-{OBJECT-FILES} = $(call !!,$(call _OBJS,$(CXX_FILE_SUFFIX),$(wildcard $(SOURCES))))
+{OBJECT-FILES} = $(call !!,$(call _OBJS,$(CXX_FILE_SUFFIXES),$(wildcard $(SOURCES))))
 
 
 # the build subdirectory being supposed for the main goal

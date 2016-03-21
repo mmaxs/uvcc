@@ -28,13 +28,13 @@ endef
 
 # filtered sources
 define _SRCS
-$(filter %$(1),$(strip $(2)))
+$(filter $(addprefix %,$(1)),$(strip $(2)))
 endef
 
 
 # object files
 define _OBJS
-$(patsubst %$(1),%.o,$(call _SRCS,$(1),$(2)))
+$(foreach {suffix},$(1),$(patsubst %$({suffix}),%.o,$(call _SRCS,$({suffix}),$(2))))
 endef
 
 

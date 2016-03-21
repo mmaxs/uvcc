@@ -17,17 +17,17 @@ include $(ROOT)/Makefile.d/common.defs
 
 
 # the sources, ...
-{SOURCES} = $(call _SRCS,$(CXX_FILE_SUFFIX),$(wildcard $(SOURCES)))
+{SOURCES} = $(call _SRCS,$(CXX_FILE_SUFFIXES),$(wildcard $(SOURCES)))
 
 
 ifneq ($({SOURCES}),)
 
 # ... their corresponding object files (adjusted to build paths), ...
-{OBJECT-FILES} = $(call !!,$(call _OBJS,$(CXX_FILE_SUFFIX),$(wildcard $(SOURCES))))
+{OBJECT-FILES} = $(call !!,$(call _OBJS,$(CXX_FILE_SUFFIXES),$(wildcard $(SOURCES))))
 
 
 # ... their dependencies (with build subdirectory dependencies), ...
-{OBJECT-DEPENDENCIES} = $(foreach {file},$({SOURCES}),$(call _DEPS,$({file}),$(call !!,$(call _OBJS,$(CXX_FILE_SUFFIX),$({file})))) | $(call !,$({file})))
+{OBJECT-DEPENDENCIES} = $(foreach {file},$({SOURCES}),$(call _DEPS,$({file}),$(call !!,$(call _OBJS,$(CXX_FILE_SUFFIXES),$({file})))) | $(call !,$({file})))
 
 
 # ... their build subdirectories, ...
@@ -52,8 +52,9 @@ $(MAKECMDGOALS): $({OBJECT-FILES}) ;
 
 else
 
-# the warning on the fall back to the predefined implicit rules (if target file does not exist yet)
-%: %$(CXX_FILE_SUFFIX) ; $(warning The implicit rule ($@: $^) is discarded.)
+# the warning on the fall back to the predefined implicit rules (if a target file does not exist yet)
+.SECONDEXPANSION:
+%: $$(foreach {suffix},$$(CXX_FILE_SUFFIXES),$$(wildcard $$@$$({suffix}))) ; $(warning The implicit rule ($@: $^) is discarded.)
 
 # reject all other goals
 %: ; $(warning Avoid the target '$@'.)
