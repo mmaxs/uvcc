@@ -12,5 +12,6 @@
 #endif
 
 /*! \namespace uv
-    \brief Namespace for all uvcc definitions */
+    \brief Namespace for all uvcc definitions. */
+
 
