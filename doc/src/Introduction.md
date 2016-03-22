@@ -1,15 +1,20 @@
-This is introduction
+This is an introduction
 * \\subpage p__uvcc
 * \\subpage p__ref_counting
 * \\subpage p__destroy
 
+
+
 \page p__uvcc libuv and uvcc
 Uvcc is a C++ bindings for libuv.
+
+
 
 \page p__ref_counting Objects with reference counting semantics
 buffer, handle, request
 
 [libcxx]: http://www.libcxx.org "libcxx" 
+
 
 
 \page p__destroy Destroy callbacks
@@ -29,6 +34,7 @@ Uvcc's handle destroy callback differs from libuv's handle close callback in the
    (libuv API function `uv_is_active()` returns zero on such handles). Instead, uvcc's destroy callback is called unconditionally in any case
    when the last variable referencing this handle is destroyed. If the handle is not "active" the destroy callback runs synchronously
    as part of the variable's destructor.
+
 
 
 \addtogroup g__buffer
@@ -124,4 +130,26 @@ from the `uv_buf_t.base` pointer referencing the manually allocated external mem
 \warning Also, the `buffer` objects that contain an array of `uv_buf_t` structures are not supported as a valid result
 of the `uv::on_buffer_t` callback functions. Only a single `uv_buf_t` structure in a `buffer` object is currently
 supported for the purposes of the `stream::read_start()` and `udp::recv_start()` functions.
+
+
+
+\page p__example Examples
+
+* \subpage p__example_cpio "cpio" - a simple program that copies its stdin to stdout
+* \subpage p__example_tee  "tee" - illustrates simple versions for buffer and request pools
+
+
+
+\page p__example_cpio cpio
+
+A simple program that copies its stdin to stdout written in pure C using libuv.
+\includelineno cpio-uv.c
+
+The following is the above program being rewritten using uvcc:
+\includelineno cpio-uvcc.cpp
+
+
+
+\page p__example_tee tee
+\includelineno tee.cpp
 
