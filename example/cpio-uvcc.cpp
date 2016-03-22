@@ -11,8 +11,8 @@
 
 
 
-uv::pipe in(uv::loop::Default(), ::fileno(stdin)),
-         out(uv::loop::Default(), ::fileno(stdout));
+uv::pipe in(uv::loop::Default(), fileno(stdin)),
+         out(uv::loop::Default(), fileno(stdout));
 
 
 int main(int _argc, char *_argv[])
