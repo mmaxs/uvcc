@@ -135,7 +135,11 @@ supported for the purposes of the `stream::read_start()` and `udp::recv_start()`
 
 \page p__example Examples
 
-* \subpage p__example_cpio "cpio" - a simple program that copies its stdin to stdout
+uvcc sources are accompanied with several illustrative programs the source code of which can be found in the
+/example subdirectory.
+* \subpage p__example_cpio "cpio" - a simple program that copies its stdin to stdout. \n
+                           It shows some essential points that one comes across with when begin to develop
+                           programs using libuv and how uvcc simplifies the code.
 * \subpage p__example_tee  "tee" - illustrates simple versions for buffer and request pools
 
 
