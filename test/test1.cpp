@@ -12,6 +12,13 @@
 #pragma GCC diagnostic ignored "-Wunused-variable"
 
 
+#define PRINT_UV_ERR(prefix, code)  do {\
+    fflush(stdout);\
+    fprintf(stderr, "%s: %s (%i): %s\n", prefix, uv_err_name(code), (int)(code), uv_strerror(code));\
+    fflush(stderr);\
+} while (0)
+
+
 using namespace uv;
 
 
@@ -29,28 +36,36 @@ struct destroy_cb2
 };
 
 
-void ccb1(uv::connect _c, int _status)
+void ccb1(uv::connect _conn)
 {
-  fprintf(stdout, "ccb1: %s(%i): %s\n", ::uv_err_name(_status), _status, ::uv_strerror(_status));  fflush(stdout);
-  if (_status == 0)  ::send(static_cast< uv::tcp&& >(_c.handle()).socket(), "Hello!\n", 7, 0);
+  if (!_conn)
+    PRINT_UV_ERR("ccb1", _conn.uv_status());
+  else
+    ::send(static_cast< uv::tcp&& >(_conn.handle()).socket(), "Hello!\n", 7, 0);
 }
-void ccb2(uv::connect _c, int _status)
+
+void ccb2(uv::connect _conn)
 {
-  fprintf(stdout, "ccb2: %s(%i): %s\n", ::uv_err_name(_status), _status, ::uv_strerror(_status));  fflush(stdout);
-  if (_status == 0)
+  if (!_conn)
+    PRINT_UV_ERR("ccb2", _conn.uv_status());
+  else
   {
     uv::write wr;
-    wr.on_request() = [](uv::write _req, int _status){
-          fprintf(stdout, "write: %s(%i): %s\n", ::uv_err_name(_status), _status, ::uv_strerror(_status));  fflush(stdout);
-          _req.handle().loop().walk([](handle _h, void*){
+    wr.on_request() = [](uv::write _wr) -> void  {
+        if (!_wr)  PRINT_UV_ERR("write", _wr.uv_status());
+        _wr.handle().loop().walk(
+            [](handle _h, void*) -> void
+            {
               fprintf(stdout, "walk: 0x%p:%u\n", _h.fileno(), _h.type());  fflush(stdout);
-          }, nullptr);
+            },
+            nullptr
+        );
     };
     static const char* msg = "Hello, uvcc!\n";
-    buffer b;
-    b.base() = const_cast< char* >(msg);
-    b.len() = std::strlen(msg) + 1;
-    wr.run(_c.handle(), b);
+    buffer buf;
+    buf.base() = const_cast< char* >(msg);
+    buf.len() = std::strlen(msg) + 1;
+    wr.run(_conn.handle(), buf);
   };
 }
 
@@ -101,9 +116,8 @@ int main(int _argc, char *_argv[])
     
     c_req.on_request() = ccb2;
 
-    int o = c_req.run(c, in_loopback);
-    fprintf(stdout, "c_req: %s(%i): %s\n", ::uv_err_name(o), o, ::uv_strerror(o));
-    fflush(stdout);
+    c_req.run(c, in_loopback);
+    if (!c_req)  PRINT_UV_ERR("c_req", c_req.uv_status());
   
     //int t = ::uv_run(::uv_default_loop(), UV_RUN_DEFAULT);
     loop::Default().run(UV_RUN_DEFAULT);
