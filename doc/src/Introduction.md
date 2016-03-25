@@ -135,14 +135,22 @@ supported for the purposes of the `stream::read_start()` and `udp::recv_start()`
 
 \page p__example Examples
 
-uvcc sources are accompanied with several illustrative programs the source code of which can be found in the
+uvcc sources are accompanied with several illustrative example programs the source code of which can be found in the
 /example subdirectory.
+
+* \subpage p__example_lxjs2012 "lxjs2012-talk" - an introductory example used by Bert Belder at
+                               [LXJS 2012](http://www.youtube.com/watch?v=nGn60vDSxQ4) to introduce the libuv basics
+
 * \subpage p__example_cpio "cpio" - a simple program that copies its stdin to stdout. \n
                            It shows some essential points that one comes across with when begin to develop
                            programs using libuv and how uvcc simplifies the code.
 * \subpage p__example_tee  "tee" - illustrates simple versions for buffer and request pools
 
 
+\page p__example_lxjs2012 lxjs2012-talk
+
+[Introduction to libuv – Thorsten Lorenz](http://www.youtube.com/watch?v=cLL28s6yb1I)
+[using libuv and http parser to build a webserver HD (with captions)](http://www.youtube.com/watch?v=aLm40q7qm3w)
 
 \page p__example_cpio cpio
 
