@@ -3,9 +3,9 @@
 #include <cstdio>
 
 
-#define ERR(prefix, code)  do {\
+#define PRINT_UV_ERR(prefix, code)  do {\
     fflush(stdout);\
-    fprintf(stderr, "%s: %s (%i): %s\n", prefix, uv_err_name(code), (int)code, uv_strerror(code));\
+    fprintf(stderr, "%s: %s (%i): %s\n", prefix, uv_err_name(code), (int)(code), uv_strerror(code));\
     fflush(stderr);\
 } while (0)
 
@@ -18,11 +18,11 @@ uv::pipe in(uv::loop::Default(), fileno(stdin)),
 int main(int _argc, char *_argv[])
 {
   if (!in)  {
-    ERR("stdin open", in.uv_status());
+    PRINT_UV_ERR("stdin open", in.uv_status());
     return in.uv_status();
   };
   if (!out)  {
-    ERR("stdout open", out.uv_status());
+    PRINT_UV_ERR("stdout open", out.uv_status());
     return out.uv_status();
   };
 
@@ -36,13 +36,13 @@ int main(int _argc, char *_argv[])
         if (_nread == UV_EOF)
           _stream.read_stop();
         else if (_nread < 0)
-          ERR("read", _nread);
+          PRINT_UV_ERR("read", _nread);
         else if (_nread > 0)
         {
           uv::write wr;
-          wr.on_request() = [](uv::write, int _status) -> void  // write_cb
+          wr.on_request() = [](uv::write _wr) -> void  // write_cb
           {
-            if (_status < 0)  ERR("write", _status);
+            if (!_wr)  PRINT_UV_ERR("write", _wr.uv_status());
           };
 
           _buffer.len() = _nread;
