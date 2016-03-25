@@ -266,7 +266,7 @@ public: /*conversion operators*/
   explicit operator const uv_t*() const noexcept  { return static_cast< const uv_t* >(uv_handle); }
   explicit operator       uv_t*()       noexcept  { return static_cast<       uv_t* >(uv_handle); }
 
-  explicit operator bool() const noexcept  { return (uv_status() == 0); }  /*!< \brief Equivalent to `(uv_status() == 0)`. */
+  explicit operator bool() const noexcept  { return (uv_status() >= 0); }  /*!< \brief Equivalent to `(uv_status() >= 0)`. */
 };
 
 template< class _HANDLE_ >
@@ -380,14 +380,24 @@ template< typename >
 void stream::alloc_cb(::uv_handle_t *_uv_handle, std::size_t _suggested_size, ::uv_buf_t *_uv_buf)
 {
   auto &alloc_cb = instance::from(_uv_handle)->supplemental_data().on_buffer;
-  buffer b = alloc_cb(stream(reinterpret_cast< uv_t* >(_uv_handle)), _suggested_size);
-  buffer::instance::from(b.uv_buf)->ref();
-  *_uv_buf = b[0];
+  if (alloc_cb)
+  {
+    buffer b = alloc_cb(stream(reinterpret_cast< uv_t* >(_uv_handle)), _suggested_size);
+    buffer::instance::from(b.uv_buf)->ref();
+    *_uv_buf = b[0];
+  }
+  else
+    *_uv_buf = ::uv_buf_init(nullptr, 0);
 }
 template< typename >
 void stream::read_cb(::uv_stream_t *_uv_stream, ssize_t _nread, const ::uv_buf_t *_uv_buf)
 {
-  auto &read_cb = instance::from(_uv_stream)->supplemental_data().on_read;
+  auto t = instance::from(_uv_stream);
+  t->uv_status() = _nread;
+
+  auto &read_cb = t->supplemental_data().on_read;
+  if (!read_cb)  return;
+
   if (_uv_buf->base)
   {
     ::uv_buf_t *uv_buf = buffer::instance::from_base(_uv_buf->base);

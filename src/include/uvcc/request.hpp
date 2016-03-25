@@ -10,7 +10,7 @@
 #include <cstddef>      // offsetof
 #include <memory>       // addressof()
 #include <functional>   // function
-#include <utility>      // swap()
+#include <utility>      // swap() move()
 #include <type_traits>  // aligned_storage is_standard_layout conditional_t is_void
 
 
@@ -200,7 +200,7 @@ public: /*conversion operators*/
   explicit operator const uv_t*() const noexcept  { return static_cast< const uv_t* >(uv_req); }
   explicit operator       uv_t*()       noexcept  { return static_cast<       uv_t* >(uv_req); }
 
-  explicit operator bool() const noexcept  { return (uv_status() == 0); }  /*!< \brief Equivalent to `(uv_status() == 0)`. */
+  explicit operator bool() const noexcept  { return (uv_status() >= 0); }  /*!< \brief Equivalent to `(uv_status() >= 0)`. */
 };
 
 
@@ -214,7 +214,7 @@ class connect : public request
 
 public: /*types*/
   using uv_t = ::uv_connect_t;
-  using on_request_t = std::function< void(connect, int) >;
+  using on_request_t = std::function< void(connect) >;
   /*!< \brief The function type of the callback called after a connection request is done.
        \sa libuv documentation: [`uv_connect_cb`](http://docs.libuv.org/en/v1.x/stream.html#c.uv_connect_cb). */
 
@@ -275,10 +275,12 @@ template< typename >
 void connect::connect_cb(::uv_connect_t *_uv_req, int _status)
 {
   ref_guard< stream::instance > unref_handle(*stream::instance::from(_uv_req->handle), adopt_ref);
-  ref_guard< instance > unref_req(*instance::from(_uv_req), adopt_ref);
+  auto t = instance::from(_uv_req);
+  ref_guard< instance > unref_req(*t, adopt_ref);
 
-  on_request_t &cb = instance::from(_uv_req)->on_request();
-  if (cb)  cb(connect(_uv_req), _status);
+  t->uv_status() = _status;
+  auto &connect_cb = t->on_request();
+  if (connect_cb)  connect_cb(connect(_uv_req));
 }
 
 
@@ -292,7 +294,7 @@ class write : public request
 
 public: /*types*/
   using uv_t = ::uv_write_t;
-  using on_request_t = std::function< void(write, int) >;
+  using on_request_t = std::function< void(write) >;
   /*!< \brief The function type of the callback called after data was written on a stream.
        See \ref g__request_traits
        \sa libuv documentation: [`uv_write_cb`](http://docs.libuv.org/en/v1.x/stream.html#c.uv_write_cb). */
@@ -375,10 +377,12 @@ void write::write_cb(::uv_write_t *_uv_req, int _status)
 {
   buffer b(std::move(instance::from(_uv_req)->supplemental_data()));
   ref_guard< stream::instance > unref_handle(*stream::instance::from(_uv_req->handle), adopt_ref);
-  ref_guard< instance > unref_req(*instance::from(_uv_req), adopt_ref);
+  auto t = instance::from(_uv_req);
+  ref_guard< instance > unref_req(*t, adopt_ref);
 
-  on_request_t &cb = instance::from(_uv_req)->on_request();
-  if (cb)  cb(write(_uv_req), _status);
+  t->uv_status() = _status;
+  auto &write_cb = t->on_request();
+  if (write_cb)  write_cb(write(_uv_req));
 }
 template< typename >
 void write::write2_cb(::uv_write_t *_uv_req, int _status)
@@ -397,7 +401,7 @@ class shutdown : public request
 
 public: /*types*/
   using uv_t = ::uv_shutdown_t;
-  using on_request_t = std::function< void(shutdown, int) >;
+  using on_request_t = std::function< void(shutdown) >;
   /*!< \brief The function type of the callback called after a shutdown request has been completed.
        See \ref g__request_traits
        \sa libuv documentation: [`uv_shutdown_cb`](http://docs.libuv.org/en/v1.x/stream.html#c.uv_shutdown_cb). */
@@ -449,10 +453,12 @@ template< typename >
 void shutdown::shutdown_cb(::uv_shutdown_t *_uv_req, int _status)
 {
   ref_guard< stream::instance > unref_handle(*stream::instance::from(_uv_req->handle), adopt_ref);
-  ref_guard< instance > unref_req(*instance::from(_uv_req), adopt_ref);
+  auto t = instance::from(_uv_req);
+  ref_guard< instance > unref_req(*t, adopt_ref);
 
-  on_request_t &cb = instance::from(_uv_req)->on_request();
-  if (cb)  cb(shutdown(_uv_req), _status);
+  t->uv_status() = _status;
+  auto &shutdown_cb = t->on_request();
+  if (shutdown_cb)  shutdown_cb(shutdown(_uv_req));
 }
 
 
