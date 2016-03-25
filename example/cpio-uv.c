@@ -20,6 +20,35 @@ void read_cb(uv_stream_t*, ssize_t, const uv_buf_t*);
 void write_cb(uv_write_t*, int);
 
 
+
+/* ["translation noise"](https://books.google.ru/books?id=Uemuaza3fTEC&pg=PT26&dq=%22translation+noise%22&hl=en&sa=X&ved=0ahUKEwigoJ3Dq8bLAhVoc3IKHQGQCFYQ6AEIGTAA) */
+int main(int _argc, char *_argv[])
+{
+  int o = 0;
+
+  uv_loop_t *loop = uv_default_loop();
+
+  uv_pipe_init(loop, &in, 0);
+  o = uv_pipe_open(&in, fileno(stdin));
+  if (o < 0)  {
+    PRINT_UV_ERR("stdin open", o);
+    return o;
+  }
+
+  uv_pipe_init(loop, &out, 0);
+  o = uv_pipe_open(&out, fileno(stdout));
+  if (o < 0)  {
+    PRINT_UV_ERR("stdout open", o);
+    return o;
+  }
+
+  uv_read_start((uv_stream_t*)&in, alloc_cb, read_cb);
+
+  return uv_run(loop, UV_RUN_DEFAULT);
+}
+
+
+
 void alloc_cb(uv_handle_t*, size_t _suggested_size, uv_buf_t *_buf)
 {
   *_buf = uv_buf_init((char*)malloc(_suggested_size), _suggested_size);
@@ -51,32 +80,5 @@ void write_cb(uv_write_t *_wr, int _o)
   if (_o < 0)  PRINT_UV_ERR("write", _o);
   free(_wr->data);
   free(_wr);
-}
-
-
-/* ["translation noise"](https://books.google.ru/books?id=Uemuaza3fTEC&pg=PT26&dq=%22translation+noise%22&hl=en&sa=X&ved=0ahUKEwigoJ3Dq8bLAhVoc3IKHQGQCFYQ6AEIGTAA) */
-int main(int _argc, char *_argv[])
-{
-  int o = 0;
-
-  uv_loop_t *loop = uv_default_loop();
-
-  uv_pipe_init(loop, &in, 0);
-  o = uv_pipe_open(&in, fileno(stdin));
-  if (o < 0)  {
-    PRINT_UV_ERR("stdin open", o);
-    return o;
-  }
-
-  uv_pipe_init(loop, &out, 0);
-  o = uv_pipe_open(&out, fileno(stdout));
-  if (o < 0)  {
-    PRINT_UV_ERR("stdout open", o);
-    return o;
-  }
-
-  uv_read_start((uv_stream_t*)&in, alloc_cb, read_cb);
-
-  return uv_run(loop, UV_RUN_DEFAULT);
 }
 
