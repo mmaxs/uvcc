@@ -47,7 +47,7 @@ int main(int _argc, char *_argv[])
 
           _buffer.len() = _nread;
           wr.run(out, _buffer);
-        };
+        }
       }
   );
 

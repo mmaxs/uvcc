@@ -138,16 +138,27 @@ supported for the purposes of the `stream::read_start()` and `udp::recv_start()`
 uvcc sources are accompanied with several illustrative example programs the source code of which can be found in the
 /example subdirectory.
 
-* \subpage p__example_lxjs2012 "lxjs2012-talk" - an introductory example used by Bert Belder at
-                               [LXJS 2012](http://www.youtube.com/watch?v=nGn60vDSxQ4) to introduce the libuv basics
+* \subpage p__example_lxjs2012 "lxjs2012-demo" - an example used by Bert Belder at
+                               [LXJS 2012](http://www.youtube.com/watch?v=nGn60vDSxQ4) to demonstrate the libuv basics. \n
+                               It shows how uvcc simplifies the code.
 
 * \subpage p__example_cpio "cpio" - a simple program that copies its stdin to stdout. \n
                            It shows some essential points that one comes across with when begin to develop
-                           programs using libuv and how uvcc simplifies the code.
+                           programs using libuv and how uvcc address them.
+
 * \subpage p__example_tee  "tee" - illustrates simple versions for buffer and request pools
 
 
-\page p__example_lxjs2012 lxjs2012-talk
+\page p__example_lxjs2012 lxjs2012-demo
+
+The example used by Bert Belder at [LXJS 2012](http://www.youtube.com/watch?v=nGn60vDSxQ4) to introduce the libuv basics.
+
+The original code is slightly modified to work with recent libuv version > 0.10.
+
+\includelineno lxjs2012-demo.c
+
+["translation noise"](https://books.google.ru/books?id=Uemuaza3fTEC&pg=PT26&dq=%22translation+noise%22&hl=en&sa=X&ved=0ahUKEwigoJ3Dq8bLAhVoc3IKHQGQCFYQ6AEIGTAA)
+
 
 [Introduction to libuv – Thorsten Lorenz](http://www.youtube.com/watch?v=cLL28s6yb1I)
 [using libuv and http parser to build a webserver HD (with captions)](http://www.youtube.com/watch?v=aLm40q7qm3w)
@@ -155,6 +166,15 @@ uvcc sources are accompanied with several illustrative example programs the sour
 \page p__example_cpio cpio
 
 A simple program that copies its stdin to stdout written in pure C using libuv.
+
+There is some points that should be mentioned:
++ [1] The structure describing a write request should be allocated on the heap. \n
+      See the reasons described on stackoverflow.com: ["libuv + C++ segfaults"](http://stackoverflow.com/questions/29319392/libuv-c-segfaults)
++ [2] The allocated buffers should be somehow tracked the read buffer to get the result. github.com/joyent/libuv/issues: ["Preserve uv_write_t->bufs in uv_write() #1059"](https://github.com/joyent/libuv/issues/1059)
+    [Please expose bufs in uv_fs_t's result for uv_fs_read operations. (#1557)](https://github.com/joyent/libuv/issues/1557)
+
++ [3] [Lifetime of buffers on uv_write (#344)](https://github.com/joyent/libuv/issues/344)
+
 \includelineno cpio-uv.c
 
 The following is the above program being rewritten using uvcc:
