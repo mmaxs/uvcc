@@ -380,7 +380,7 @@ public: /*interface*/
       \note The previously stored value is destroyed. */
   //! \{
   /*! \brief Reinitialize the union storage with a default created value of the one of the type from `_Ts_` list
-      that the specified type is convertible to. */
+      that the specified type `_T_` is convertible to. */
   template< typename _T_ >
   typename std::enable_if< is_convertible_to_one_of< _T_, _Ts_... >::value >::type reset()
   {
