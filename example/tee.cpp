@@ -33,7 +33,7 @@ int main(int _argc, char *_argv[])
   in.read_start(
       [](uv::handle, std::size_t) -> uv::buffer  // alloc_cb
       {
-        const std::size_t default_size = 8192;
+        constexpr const std::size_t default_size = 8192;
         static std::vector< uv::buffer > buf_pool;
 
         for (std::size_t i = 0; i < buf_pool.size(); ++i)  if (buf_pool[i].nrefs() == 1)  {
@@ -58,7 +58,10 @@ int main(int _argc, char *_argv[])
           {
             static std::vector< uv::write > wr_pool;
 
-            static auto default_write_cb = [](uv::write _wr) -> void  // write_cb
+            for (auto &wr : wr_pool)  if (wr.nrefs() == 1)  return wr;
+
+            wr_pool.emplace_back();
+            wr_pool.back().on_request() = [](uv::write _wr) -> void  // write_cb
             {
               if (!_wr)
               {
@@ -67,13 +70,6 @@ int main(int _argc, char *_argv[])
               };
             };
 
-            for (auto &wr : wr_pool)  if (wr.nrefs() == 1)  {
-                wr.on_request() = default_write_cb;
-                return wr;
-            };
-
-            wr_pool.emplace_back();
-            wr_pool.back().on_request() = default_write_cb;
             // fprintf(stderr, "[write request pool]: new item #%zu\n", wr_pool.size());  fflush(stderr);
             return wr_pool.back();
           };

@@ -19,7 +19,7 @@ void on_close(uv_handle_t*);
 
 int main(int _argc, char *_argv[])
 {
-  uv_getaddrinfo_t* gai_req = malloc(sizeof(uv_getaddrinfo_t  ));
+  uv_getaddrinfo_t* gai_req = (uv_getaddrinfo_t*)malloc(sizeof(uv_getaddrinfo_t));
 
   uv_getaddrinfo(
       uv_default_loop(),
@@ -44,10 +44,10 @@ void after_getaddrinfo(uv_getaddrinfo_t *_gai_req, int _status, struct addrinfo 
 
   if (_status < 0)  abort();  /* handle the error */
 
-  tcp_handle = malloc(sizeof(uv_tcp_t));
+  tcp_handle = (uv_tcp_t*)malloc(sizeof(uv_tcp_t));
   uv_tcp_init(uv_default_loop(), tcp_handle);
 
-  connect_req = malloc(sizeof(uv_connect_t));
+  connect_req = (uv_connect_t*)malloc(sizeof(uv_connect_t));
   uv_tcp_connect(
       connect_req,
       tcp_handle,
@@ -67,11 +67,11 @@ void after_connect(uv_connect_t *_connect_req, int _status)
 
   if (_status < 0)  abort();  /* handle the error */
 
-  write_req = malloc(sizeof(uv_write_t));
+  write_req = (uv_write_t*)malloc(sizeof(uv_write_t));
 
-  buf.base = "GET / HTTP/1.0\r\n"
-             "Host: www.nyan.cat\r\n"
-             "\r\n";
+  buf.base = (char*)"GET / HTTP/1.0\r\n"
+                    "Host: www.nyan.cat\r\n"
+                    "\r\n";
   buf.len = strlen(buf.base);
 
   uv_write(
@@ -101,7 +101,7 @@ void after_write(uv_write_t *_write_req, int _status)
 
 void on_alloc(uv_handle_t *_handle, size_t _suggested_size, uv_buf_t* _buf)
 {
-  _buf->base = malloc(_suggested_size);
+  _buf->base = (char*)malloc(_suggested_size);
   _buf->len = _suggested_size;
 }
 

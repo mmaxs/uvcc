@@ -146,7 +146,7 @@ uvcc sources are accompanied with several illustrative example programs the sour
                            It shows some essential points that one comes across with when begin to develop
                            programs using libuv and how uvcc address them.
 
-* \subpage p__example_tee  "tee" - a simple program that copies its `stdin` ot `stdout` and also to each file specified as a program argument. \n
+* \subpage p__example_tee  "tee" - a simple program that copies its `stdin` to `stdout` and also to each file specified as a program argument. \n
                            It demonstrates simple versions of the buffer and request pools that can avoid intense memory allocation requests
                            and some side effects of the C/C++ memory allocator appearing thereat.
 
@@ -171,16 +171,19 @@ The original code is slightly modified to work with recent libuv version > 0.10.
 A simple program that copies its stdin to stdout written in pure C using libuv.
 
 There are some points that should be mentioned:
-+ [1] The structure describing a write request should be allocated on the heap.
-      \sa The rationale described on _stackoverflow.com_: ["libuv + C++ segfaults"](http://stackoverflow.com/questions/29319392/libuv-c-segfaults)
-+ [2] The allocated buffers should be somehow tracked in the program to be freed up to prevent
+- [1] The structure describing a write request should be allocated on the heap.
+      \sa The rationale described on _stackoverflow.com_: ["libuv + C++ segfaults"](http://stackoverflow.com/questions/29319392/libuv-c-segfaults).
+- [2] The allocated buffers should be somehow tracked in the program to be freed up to prevent
       the memory leak or to get the result of a request. The libuv suggested techniques are:
       using manual packaging/embedding the request and the buffer description structures into some sort of operational context
       enclosing structure, or using [`uv_req_t.data`](http://docs.libuv.org/en/v1.x/request.html#public-members) pointer member
       to the user-defined arbitrary data.
       \sa Discussions at _github.com/joyent/libuv/issues_: ["Preserve uv_write_t->bufs in uv_write() #1059"](https://github.com/joyent/libuv/issues/1059),
-      ["Please expose bufs in uv_fs_t's result for uv_fs_read operations. #1557"](https://github.com/joyent/libuv/issues/1557)
-+ [3] \sa Discussion at _github.com/joyent/libuv/issues_: ["Lifetime of buffers on uv_write #344"](https://github.com/joyent/libuv/issues/344)
+      ["Please expose bufs in uv_fs_t's result for uv_fs_read operations. #1557"](https://github.com/joyent/libuv/issues/1557).
+- [3] Be sure that things stay valid until some conditions in the future.
+      \sa Discussion at _github.com/joyent/libuv/issues_: ["Lifetime of buffers on uv_write #344"](https://github.com/joyent/libuv/issues/344).
+
+.
 
 \verbatim /example/cpio-uv.c \endverbatim
 \includelineno cpio-uv.c
@@ -196,13 +199,13 @@ Mike@U250 [CYGWIN] /cygdrive/d/wroot/libuv/uvcc/uvcc.git
 $ cat /dev/zero | ./build/example/cpio-uv.exe | dd of=/dev/null iflag=fullblock bs=1M count=10240
 10240+0 records in
 10240+0 records out
-10737418240 bytes (11 GB, 10 GiB) copied, 26.2673 s, 409 MB/s
+10737418240 bytes (11 GB, 10 GiB) copied, 23.3906 s, 459 MB/s
 
 Mike@U250 [CYGWIN] /cygdrive/d/wroot/libuv/uvcc/uvcc.git
 $ cat /dev/zero | ./build/example/cpio-uvcc.exe | dd of=/dev/null iflag=fullblock bs=1M count=10240
 10240+0 records in
 10240+0 records out
-10737418240 bytes (11 GB, 10 GiB) copied, 27.8476 s, 386 MB/s
+10737418240 bytes (11 GB, 10 GiB) copied, 25.1898 s, 426 MB/s
 \endverbatim
 
 Obviously there is an impact of reference counting operations that slightly reduce the performance.
@@ -210,7 +213,7 @@ Obviously there is an impact of reference counting operations that slightly redu
 
 \page p__example_tee tee
 
-A simple program that copies its `stdin` ot `stdout` and also to each file specified as a program argument.
+A simple program that copies its `stdin` to `stdout` and also to each file specified as a program argument.
 
 It demonstrates two points: the very same uvcc buffer can be easily dispatched to different asynchronous operations and its lifetime
 will continue until the last operation has completed and the example for a simple version of the buffer and request pool implementation.
@@ -218,11 +221,34 @@ will continue until the last operation has completed and the example for a simpl
 Pools help avoid intense memory allocation requests and the effect of continuous linear increasing of the memory consumed by the program
 until the C/C++ memory allocator decides to actually free up the allocated space.
 The provided simple implementation is an auto-growing pool that is not thread-safe, so only one dedicated thread might acquire an item
-from the pool in multi-thread environment. The condition of item's `nrefs() == 1` serves as indicator that no more references
+from the pool in multi-thread environment. The condition of item's `nrefs() == 1` indicates that no more references
 are left anywhere at the runtime other than in the pool container itself.
 
 \sa _stackoverflow.com_: ["libuv allocated memory buffers re-use techniques"](http://stackoverflow.com/questions/28511541/libuv-allocated-memory-buffers-re-use-techniques)
 
 \verbatim /example/tee.cpp \endverbatim
 \includelineno tee.cpp
+
+
+\page p__compiling Compiling
+
+uvcc consists only of header files. You need just to copy files and subfolders from /src/include directory into one of
+the directories being searched for header files in your project and include uvcc.hpp header into your source files.
+
+To compile bundled examples use the following make goal:
+
+> make example/SOURCE_FILE_BASE_NAME
+
+where SOURCE_FILE_BASE_NAME is a base name of one of the source files located in /example subdirectory.
+
+On Windows use [Mingw-w64](http://mingw-w64.org) compiler, make utility, and the shell packaged
+with [Cygwin](https://cygwin.com) or [Msys2](http://msys2.github.io) projects and the goal prefix:
+
+> make windows/example/SOURCE_FILE_BASE_NAME
+
+You will get Windows native binaries that are built against the libuv Windows release saved
+in /libuv-x64-v1.8.0.build8 subdirectory. If you don't have libuv installed in your Windows system root folder
+don't forget copy libuv.dll from the saved libuv release subdirectory and put it along with the built executable files.
+
+All build results will be placed in /build/example subdirectory from the uvcc root directory.
 
