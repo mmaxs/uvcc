@@ -23,7 +23,7 @@ CPPFLAGS = $(IFLAGS)
 
 
 # compiler flags
-CXXFLAGS = $(CXXSTD) -Wall -Wpedantic -O0 -g -pipe
+CXXFLAGS = $(CXXSTD) -Wall -Wpedantic -O2 -g -pipe
 
 
 # linker flags
