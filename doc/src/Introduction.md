@@ -142,11 +142,13 @@ uvcc sources are accompanied with several illustrative example programs the sour
                                [LXJS 2012](http://www.youtube.com/watch?v=nGn60vDSxQ4) to demonstrate the libuv basics. \n
                                It shows how uvcc simplifies the code.
 
-* \subpage p__example_cpio "cpio" - a simple program that copies its stdin to stdout. \n
+* \subpage p__example_cpio "cpio" - a simple program that copies its `stdin` to `stdout`. \n
                            It shows some essential points that one comes across with when begin to develop
                            programs using libuv and how uvcc address them.
 
-* \subpage p__example_tee  "tee" - illustrates simple versions for buffer and request pools
+* \subpage p__example_tee  "tee" - a simple program that copies its `stdin` ot `stdout` and also to each file specified as a program argument. \n
+                           It demonstrates simple versions of the buffer and request pools that can avoid intense memory allocation requests
+                           and some side effects of the C/C++ memory allocator appearing thereat.
 
 
 \page p__example_lxjs2012 lxjs2012-demo
@@ -155,6 +157,7 @@ The example used by Bert Belder at [LXJS 2012](http://www.youtube.com/watch?v=nG
 
 The original code is slightly modified to work with recent libuv version > 0.10.
 
+\verbatim /example/lxjs2012-demo.c \endverbatim
 \includelineno lxjs2012-demo.c
 
 ["translation noise"](https://books.google.ru/books?id=Uemuaza3fTEC&pg=PT26&dq=%22translation+noise%22&hl=en&sa=X&ved=0ahUKEwigoJ3Dq8bLAhVoc3IKHQGQCFYQ6AEIGTAA)
@@ -167,21 +170,59 @@ The original code is slightly modified to work with recent libuv version > 0.10.
 
 A simple program that copies its stdin to stdout written in pure C using libuv.
 
-There is some points that should be mentioned:
-+ [1] The structure describing a write request should be allocated on the heap. \n
-      See the reasons described on stackoverflow.com: ["libuv + C++ segfaults"](http://stackoverflow.com/questions/29319392/libuv-c-segfaults)
-+ [2] The allocated buffers should be somehow tracked the read buffer to get the result. github.com/joyent/libuv/issues: ["Preserve uv_write_t->bufs in uv_write() #1059"](https://github.com/joyent/libuv/issues/1059)
-    [Please expose bufs in uv_fs_t's result for uv_fs_read operations. (#1557)](https://github.com/joyent/libuv/issues/1557)
+There are some points that should be mentioned:
++ [1] The structure describing a write request should be allocated on the heap.
+      \sa The rationale described on _stackoverflow.com_: ["libuv + C++ segfaults"](http://stackoverflow.com/questions/29319392/libuv-c-segfaults)
++ [2] The allocated buffers should be somehow tracked in the program to be freed up to prevent
+      the memory leak or to get the result of a request. The libuv suggested techniques are:
+      using manual packaging/embedding the request and the buffer description structures into some sort of operational context
+      enclosing structure, or using [`uv_req_t.data`](http://docs.libuv.org/en/v1.x/request.html#public-members) pointer member
+      to the user-defined arbitrary data.
+      \sa Discussions at _github.com/joyent/libuv/issues_: ["Preserve uv_write_t->bufs in uv_write() #1059"](https://github.com/joyent/libuv/issues/1059),
+      ["Please expose bufs in uv_fs_t's result for uv_fs_read operations. #1557"](https://github.com/joyent/libuv/issues/1557)
++ [3] \sa Discussion at _github.com/joyent/libuv/issues_: ["Lifetime of buffers on uv_write #344"](https://github.com/joyent/libuv/issues/344)
 
-+ [3] [Lifetime of buffers on uv_write (#344)](https://github.com/joyent/libuv/issues/344)
-
+\verbatim /example/cpio-uv.c \endverbatim
 \includelineno cpio-uv.c
 
-The following is the above program being rewritten using uvcc:
+The following is the above program being rewritten using uvcc. All the considered points are taken into account by design of uvcc.
+\verbatim /example/cpio-uvcc.cpp \endverbatim
 \includelineno cpio-uvcc.cpp
 
+Here is a performance comparison between the two variants:
+
+\verbatim
+Mike@U250 [CYGWIN] /cygdrive/d/wroot/libuv/uvcc/uvcc.git
+$ cat /dev/zero | ./build/example/cpio-uv.exe | dd of=/dev/null iflag=fullblock bs=1M count=10240
+10240+0 records in
+10240+0 records out
+10737418240 bytes (11 GB, 10 GiB) copied, 26.2673 s, 409 MB/s
+
+Mike@U250 [CYGWIN] /cygdrive/d/wroot/libuv/uvcc/uvcc.git
+$ cat /dev/zero | ./build/example/cpio-uvcc.exe | dd of=/dev/null iflag=fullblock bs=1M count=10240
+10240+0 records in
+10240+0 records out
+10737418240 bytes (11 GB, 10 GiB) copied, 27.8476 s, 386 MB/s
+\endverbatim
+
+Obviously there is an impact of reference counting operations that slightly reduce the performance.
 
 
 \page p__example_tee tee
+
+A simple program that copies its `stdin` ot `stdout` and also to each file specified as a program argument.
+
+It demonstrates two points: the very same uvcc buffer can be easily dispatched to different asynchronous operations and its lifetime
+will continue until the last operation has completed and the example for a simple version of the buffer and request pool implementation.
+
+Pools help avoid intense memory allocation requests and the effect of continuous linear increasing of the memory consumed by the program
+until the C/C++ memory allocator decides to actually free up the allocated space.
+The provided simple implementation is an auto-growing pool that is not thread-safe, so only one dedicated thread might acquire an item
+from the pool in multi-thread environment. The condition of item's `nrefs() == 1` serves as indicator that no more references
+are left anywhere at the runtime other than in the pool container itself.
+
+\sa _stackoverflow.com_: ["libuv allocated memory buffers re-use techniques"](http://stackoverflow.com/questions/28511541/libuv-allocated-memory-buffers-re-use-techniques)
+
+\verbatim /example/tee.cpp \endverbatim
 \includelineno tee.cpp
 
