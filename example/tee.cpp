@@ -60,7 +60,7 @@ int main(int _argc, char *_argv[])
           {
             static std::vector< uv::write > wr_pool;
 
-            auto default_write_cb = [](uv::write _wr) -> void  // write_cb
+            static auto default_write_cb = [](uv::write _wr) -> void  // write_cb
             {
               if (!_wr)  PRINT_UV_ERR("write", _wr.uv_status());
             };

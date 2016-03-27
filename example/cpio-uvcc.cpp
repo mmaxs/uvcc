@@ -42,7 +42,11 @@ int main(int _argc, char *_argv[])
           uv::write wr;
           wr.on_request() = [](uv::write _wr) -> void  // write_cb
           {
-            if (!_wr)  PRINT_UV_ERR("write", _wr.uv_status());
+            if (!_wr)
+            {
+              PRINT_UV_ERR("write", _wr.uv_status());
+              in.read_stop();
+            };
           };
 
           _buffer.len() = _nread;

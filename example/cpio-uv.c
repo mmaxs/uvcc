@@ -82,7 +82,11 @@ void read_cb(uv_stream_t *_stream, ssize_t _nread, const uv_buf_t *_buf)
 
 void write_cb(uv_write_t *_wr, int _o)
 {
-  if (_o < 0)  PRINT_UV_ERR("write", _o);
+  if (_o < 0)
+  {
+    PRINT_UV_ERR("write", _o);
+    uv_read_stop((uv_stream_t*)&in);
+  };
 
   /* when the write request has completed it's safe to free up the memory allocated for the I/O buffer;
      see notes [2][3] */
