@@ -38,12 +38,16 @@ int main(int _argc, char *_argv[])
 
         for (std::size_t i = 0; i < buf_pool.size(); ++i)  if (buf_pool[i].nrefs() == 1)  {
             buf_pool[i].len() = default_size;
-            // fprintf(stderr, "[buffer pool]: item #%zu of %zu\n", i+1, buf_pool.size());  fflush(stderr);
+#ifndef NDEBUG
+            fprintf(stderr, "[buffer pool]: item #%zu of %zu\n", i+1, buf_pool.size());  fflush(stderr);
+#endif
             return buf_pool[i];
         };
 
         buf_pool.emplace_back(uv::buffer{default_size});
-        // fprintf(stderr, "[buffer pool]: new item #%zu\n", buf_pool.size());  fflush(stderr);
+#ifndef NDEBUG
+        fprintf(stderr, "[buffer pool]: new item #%zu\n", buf_pool.size());  fflush(stderr);
+#endif
         return buf_pool.back();
       },
       [](uv::stream _stream, ssize_t _nread, uv::buffer _buffer) -> void  // read_cb
@@ -70,7 +74,9 @@ int main(int _argc, char *_argv[])
               };
             };
 
-            // fprintf(stderr, "[write request pool]: new item #%zu\n", wr_pool.size());  fflush(stderr);
+#ifndef NDEBUG
+            fprintf(stderr, "[write request pool]: new item #%zu\n", wr_pool.size());  fflush(stderr);
+#endif
             return wr_pool.back();
           };
 

@@ -20,6 +20,9 @@ CXXSTD = -std=c++1y
 IFLAGS = -iquote $(ROOT)/src/include
 windows/%: IFLAGS = -iquote $(ROOT)/src/include -I $(LIBUV)/include
 CPPFLAGS = $(IFLAGS)
+ifndef DEBUG
+CPPFLAGS += -D NDEBUG
+endif
 
 
 # compiler flags
