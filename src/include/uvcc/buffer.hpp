@@ -138,6 +138,7 @@ private: /*constructors*/
     if (_uv_buf)  instance::from(_uv_buf)->ref();
     uv_buf = _uv_buf;
   }
+  explicit buffer(uv_t *_uv_buf, const adopt_ref_t) : uv_buf(_uv_buf)  {}
 
 public: /*constructors*/
   ~buffer()  { if (uv_buf)  instance::from(uv_buf)->unref(); }
