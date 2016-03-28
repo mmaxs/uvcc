@@ -1,39 +1,54 @@
-This is an introduction
-* \\subpage p__uvcc
-* \\subpage p__ref_counting
-* \\subpage p__destroy
 
+uvcc is C++ bindings for libuv.
 
-
-\page p__uvcc libuv and uvcc
-Uvcc is a C++ bindings for libuv.
 
 
 
 \page p__ref_counting Objects with reference counting semantics
-buffer, handle, request
+
+`uv::buffer`, `uv::handle`, `uv::request`, `uv::loop`
+
 
 [libcxx]: http://www.libcxx.org "libcxx" 
+
+uvcc's handle destroy callback differs from libuv's handle close callback in the following points:
+-# libuv's handle close callback passed to [`uv_close()`](http://docs.libuv.org/en/v1.x/handle.html#c.uv_close) is used primarily for freeing up the memory allocated for the handle.
+   In uvcc the memory allocated for a handle is released automatically when the last variable referencing this handle is been destroyed.
+   So uvcc's handle destroy callback is intended only for providing the option to manipulate the
+   user-defined data associated with the handle through the `uv_handle_t.data` pointer before the handle will become vanished.
+
 
 
 
 \page p__destroy Destroy callbacks
 
-```
-void (*uv_close_cb)(uv_handle_t* handle)
-```
-Type definition for callback passed to `uv_close()`
+The following libuv types provide a field which is a pointer to the user-defined arbitrary data
+that can be associated with the libuv object:
+* [`uv_handle_t.data`](http://docs.libuv.org/en/v1.x/handle.html#c.uv_handle_t.data),
+* [`uv_req_t.data`](http://docs.libuv.org/en/v1.x/request.html#c.uv_req_t.data),
+* [`uv_loop_t.data`](http://docs.libuv.org/en/v1.x/loop.html#c.uv_loop_t.data).
 
-Uvcc's handle destroy callback differs from libuv's handle close callback in the following points:
--# libuv's handle close callback passed to `uv_close()` is used primarily for freeing up the memory allocated for the handle.
-   In uvcc the memory allocated for a handle is released automatically when the last variable referencing this handle is been destroyed.
-   So uvcc's handle destroy callback is intended only for providing the option to manipulate the
-   user-defined data associated with the handle through the `uv_handle_t.data` pointer before the handle will become vanished.
--# libuv's handle close callback passed to `uv_close()` goes through the event loop and is called asynchronously after the `uv_close()` call.
-   This callback wouldn't be executed if the handle to be closed is not an "active" handle
-   (libuv API function `uv_is_active()` returns zero on such handles). Instead, uvcc's destroy callback is called unconditionally in any case
-   when the last variable referencing this handle is destroyed. If the handle is not "active" the destroy callback runs synchronously
-   as part of the variable's destructor.
+Each of the uvcc classes representing these libuv types provides a destroy callback which is called when the reference count
+for the object instance becomes zero:
+* `uv::handle::on_destroy_t`
+* `uv::request::on_destroy_t`
+* `uv::loop::on_destroy_t`
+
+The callback is intended to give the option to manipulate the user-defined data associated
+with the object instance through the `.data` pointer before the last variable referencing to it is been destroyed.
+
+For the `uv::handle` calss the destroy callback functionality is based on the underlying libuv API
+[`uv_close_cb`](http://docs.libuv.org/en/v1.x/handle.html#c.uv_close_cb) feature.
+The handle close callback passed to [`uv_close()`](http://docs.libuv.org/en/v1.x/handle.html#c.uv_close)
+goes through the event loop and is called asynchronously after the `uv_close()` call. But it wouldn't be executed if the handle
+to be closed is not an "active" handle (libuv API function [`uv_is_active()`](http://docs.libuv.org/en/v1.x/handle.html#c.uv_is_active)
+returns zero on such handles). Instead, uvcc's destroy callback is called in any case whenever the last variable
+referencing this handle is destroyed. If the handle is not "active" the destroy callback runs synchronously as part of the
+variable's destructor.
+
+For the other two classes (`uv::request` and `uv::loop`) the callbacks are uvcc specific feature and they are executed
+as part of the variable's destructor.
+
 
 
 
@@ -133,6 +148,21 @@ supported for the purposes of the `stream::read_start()` and `udp::recv_start()`
 
 
 
+
+\addtogroup g__handle
+\details
+\note uvcc handle objects have no interface functions corresponding to the following libuv API functions that control
+whether a handle is [referenced by the event loop](http://docs.libuv.org/en/v1.x/handle.html#reference-counting)
+which it has been attached to while being created and where it is running on:
+[`uv_ref()`](http://docs.libuv.org/en/v1.x/handle.html#c.uv_ref),
+[`uv_unref()`](http://docs.libuv.org/en/v1.x/handle.html#c.uv_unref),
+[`uv_has_ref()`](http://docs.libuv.org/en/v1.x/handle.html#c.uv_has_ref).
+These libuv functions can be directly applied to uvcc handle objects (with explicit casting the handle variable to `uv_handle_t*`)
+if necessary.
+
+
+
+
 \page p__example Examples
 
 uvcc sources are accompanied with several illustrative example programs the source code of which can be found in the
@@ -176,7 +206,7 @@ There are some points that should be mentioned:
 - [2] The allocated buffers should be somehow tracked in the program to be freed up to prevent
       the memory leak or to get the result of a request. The libuv suggested techniques are:
       using manual packaging/embedding the request and the buffer description structures into some sort of operational context
-      enclosing structure, or using [`uv_req_t.data`](http://docs.libuv.org/en/v1.x/request.html#public-members) pointer member
+      enclosing structure, or using [`uv_req_t.data`](http://docs.libuv.org/en/v1.x/request.html#c.uv_req_t.data) pointer member
       to the user-defined arbitrary data.
       \sa Discussions at _github.com/joyent/libuv/issues_: ["Preserve uv_write_t->bufs in uv_write() #1059"](https://github.com/joyent/libuv/issues/1059),
       ["Please expose bufs in uv_fs_t's result for uv_fs_read operations. #1557"](https://github.com/joyent/libuv/issues/1557).
@@ -211,6 +241,8 @@ $ cat /dev/zero | ./build/example/cpio-uvcc.exe | dd of=/dev/null iflag=fullbloc
 Obviously there is an impact of reference counting operations that slightly reduce the performance.
 
 
+
+
 \page p__example_tee tee
 
 A simple program that copies its `stdin` to `stdout` and also to each file specified as a program argument.
@@ -228,6 +260,8 @@ are left anywhere at the runtime other than in the pool container itself.
 
 \verbatim /example/tee.cpp \endverbatim
 \includelineno tee.cpp
+
+
 
 
 \page p__compiling Compiling
@@ -248,7 +282,10 @@ with [Cygwin](https://cygwin.com) or [Msys2](http://msys2.github.io) projects an
 
 You will get Windows native binaries that are built against the libuv Windows release saved
 in /libuv-x64-v1.8.0.build8 subdirectory. If you don't have libuv installed in your Windows system root folder
-don't forget copy libuv.dll from the saved libuv release subdirectory and put it along with the built executable files.
+don't forget to copy libuv.dll from the saved libuv release subdirectory and put it along with the built executable files.
 
 All build results will be placed in /build/example subdirectory from the uvcc root directory.
+
+
+
 

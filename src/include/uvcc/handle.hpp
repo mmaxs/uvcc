@@ -18,16 +18,7 @@
 namespace uv
 {
 /*! \defgroup g__handle Handles
-    \brief The classes representing libuv handles.
-    \note uvcc handle objects have no interface functions corresponding to the following libuv
-    API functions that control whether a handle is
-    [referenced by the event loop](http://docs.libuv.org/en/v1.x/handle.html#reference-counting)
-    which it has been attached to while being created and where it is running on:
-    [`uv_ref()`](http://docs.libuv.org/en/v1.x/handle.html#c.uv_ref),
-    [`uv_unref()`](http://docs.libuv.org/en/v1.x/handle.html#c.uv_unref),
-    [`uv_has_ref()`](http://docs.libuv.org/en/v1.x/handle.html#c.uv_has_ref).
-    These libuv functions can be directly applied to uvcc handle objects
-    (with explicit casting the handle object to `uv_handle_t*`) if necessary. */
+    \brief The classes representing libuv handles. */
 //! \{
 
 
