@@ -382,7 +382,7 @@ void stream::alloc_cb(::uv_handle_t *_uv_handle, std::size_t _suggested_size, ::
   auto &alloc_cb = instance::from(_uv_handle)->supplemental_data().on_buffer;
   if (alloc_cb)
   {
-    buffer b = alloc_cb(stream(reinterpret_cast< uv_t* >(_uv_handle)), _suggested_size);
+    buffer &&b = alloc_cb(stream(reinterpret_cast< uv_t* >(_uv_handle)), _suggested_size);
     buffer::instance::from(b.uv_buf)->ref();
     *_uv_buf = b[0];
   }
@@ -396,17 +396,17 @@ void stream::read_cb(::uv_stream_t *_uv_stream, ssize_t _nread, const ::uv_buf_t
   t->uv_status() = _nread;
 
   auto &read_cb = t->supplemental_data().on_read;
-  if (!read_cb)  return;
+  if (!read_cb)
+  {
+    if (_uv_buf->base)  buffer::instance::from(buffer::instance::from_base(_uv_buf->base))->unref();
+    return;
+  };
 
   if (_uv_buf->base)
-  {
-    ::uv_buf_t *uv_buf = buffer::instance::from_base(_uv_buf->base);
-    ref_guard< buffer::instance > unref(*buffer::instance::from(uv_buf), adopt_ref);
-    read_cb(stream(_uv_stream), _nread, buffer(uv_buf));
+    read_cb(stream(_uv_stream), _nread, buffer(buffer::instance::from_base(_uv_buf->base), adopt_ref));
     // don't forget to specify adopt_ref flag when using ref_guard to unref the object
     // don't use ref_guard unless it really needs to hold on the object until the scope end
     // use move/transfer semantics instead if you need just pass the object to another function for further processing
-  }
   else
     read_cb(stream(_uv_stream), _nread, buffer());
 }
