@@ -64,8 +64,8 @@ private: /*types*/
   private: /*functions*/
     void destroy()
     {
-      on_destroy_t &f = on_destroy_storage.value();
-      if (f)  f(uv_loop.data);
+      auto &destroy_cb = on_destroy_storage.value();
+      if (destroy_cb)  destroy_cb(uv_loop.data);
       delete this;
     }
 
