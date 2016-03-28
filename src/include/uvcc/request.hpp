@@ -100,7 +100,7 @@ protected: /*types*/
   private: /*functions*/
     void destroy()
     {
-      on_destroy_t &destroy_cb = on_destroy_storage.value();
+      auto &destroy_cb = on_destroy_storage.value();
       if (destroy_cb)  destroy_cb(uv_req.data);
       Delete(this);
     }
@@ -342,21 +342,21 @@ public: /*interface*/
   int run(stream _stream, const buffer _buf)
   {
     stream::instance::from(_stream.uv_handle)->ref();
-    instance::from(uv_req)->supplemental_data() = _buf;
+    buffer &b = (instance::from(uv_req)->supplemental_data() = std::move(_buf));
     instance::from(uv_req)->ref();
 
-    return uv_status(::uv_write(static_cast< uv_t* >(uv_req), static_cast< stream::uv_t* >(_stream), static_cast< const buffer::uv_t* >(_buf), _buf.count(), write_cb));
+    return uv_status(::uv_write(static_cast< uv_t* >(uv_req), static_cast< stream::uv_t* >(_stream), static_cast< const buffer::uv_t* >(b), b.count(), write_cb));
   }
   /*! \brief The overload for sending handles over a pipe.
       \sa libuv documentation: [`uv_write2()`](http://docs.libuv.org/en/v1.x/stream.html#c.uv_write2). */
   int run(pipe _pipe, const buffer _buf, stream _send_handle)
   {
     pipe::instance::from(_pipe.uv_handle)->ref();
-    instance::from(uv_req)->supplemental_data() = _buf;
+    buffer &b = (instance::from(uv_req)->supplemental_data() = std::move(_buf));
     stream::instance::from(_send_handle.uv_handle)->ref();
     instance::from(uv_req)->ref();
 
-    return uv_status(::uv_write2(static_cast< uv_t* >(uv_req), static_cast< stream::uv_t* >(_pipe), static_cast< const buffer::uv_t* >(_buf), _buf.count(), static_cast< stream::uv_t* >(_send_handle), write2_cb));
+    return uv_status(::uv_write2(static_cast< uv_t* >(uv_req), static_cast< stream::uv_t* >(_pipe), static_cast< const buffer::uv_t* >(b), b.count(), static_cast< stream::uv_t* >(_send_handle), write2_cb));
   }
 
   /*! \details The wrapper for corresponding libuv function.
