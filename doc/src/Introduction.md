@@ -6,16 +6,24 @@ uvcc is C++ bindings for libuv.
 
 \page p__ref_counting Objects with reference counting semantics
 
-`uv::buffer`, `uv::handle`, `uv::request`, `uv::loop`
 
+To implement automatic memory management for the objects involved in libuv API function calls and user callbacks
+these uvcc classes are designed with the use of a reference counting technique:
+* `uv::buffer`
+* `uv::handle`
+* `uv::request`
+* `uv::loop`
 
-[libcxx]: http://www.libcxx.org "libcxx" 
+This means that the variables for one of these types are just pointers to an object instance created on the heap
+and have a semantics analogous to `std::shared_ptr`.
+A newly created variable produces a new object got instantiated on the heap with initial reference count value equal to one.
+Copying this variable to another or passing it by value as a function argument just copies the pointer and increases the reference
+count of the object instance. If the variable goes out of scope of its definition and gets destroyed then the reference count of
+the object instance is decreased. The count increase/decrease operations are atomic and thread-safe.
+The object instance by itself gets actually destroyed and the memory allocated for it
+is automatically released when the last variable referencing the object is destroyed and the reference count becomes zero.
 
-uvcc's handle destroy callback differs from libuv's handle close callback in the following points:
--# libuv's handle close callback passed to [`uv_close()`](http://docs.libuv.org/en/v1.x/handle.html#c.uv_close) is used primarily for freeing up the memory allocated for the handle.
-   In uvcc the memory allocated for a handle is released automatically when the last variable referencing this handle is been destroyed.
-   So uvcc's handle destroy callback is intended only for providing the option to manipulate the
-   user-defined data associated with the handle through the `uv_handle_t.data` pointer before the handle will become vanished.
+\sa Considerations on reference-counted objects in [libcxx](http://www.libcxx.org/refobj.html) documentation.
 
 
 
@@ -34,8 +42,8 @@ for the object instance becomes zero:
 * `uv::request::on_destroy_t`
 * `uv::loop::on_destroy_t`
 
-The callback is intended to give the option to manipulate the user-defined data associated
-with the object instance through the `.data` pointer before the last variable referencing to it is been destroyed.
+The callback is intended to give the option to manipulate the user-defined data associated with the object
+through the `.data` pointer before the last variable referencing this object is been destroyed.
 
 For the `uv::handle` calss the destroy callback functionality is based on the underlying libuv API
 [`uv_close_cb`](http://docs.libuv.org/en/v1.x/handle.html#c.uv_close_cb) feature.
@@ -46,7 +54,7 @@ returns zero on such handles). Instead, uvcc's destroy callback is called in any
 referencing this handle is destroyed. If the handle is not "active" the destroy callback runs synchronously as part of the
 variable's destructor.
 
-For the other two classes (`uv::request` and `uv::loop`) the callbacks are uvcc specific feature and they are executed
+For the other two classes (`uv::request` and `uv::loop`) the callbacks are a uvcc specific feature and they are executed
 as part of the variable's destructor.
 
 
@@ -275,14 +283,14 @@ To compile bundled examples use the following make goal:
 
 where SOURCE_FILE_BASE_NAME is a base name of one of the source files located in /example subdirectory.
 
-On Windows use [Mingw-w64](http://mingw-w64.org) compiler, make utility, and the shell packaged
-with [Cygwin](https://cygwin.com) or [Msys2](http://msys2.github.io) projects and the goal prefix:
+On Windows you can use [Mingw-w64](http://mingw-w64.org) compiler, make utility, and the command shell that are packaged
+with [Cygwin](https://cygwin.com) or [Msys2](http://msys2.github.io) projects. Then add the goal prefix:
 
 > make windows/example/SOURCE_FILE_BASE_NAME
 
-You will get Windows native binaries that are built against the libuv Windows release saved
+You will get Windows native binaries built against the libuv Windows release saved
 in /libuv-x64-v1.8.0.build8 subdirectory. If you don't have libuv installed in your Windows system root folder
-don't forget to copy libuv.dll from the saved libuv release subdirectory and put it along with the built executable files.
+don't forget to copy libuv.dll from the saved libuv release subdirectory and put it along with the resulting executable files.
 
 All build results will be placed in /build/example subdirectory from the uvcc root directory.
 
