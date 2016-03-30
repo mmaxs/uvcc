@@ -9,12 +9,9 @@ http://docs.libuv.org/en/v1.x/handle.html#c.uv_handle_size
 http://docs.libuv.org/en/v1.x/request.html#c.uv_req_size
 
 [stream]
-http://docs.libuv.org/en/v1.x/stream.html#c.uv_read_cb
 http://docs.libuv.org/en/v1.x/stream.html#c.uv_connection_cb
 http://docs.libuv.org/en/v1.x/stream.html#c.uv_listen
 http://docs.libuv.org/en/v1.x/stream.html#c.uv_accept
-http://docs.libuv.org/en/v1.x/stream.html#c.uv_read_start
-http://docs.libuv.org/en/v1.x/stream.html#c.uv_read_stop
 
 [tcp]
 -

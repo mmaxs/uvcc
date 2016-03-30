@@ -1,7 +1,9 @@
 
 uvcc is C++ bindings for libuv.
 
-
+\sa [libuv API documentation](http://docs.libuv.org/en/v1.x/) \n
+[An Introduction to libuv](http://nikhilm.github.io/uvbook) \n
+[Documenting types and methods of libuv, mostly by reading  uv.h](https://github.com/thlorenz/libuv-dox)
 
 
 \page p__ref_counting Objects with reference counting semantics
