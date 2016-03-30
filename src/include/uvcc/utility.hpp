@@ -7,7 +7,7 @@
 #include <utility>      // forward() move()
 #include <memory>       // addressof()
 #include <stdexcept>    // runtime_error
-#include <typeinfo>     //
+#include <typeinfo>     // typeid()
 
 
 namespace uv

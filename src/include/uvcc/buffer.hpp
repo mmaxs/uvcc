@@ -32,10 +32,12 @@ class udp_send;
 /*! \brief Encapsulates `uv_buf_t` data type and provides `uv_buf_t[]` functionality. */
 class buffer
 {
+  //! \cond
   friend class stream;
   friend class write;
   friend class udp;
   friend class udp_send;
+  //! \endcond
 
 public: /*types*/
   using uv_t = ::uv_buf_t;
@@ -218,7 +220,7 @@ public: /*conversion operators*/
     \details ...to equip the input operation with a preallocated buffer. The callback should return a `uv::buffer`
     instance initialized with a `_suggested_size` (the value provided by libuv API is a constant of _65536_ bytes)
     or with whatever size, as long as it’s > 0.
-    \sa libuv documentation: [`uv_alloc_cb`](http://docs.libuv.org/en/v1.x/handle.html#c.uv_alloc_cb).
+    \sa libuv API documentation: [`uv_alloc_cb`](http://docs.libuv.org/en/v1.x/handle.html#c.uv_alloc_cb).
     \details The following is an example of the trivial ready for general use callback:
     ```
     buffer alloc_cb(handle, std::size_t _suggested_size)

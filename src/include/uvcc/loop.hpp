@@ -21,13 +21,13 @@ class handle;
 
 /*! \defgroup g__loop Event loop
     \brief The I/O event loop.
-    \sa libuv documentation: [the I/O loop](http://docs.libuv.org/en/v1.x/design.html#the-i-o-loop). */
+    \sa libuv API documentation: [the I/O loop](http://docs.libuv.org/en/v1.x/design.html#the-i-o-loop). */
 //! \{
 
 
 /*! \brief The I/O event loop class.
     \details All event loops (including the default one) are the instances of this class.
-    \sa libuv documentation: [`uv_loop_t`](http://docs.libuv.org/en/v1.x/loop.html#uv-loop-t-event-loop). */
+    \sa libuv API documentation: [`uv_loop_t`](http://docs.libuv.org/en/v1.x/loop.html#uv-loop-t-event-loop). */
 class loop
 {
   friend class handle;
@@ -37,7 +37,7 @@ public: /*types*/
   using on_destroy_t = std::function< void(void *_data) >;  /*!< \brief The function type of the callback called when the loop instance is about to be destroyed. */
   using on_walk_t = std::function< void(handle _handle, void *_arg) >;
   /*!< \brief The function type of the callback called by the `walk()` function.
-       \sa libuv documentation: [`uv_walk_cb`](http://docs.libuv.org/en/v1.x/loop.html#c.uv_walk_cb),
+       \sa libuv API documentation: [`uv_walk_cb`](http://docs.libuv.org/en/v1.x/loop.html#c.uv_walk_cb),
                                 [`uv_walk()`](http://docs.libuv.org/en/v1.x/loop.html#c.uv_walk). */
 
 private: /*types*/
@@ -165,38 +165,38 @@ public: /*interface*/
         on_destroy_t& on_destroy()       noexcept  { return instance::from(uv_loop)->on_destroy(); }
 
   /*! \details The pointer to the user-defined arbitrary data.
-      \sa libuv documentation: [`uv_loop_t.data`](http://docs.libuv.org/en/v1.x/loop.html#c.uv_loop_t.data). */
+      \sa libuv API documentation: [`uv_loop_t.data`](http://docs.libuv.org/en/v1.x/loop.html#c.uv_loop_t.data). */
   void* const& data() const noexcept  { return uv_loop->data; }
   void*      & data()       noexcept  { return uv_loop->data; }
 
   /*! \details Set additional loop options.
-      \sa libuv documentation: [`uv_loop_configure()`](http://docs.libuv.org/en/v1.x/loop.html#c.uv_loop_configure). */
+      \sa libuv API documentation: [`uv_loop_configure()`](http://docs.libuv.org/en/v1.x/loop.html#c.uv_loop_configure). */
   template< typename... _Args_ > int configure(::uv_loop_option _opt, _Args_&&... _args)
   {
     return uv_status(::uv_loop_configure(uv_loop, _opt, std::forward< _Args_ >(_args)...));
   }
 
   /*! \details Start the event loop.
-      \sa libuv documentation: [`uv_run()`](http://docs.libuv.org/en/v1.x/loop.html#c.uv_run). */
+      \sa libuv API documentation: [`uv_run()`](http://docs.libuv.org/en/v1.x/loop.html#c.uv_run). */
   int run(::uv_run_mode _mode)  { return uv_status(::uv_run(uv_loop, _mode)); }
   /*! \details Stop the event loop.
-      \sa libuv documentation: [`uv_stop()`](http://docs.libuv.org/en/v1.x/loop.html#c.uv_stop). */
+      \sa libuv API documentation: [`uv_stop()`](http://docs.libuv.org/en/v1.x/loop.html#c.uv_stop). */
   void stop()  { ::uv_stop(uv_loop); }
 
   /*! \brief Returns non-zero if there are active handles or request in the loop. */
   int is_alive() const noexcept  { return uv_status(::uv_loop_alive(uv_loop)); }
 
   /*! \details Get backend file descriptor.
-      \sa libuv documentation: [`uv_backend_fd()`](http://docs.libuv.org/en/v1.x/loop.html#c.uv_backend_fd). */
+      \sa libuv API documentation: [`uv_backend_fd()`](http://docs.libuv.org/en/v1.x/loop.html#c.uv_backend_fd). */
   int backend_fd() const noexcept  { return ::uv_backend_fd(uv_loop); }
   /*! \brief Get the poll timeout. The return value is in _milliseconds_, or \b -1 for no timeout. */
   int backend_timeout() const noexcept  { return ::uv_backend_timeout(uv_loop); }
   /*! \details Return the current timestamp in _milliseconds_.
-      \sa libuv documentation: [`uv_now()`](http://docs.libuv.org/en/v1.x/loop.html#c.uv_now). */
+      \sa libuv API documentation: [`uv_now()`](http://docs.libuv.org/en/v1.x/loop.html#c.uv_now). */
   uint64_t now() const noexcept  { return ::uv_now(uv_loop); }
 
   /*! \details Update the event loop’s concept of “now”.
-      \sa libuv documentation: [`uv_update_time()`](http://docs.libuv.org/en/v1.x/loop.html#c.uv_update_time). */
+      \sa libuv API documentation: [`uv_update_time()`](http://docs.libuv.org/en/v1.x/loop.html#c.uv_update_time). */
   void update_time() noexcept  { ::uv_update_time(uv_loop); }
 
   /*! \brief Walk the handles in the loop: for each handle in the loop `_walk_cb` will be executed with the given `_arg`. */
