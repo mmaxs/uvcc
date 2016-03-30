@@ -60,7 +60,7 @@ UV_HANDLE_TYPE_MAP(XX)
 /*! \brief The base class for the libuv handles.
     \details Derived classes conceptually are just interfaces to the data stored
     in the base class, so there are no any virtual member functions.
-    \sa libuv documentation: [`uv_handle_t`](http://docs.libuv.org/en/v1.x/handle.html#uv-handle-t-base-handle). */
+    \sa libuv API documentation: [`uv_handle_t`](http://docs.libuv.org/en/v1.x/handle.html#uv-handle-t-base-handle). */
 class handle
 {
   //! \cond
@@ -72,7 +72,7 @@ public: /*types*/
   using uv_t = ::uv_handle_t;
   using on_destroy_t = std::function< void(void *_data) >;
   /*!< \brief The function type of the callback called when the handle is about to be closed and destroyed.
-       \sa libuv documentation: [`uv_close_cb`](http://docs.libuv.org/en/v1.x/handle.html#c.uv_close_cb),
+       \sa libuv API documentation: [`uv_close_cb`](http://docs.libuv.org/en/v1.x/handle.html#c.uv_close_cb),
                                 [`uv_close()`](http://docs.libuv.org/en/v1.x/handle.html#c.uv_close). */
 
 protected: /*types*/
@@ -81,8 +81,10 @@ protected: /*types*/
 
   template< class _HANDLE_ > class instance
   {
-  private: /*types*/
+  public: /*types*/
     using uv_t = typename _HANDLE_::uv_t;
+
+  private: /*types*/
     using supplemental_data_t = typename _HANDLE_::supplemental_data_t;
 
   private: /*data*/
@@ -90,9 +92,9 @@ protected: /*types*/
     void (*Delete)(void*);  // store a proper delete operator
     ref_count rc;
     type_storage< on_destroy_t > on_destroy_storage;
-    alignas(64) mutable type_storage< supplemental_data_t > supplemental_data_storage;
-    static_assert(sizeof(supplemental_data_storage) <= 64, "non-static layout structure");
-    alignas(64) uv_t uv_handle;
+    alignas(32) mutable type_storage< supplemental_data_t > supplemental_data_storage;
+    static_assert(sizeof(supplemental_data_storage) <= 32, "non-static layout structure");
+    alignas(32) uv_t uv_handle;
 
   private: /*constructors*/
     instance() : uv_error(0), Delete(default_delete< instance >::Delete)  {}
@@ -210,14 +212,14 @@ public: /*interface*/
   void*      & data()       noexcept  { return static_cast< uv_t* >(uv_handle)->data; }
 
   /*! \details Check if the handle is active.
-      \sa libuv documentation: [`uv_is_active()`](http://docs.libuv.org/en/v1.x/handle.html#c.uv_is_active). */
+      \sa libuv API documentation: [`uv_is_active()`](http://docs.libuv.org/en/v1.x/handle.html#c.uv_is_active). */
   int is_active() const noexcept  { return uv_status(::uv_is_active(static_cast< uv_t* >(uv_handle))); }
   /*! \details Check if the handle is closing or closed.
-      \sa libuv documentation: [`uv_is_closing()`](http://docs.libuv.org/en/v1.x/handle.html#c.uv_is_closing). */
+      \sa libuv API documentation: [`uv_is_closing()`](http://docs.libuv.org/en/v1.x/handle.html#c.uv_is_closing). */
   int is_closing() const noexcept { return uv_status(::uv_is_closing(static_cast< uv_t* >(uv_handle))); }
 
   /*! \details _Get_ the size of the send buffer that the operating system uses for the socket.
-      \sa libuv documentation: [`uv_send_buffer_size()`](http://docs.libuv.org/en/v1.x/handle.html#c.uv_send_buffer_size). */
+      \sa libuv API documentation: [`uv_send_buffer_size()`](http://docs.libuv.org/en/v1.x/handle.html#c.uv_send_buffer_size). */
   unsigned int send_buffer_size() const noexcept
   {
     unsigned int v = 0;
@@ -225,11 +227,11 @@ public: /*interface*/
     return v;
   }
   /*! \details _Set_ the size of the send buffer that the operating system uses for the socket.
-      \sa libuv documentation: [`uv_send_buffer_size()`](http://docs.libuv.org/en/v1.x/handle.html#c.uv_send_buffer_size). */
+      \sa libuv API documentation: [`uv_send_buffer_size()`](http://docs.libuv.org/en/v1.x/handle.html#c.uv_send_buffer_size). */
   void send_buffer_size(const unsigned int _value) noexcept  { uv_status(::uv_send_buffer_size(static_cast< uv_t* >(uv_handle), (int*)&_value)); }
 
   /*! \details _Get_ the size of the receive buffer that the operating system uses for the socket.
-      \sa libuv documentation: [`uv_recv_buffer_size()`](http://docs.libuv.org/en/v1.x/handle.html#c.uv_recv_buffer_size). */
+      \sa libuv API documentation: [`uv_recv_buffer_size()`](http://docs.libuv.org/en/v1.x/handle.html#c.uv_recv_buffer_size). */
   unsigned int recv_buffer_size() const noexcept
   {
     unsigned int v = 0;
@@ -237,11 +239,11 @@ public: /*interface*/
     return v;
   }
   /*! \details _Set_ the size of the receive buffer that the operating system uses for the socket.
-      \sa libuv documentation: [`uv_recv_buffer_size()`](http://docs.libuv.org/en/v1.x/handle.html#c.uv_recv_buffer_size). */
+      \sa libuv API documentation: [`uv_recv_buffer_size()`](http://docs.libuv.org/en/v1.x/handle.html#c.uv_recv_buffer_size). */
   void recv_buffer_size(const unsigned int _value) noexcept  { uv_status(::uv_recv_buffer_size(static_cast< uv_t* >(uv_handle), (int*)&_value)); }
 
   /*! \details Get the platform dependent file descriptor.
-      \sa libuv documentation: [`uv_fileno()`](http://docs.libuv.org/en/v1.x/handle.html#c.uv_fileno). */
+      \sa libuv API documentation: [`uv_fileno()`](http://docs.libuv.org/en/v1.x/handle.html#c.uv_fileno). */
   ::uv_os_fd_t fileno() const noexcept
   {
 #ifdef _WIN32
@@ -272,7 +274,7 @@ void handle::instance< _HANDLE_ >::close_cb(::uv_handle_t *_uv_handle)
 
 
 /*! \brief Stream handle type.
-    \sa libuv documentation: [`uv_stream_t`](http://docs.libuv.org/en/v1.x/stream.html#uv-stream-t-stream-handle). */
+    \sa libuv API documentation: [`uv_stream_t`](http://docs.libuv.org/en/v1.x/stream.html#uv-stream-t-stream-handle). */
 class stream : public handle
 {
   //! \cond
@@ -286,18 +288,33 @@ public: /*types*/
   using uv_t = ::uv_stream_t;
   using on_read_t = std::function< void(stream _stream, ssize_t _nread, buffer _buffer) >;
   /*!< \brief The function type of the callback called by `read_start()` when data was read from a stream.
-       \sa libuv documentation: [`uv_read_cb`](http://docs.libuv.org/en/v1.x/stream.html#c.uv_read_cb).
+       \sa libuv API documentation: [`uv_read_cb`](http://docs.libuv.org/en/v1.x/stream.html#c.uv_read_cb).
        \note The libuv API usually calls back the user `uv_read_cb` function with a _null-initialized_ `uv_buf_t`
        buffer structure (where `buf->base = nullptr` and `buf->len = 0`) on error and EOF and does not try to retrieve
        something from the [`uv_alloc_cb`](http://docs.libuv.org/en/v1.x/handle.html#c.uv_alloc_cb) callback in
        such a cases, so the uvcc `stream::on_read_t` callback is provided with a dummy _null-initialized_ buffer. */
+  using on_connection_t = std::function< void(stream _server) >;
+  /*!< \brief The function type of the callback called when a stream server has received an incoming connection.
+       \details The user can accept the connection by calling accept().
+       \sa libuv API documentation: [`uv_connection_cb`](http://docs.libuv.org/en/v1.x/stream.html#c.uv_connection_cb). */
 
 protected: /*types*/
   //! \cond
-  struct supplemental_data_t
+  class supplemental_data_t
   {
-    on_buffer_t on_buffer;
-    on_read_t on_read;
+    on_buffer_t     *alloc_cb = nullptr;
+    on_read_t       *read_cb = nullptr;
+    on_connection_t *connection_cb = nullptr;
+  public:
+    ~supplemental_data_t()
+    {
+      if (alloc_cb)       delete(alloc_cb);
+      if (read_cb)        delete(read_cb);
+      if (connection_cb)  delete(connection_cb);
+    }
+    on_buffer_t&     on_buffer()      { if (!alloc_cb)       alloc_cb = new on_buffer_t;           return *alloc_cb; }
+    on_read_t&       on_read()        { if (!read_cb)        read_cb = new on_read_t;              return *read_cb; }
+    on_connection_t& on_connection()  { if (!connection_cb)  connection_cb = new on_connection_t;  return *connection_cb; }
   };
   //! \endcond
 
@@ -326,31 +343,35 @@ public: /*constructors*/
 private: /*functions*/
   template< typename = void > static void alloc_cb(::uv_handle_t*, std::size_t, ::uv_buf_t*);
   template< typename = void > static void read_cb(::uv_stream_t*, ssize_t, const ::uv_buf_t*);
+  template< typename = void > static void connection_cb(::uv_stream_t*, int);
 
 public: /*interface*/
   /*! \details Start reading incoming data from the stream.
-      \sa libuv documentation: [`uv_read_start()`](http://docs.libuv.org/en/v1.x/stream.html#c.uv_read_start). */
-  int read_start(const on_buffer_t &_alloc_cb, const on_read_t &_read_cb)
+      \sa libuv API documentation: [`uv_read_start()`](http://docs.libuv.org/en/v1.x/stream.html#c.uv_read_start). */
+  int read_start(const on_buffer_t &_alloc_cb, const on_read_t &_read_cb) const
   {
     auto &cb = instance::from(uv_handle)->supplemental_data();
-    if (cb.on_read)  read_stop();
-    cb = {_alloc_cb, _read_cb};
-    instance::from(uv_handle)->ref();
+    if (cb.on_read())  read_stop();
+    cb.on_buffer() = _alloc_cb;
+    cb.on_read() = _read_cb;
     return uv_status(::uv_read_start(static_cast< uv_t* >(uv_handle), alloc_cb, read_cb));
   }
   /*! \details Stop reading data from the stream.
-      \sa libuv documentation: [`uv_read_stop()`](http://docs.libuv.org/en/v1.x/stream.html#c.uv_read_stop). */
-  int read_stop() noexcept
+      \sa libuv API documentation: [`uv_read_stop()`](http://docs.libuv.org/en/v1.x/stream.html#c.uv_read_stop). */
+  int read_stop() const
   {
     uv_status(::uv_read_stop(static_cast< uv_t* >(uv_handle)));
-    auto &cb = instance::from(uv_handle)->supplemental_data();
-    if (cb.on_read)
-    {
-      cb.on_read = on_read_t();
-      instance::from(uv_handle)->unref();
-    };
+    auto &read_cb = instance::from(uv_handle)->supplemental_data().on_read();
+    if (read_cb)  read_cb = on_read_t();
     return uv_status();
   }
+
+  int listen(const on_connection_t &_connection_cb, int _backlog) const
+  {
+    instance::from(uv_handle)->supplemental_data().on_connection() = _connection_cb;
+    return uv_status(::uv_listen(static_cast< uv_t* >(uv_handle), _backlog, connection_cb));
+  }
+  template< class _STREAM_ > _STREAM_ accept() const;
 
   /*! \brief The amount of queued bytes waiting to be sent. */
   std::size_t write_queue_size() const noexcept  { return static_cast< uv_t* >(uv_handle)->write_queue_size; }
@@ -359,7 +380,7 @@ public: /*interface*/
   /*! \brief Check if the stream is writable. */
   bool is_writable() const noexcept  { return uv_status(::uv_is_writable(static_cast< uv_t* >(uv_handle))); }
   /*! \details Enable or disable blocking mode for the stream.
-      \sa libuv documentation: [`uv_stream_set_blocking()`](http://docs.libuv.org/en/v1.x/stream.html#c.uv_stream_set_blocking). */
+      \sa libuv API documentation: [`uv_stream_set_blocking()`](http://docs.libuv.org/en/v1.x/stream.html#c.uv_stream_set_blocking). */
   int set_blocking(bool _enable) noexcept  { return uv_status(::uv_stream_set_blocking(static_cast< uv_t* >(uv_handle), _enable)); }
 
 public: /*conversion operators*/
@@ -370,7 +391,7 @@ public: /*conversion operators*/
 template< typename >
 void stream::alloc_cb(::uv_handle_t *_uv_handle, std::size_t _suggested_size, ::uv_buf_t *_uv_buf)
 {
-  auto &alloc_cb = instance::from(_uv_handle)->supplemental_data().on_buffer;
+  auto &alloc_cb = instance::from(_uv_handle)->supplemental_data().on_buffer();
   if (alloc_cb)
   {
     buffer &&b = alloc_cb(stream(reinterpret_cast< uv_t* >(_uv_handle)), _suggested_size);
@@ -386,7 +407,7 @@ void stream::read_cb(::uv_stream_t *_uv_stream, ssize_t _nread, const ::uv_buf_t
   auto t = instance::from(_uv_stream);
   t->uv_status() = _nread;
 
-  auto &read_cb = t->supplemental_data().on_read;
+  auto &read_cb = t->supplemental_data().on_read();
   if (!read_cb)
   {
     if (_uv_buf->base)  buffer::instance::from(buffer::instance::from_base(_uv_buf->base))->unref();
@@ -401,11 +422,19 @@ void stream::read_cb(::uv_stream_t *_uv_stream, ssize_t _nread, const ::uv_buf_t
   else
     read_cb(stream(_uv_stream), _nread, buffer());
 }
+template< typename >
+void stream::connection_cb(::uv_stream_t *_uv_stream, int _status)
+{
+  auto t = instance::from(_uv_stream);
+  t->uv_status() = _status;
+  auto &connection_cb = t->supplemental_data().on_connection();
+  if (connection_cb)  connection_cb(stream(_uv_stream));
+}
 
 
 
 /*! \brief TCP handle type.
-    \sa libuv documentation: [`uv_tcp_t`](http://docs.libuv.org/en/v1.x/tcp.html#uv-tcp-t-tcp-handle). */
+    \sa libuv API documentation: [`uv_tcp_t`](http://docs.libuv.org/en/v1.x/tcp.html#uv-tcp-t-tcp-handle). */
 class tcp : public stream
 {
   //! \cond
@@ -437,14 +466,14 @@ public: /*constructors*/
 
   /*! \details Create a socket with the specified flags.
       \note With `AF_UNSPEC` flag no socket is created.
-      \sa libuv documentation: [`uv_tcp_init_ex()`](http://docs.libuv.org/en/v1.x/tcp.html#c.uv_tcp_init_ex). */
+      \sa libuv API documentation: [`uv_tcp_init_ex()`](http://docs.libuv.org/en/v1.x/tcp.html#c.uv_tcp_init_ex). */
   tcp(uv::loop _loop, unsigned int _flags = AF_INET)
   {
     uv_handle = instance::create();
     uv_status(::uv_tcp_init_ex(static_cast< uv::loop::uv_t* >(_loop), static_cast< uv_t* >(uv_handle), _flags));
   }
   /*! \details Create a socket object from an existing OS native socket descriptor.
-      \sa libuv documentation: [`uv_tcp_open()`](http://docs.libuv.org/en/v1.x/tcp.html#c.uv_tcp_open),
+      \sa libuv API documentation: [`uv_tcp_open()`](http://docs.libuv.org/en/v1.x/tcp.html#c.uv_tcp_open),
                                [`uv_tcp_init()`](http://docs.libuv.org/en/v1.x/tcp.html#c.uv_tcp_init). */
   tcp(uv::loop _loop, ::uv_os_sock_t _sock)
   {
@@ -463,14 +492,14 @@ public: /*intreface*/
       \arg `_delay` is the initial delay in seconds, ignored when `_enable = false`. */
   int keepalive(bool _enable, unsigned int _delay) noexcept  { return uv_status(::uv_tcp_keepalive(static_cast< uv_t* >(uv_handle), _enable, _delay)); }
   /*! \details Enable or disable simultaneous asynchronous accept requests that are queued by the operating system when listening for new TCP connections.
-      \sa libuv documentation: [`uv_tcp_simultaneous_accepts()`](http://docs.libuv.org/en/v1.x/tcp.html#c.uv_tcp_simultaneous_accepts). */
+      \sa libuv API documentation: [`uv_tcp_simultaneous_accepts()`](http://docs.libuv.org/en/v1.x/tcp.html#c.uv_tcp_simultaneous_accepts). */
   int simultaneous_accepts(bool _enable) noexcept  { return uv_status(::uv_tcp_simultaneous_accepts(static_cast< uv_t* >(uv_handle), _enable)); }
   /*! \details Bind the handle to an address and port.
-      \sa libuv documentation: [`uv_tcp_bind()`](http://docs.libuv.org/en/v1.x/tcp.html#c.uv_tcp_bind). */
+      \sa libuv API documentation: [`uv_tcp_bind()`](http://docs.libuv.org/en/v1.x/tcp.html#c.uv_tcp_bind). */
   template< typename _T_, typename = std::enable_if_t< is_one_of< _T_, ::sockaddr_in, ::sockaddr_in6, ::sockaddr_storage >::value > >
   int bind(const _T_ &_sa, unsigned int _flags) noexcept  { return uv_status(::uv_tcp_bind(static_cast< uv_t* >(uv_handle), reinterpret_cast< const ::sockaddr* >(&_sa), _flags)); }
   /*! \details Get the address which this handle is bound to.
-      \sa libuv documentation: [`uv_tcp_getsockname()`](http://docs.libuv.org/en/v1.x/tcp.html#c.uv_tcp_getsockname). */
+      \sa libuv API documentation: [`uv_tcp_getsockname()`](http://docs.libuv.org/en/v1.x/tcp.html#c.uv_tcp_getsockname). */
   template< typename _T_, typename = std::enable_if_t< is_one_of< _T_, ::sockaddr_in, ::sockaddr_in6, ::sockaddr_storage >::value > >
   int getsockname(_T_ &_sockaddr) const noexcept
   {
@@ -478,7 +507,7 @@ public: /*intreface*/
     return uv_status(::uv_tcp_getsockname(static_cast< uv_t* >(uv_handle), reinterpret_cast< ::sockaddr* >(&_sockaddr), &z));
   }
   /*! \details Get the address of the remote peer connected to this handle.
-      \sa libuv documentation: [`uv_tcp_getpeername()`](http://docs.libuv.org/en/v1.x/tcp.html#c.uv_tcp_getpeername). */
+      \sa libuv API documentation: [`uv_tcp_getpeername()`](http://docs.libuv.org/en/v1.x/tcp.html#c.uv_tcp_getpeername). */
   template< typename _T_, typename = std::enable_if_t< is_one_of< _T_, ::sockaddr_in, ::sockaddr_in6, ::sockaddr_storage >::value > >
   int getpeername(_T_ &_sockaddr) const noexcept
   {
@@ -493,8 +522,36 @@ public: /*conversion operators*/
 
 
 
+template<>
+tcp stream::accept< tcp >() const
+{
+  using instance = handle::instance< tcp >;
+
+  stream client;
+  client.uv_handle = instance::create();
+  if (
+    client.uv_status(
+        ::uv_tcp_init(
+            static_cast< instance::uv_t* >(uv_handle)->loop,
+            static_cast< instance::uv_t* >(client.uv_handle)
+        )
+    ) < 0
+  )
+    uv_status(client.uv_status());
+  else if (
+    uv_status(
+        ::uv_accept(static_cast< stream::uv_t* >(uv_handle), static_cast< stream::uv_t* >(client.uv_handle))
+    ) < 0
+  )
+    client.uv_status(uv_status());
+
+  return static_cast< tcp& >(client);
+}
+
+
+
 /*! \brief Pipe handle type.
-    \sa libuv documentation: [`uv_pipe_t`](http://docs.libuv.org/en/v1.x/pipe.html#uv-pipe-t-pipe-handle). */
+    \sa libuv API documentation: [`uv_pipe_t`](http://docs.libuv.org/en/v1.x/pipe.html#uv-pipe-t-pipe-handle). */
 class pipe : public stream
 {
   //! \cond
@@ -526,7 +583,7 @@ public: /*constructors*/
   pipe& operator =(pipe&&) noexcept = default;
 
   /*! \details Create a pipe bound to a file path (Unix domain socket) or a name (Windows named pipe).
-      \sa libuv documentation: [`uv_pipe_init()`](http://docs.libuv.org/en/v1.x/pipe.html#c.uv_pipe_init),
+      \sa libuv API documentation: [`uv_pipe_init()`](http://docs.libuv.org/en/v1.x/pipe.html#c.uv_pipe_init),
                                [`uv_pipe_bind()`](http://docs.libuv.org/en/v1.x/pipe.html#c.uv_pipe_bind). */
   pipe(uv::loop _loop, const char* _name, bool _ipc = false)
   {
@@ -535,7 +592,7 @@ public: /*constructors*/
     uv_status(::uv_pipe_bind(static_cast< uv_t* >(uv_handle), _name));
   }
   /*! \details Create a pipe object from an existing OS native pipe descriptor.
-      \sa libuv documentation: [`uv_pipe_open()`](http://docs.libuv.org/en/v1.x/pipe.html#c.uv_pipe_open). */
+      \sa libuv API documentation: [`uv_pipe_open()`](http://docs.libuv.org/en/v1.x/pipe.html#c.uv_pipe_open). */
   pipe(uv::loop _loop, ::uv_file _fd, bool _ipc = false)
   {
     uv_handle = instance::create();
@@ -544,6 +601,9 @@ public: /*constructors*/
   }
 
 public: /*intreface*/
+  /*! \brief Non-zero if this pipe is used for passing handles. */
+  int ipc() const noexcept  { return static_cast< uv_t* >(uv_handle)->ipc; }
+
   /*! \brief Get the name of the Unix domain socket or the Windows named pipe for this pipe object. */
   std::string getsockname() const noexcept
   {
@@ -576,13 +636,42 @@ public: /*intreface*/
   /*! \brief Used in conjunction with `pending_type()`. */
   int pending_count() const noexcept  { return ::uv_pipe_pending_count(static_cast< uv_t* >(uv_handle)); }
   /*! \details Used to receive handles over IPC pipes.
-      \sa libuv documentation: [`uv_pipe_pending_type()`](http://docs.libuv.org/en/v1.x/pipe.html#c.uv_pipe_pending_type). */
+      \sa libuv API documentation: [`uv_pipe_pending_type()`](http://docs.libuv.org/en/v1.x/pipe.html#c.uv_pipe_pending_type). */
   ::uv_handle_type pending_type() const noexcept  { return ::uv_pipe_pending_type(static_cast< uv_t* >(uv_handle)); }
 
 public: /*conversion operators*/
   explicit operator const uv_t*() const noexcept  { return static_cast< const uv_t* >(uv_handle); }
   explicit operator       uv_t*()       noexcept  { return static_cast<       uv_t* >(uv_handle); }
 };
+
+
+
+template<>
+pipe stream::accept< pipe >() const
+{
+  using instance = handle::instance< pipe >;
+
+  stream client;
+  client.uv_handle = instance::create();
+  if (
+    client.uv_status(
+        ::uv_pipe_init(
+            static_cast< instance::uv_t* >(uv_handle)->loop,
+            static_cast< instance::uv_t* >(client.uv_handle),
+            static_cast< instance::uv_t* >(uv_handle)->ipc
+        )
+    ) < 0
+  )
+    uv_status(client.uv_status());
+  else if (
+    uv_status(
+        ::uv_accept(static_cast< stream::uv_t* >(uv_handle), static_cast< stream::uv_t* >(client.uv_handle))
+    ) < 0
+  )
+    client.uv_status(uv_status());
+
+  return static_cast< pipe& >(client);
+}
 
 
 
@@ -596,7 +685,7 @@ public: /*types*/
   using uv_t = ::uv_udp_t;
   using on_recv_t = std::function< void(udp _udp, ssize_t _nread, buffer _buffer, const ::sockaddr *_sa, unsigned int _flags) >;
   /*!< \brief The function type of the callback called by `recv_start()`.
-       \sa libuv documentation: [`uv_udp_recv_cb`](http://docs.libuv.org/en/v1.x/udp.html#c.uv_udp_recv_cb). */
+       \sa libuv API documentation: [`uv_udp_recv_cb`](http://docs.libuv.org/en/v1.x/udp.html#c.uv_udp_recv_cb). */
 
 private: /*types*/
   using instance = handle::instance< udp >;
