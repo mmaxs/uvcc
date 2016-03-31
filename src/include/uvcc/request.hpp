@@ -298,7 +298,6 @@ public: /*types*/
   using uv_t = ::uv_write_t;
   using on_request_t = std::function< void(write) >;
   /*!< \brief The function type of the callback called after data was written on a stream.
-       See \ref g__request_traits
        \sa libuv API documentation: [`uv_write_cb`](http://docs.libuv.org/en/v1.x/stream.html#c.uv_write_cb). */
 
 private: /*types*/
@@ -405,7 +404,6 @@ public: /*types*/
   using uv_t = ::uv_shutdown_t;
   using on_request_t = std::function< void(shutdown) >;
   /*!< \brief The function type of the callback called after a shutdown request has been completed.
-       See \ref g__request_traits
        \sa libuv API documentation: [`uv_shutdown_cb`](http://docs.libuv.org/en/v1.x/stream.html#c.uv_shutdown_cb). */
 
 private: /*types*/
