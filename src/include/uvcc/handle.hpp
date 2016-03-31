@@ -92,9 +92,8 @@ protected: /*types*/
     void (*Delete)(void*);  // store a proper delete operator
     ref_count rc;
     type_storage< on_destroy_t > on_destroy_storage;
-    alignas(32) mutable type_storage< supplemental_data_t > supplemental_data_storage;
-    static_assert(sizeof(supplemental_data_storage) <= 32, "non-static layout structure");
-    alignas(32) uv_t uv_handle;
+    mutable any_ptr supplemental_data_ptr;
+    alignas(::uv_any_handle) uv_t uv_handle;
 
   private: /*constructors*/
     instance() : uv_error(0), Delete(default_delete< instance >::Delete)  {}
@@ -133,7 +132,11 @@ protected: /*types*/
     }
 
     on_destroy_t& on_destroy() noexcept  { return on_destroy_storage.value(); }
-    supplemental_data_t& supplemental_data() const noexcept  { return supplemental_data_storage.value(); }
+    supplemental_data_t& supplemental_data() const noexcept
+    {
+      if (!supplemental_data_ptr)  supplemental_data_ptr.reset(new supplemental_data_t);
+      return *supplemental_data_ptr.get< supplemental_data_t >();
+    }
 
     void ref()  { rc.inc(); }
     void unref() noexcept  { if (rc.dec() == 0)  destroy(); }
@@ -300,21 +303,11 @@ public: /*types*/
 
 protected: /*types*/
   //! \cond
-  class supplemental_data_t
+  struct supplemental_data_t
   {
-    on_buffer_t     *alloc_cb = nullptr;
-    on_read_t       *read_cb = nullptr;
-    on_connection_t *connection_cb = nullptr;
-  public:
-    ~supplemental_data_t()
-    {
-      if (alloc_cb)       delete(alloc_cb);
-      if (read_cb)        delete(read_cb);
-      if (connection_cb)  delete(connection_cb);
-    }
-    on_buffer_t&     on_buffer()      { if (!alloc_cb)       alloc_cb = new on_buffer_t;           return *alloc_cb; }
-    on_read_t&       on_read()        { if (!read_cb)        read_cb = new on_read_t;              return *read_cb; }
-    on_connection_t& on_connection()  { if (!connection_cb)  connection_cb = new on_connection_t;  return *connection_cb; }
+    on_buffer_t on_buffer;
+    on_read_t on_read;
+    on_connection_t on_connection;
   };
   //! \endcond
 
@@ -351,9 +344,9 @@ public: /*interface*/
   int read_start(const on_buffer_t &_alloc_cb, const on_read_t &_read_cb) const
   {
     auto &cb = instance::from(uv_handle)->supplemental_data();
-    if (cb.on_read())  read_stop();
-    cb.on_buffer() = _alloc_cb;
-    cb.on_read() = _read_cb;
+    if (cb.on_read)  read_stop();
+    cb.on_buffer = _alloc_cb;
+    cb.on_read = _read_cb;
     return uv_status(::uv_read_start(static_cast< uv_t* >(uv_handle), alloc_cb, read_cb));
   }
   /*! \details Stop reading data from the stream.
@@ -361,16 +354,25 @@ public: /*interface*/
   int read_stop() const
   {
     uv_status(::uv_read_stop(static_cast< uv_t* >(uv_handle)));
-    auto &read_cb = instance::from(uv_handle)->supplemental_data().on_read();
+    auto &read_cb = instance::from(uv_handle)->supplemental_data().on_read;
     if (read_cb)  read_cb = on_read_t();
     return uv_status();
   }
 
-  int listen(const on_connection_t &_connection_cb, int _backlog) const
+  /*! \details Start listening for incoming connections.
+      \sa libuv API documentation: [`uv_listen()`](http://docs.libuv.org/en/v1.x/stream.html#c.uv_listen).*/
+  int listen(int _backlog, const on_connection_t &_connection_cb) const
   {
-    instance::from(uv_handle)->supplemental_data().on_connection() = _connection_cb;
+    instance::from(uv_handle)->supplemental_data().on_connection = _connection_cb;
     return uv_status(::uv_listen(static_cast< uv_t* >(uv_handle), _backlog, connection_cb));
   }
+  /*! \brief Accept incoming connections.
+      \details There are specializations of this function for every `stream` subtype.
+      ```
+      template<> tcp accept< tcp >() const;
+      template<> pipe accept< pipe >() const;
+      ```
+      \sa libuv API documentation: [`uv_accept()`](http://docs.libuv.org/en/v1.x/stream.html#c.uv_accept). */
   template< class _STREAM_ > _STREAM_ accept() const;
 
   /*! \brief The amount of queued bytes waiting to be sent. */
@@ -391,7 +393,7 @@ public: /*conversion operators*/
 template< typename >
 void stream::alloc_cb(::uv_handle_t *_uv_handle, std::size_t _suggested_size, ::uv_buf_t *_uv_buf)
 {
-  auto &alloc_cb = instance::from(_uv_handle)->supplemental_data().on_buffer();
+  auto &alloc_cb = instance::from(_uv_handle)->supplemental_data().on_buffer;
   if (alloc_cb)
   {
     buffer &&b = alloc_cb(stream(reinterpret_cast< uv_t* >(_uv_handle)), _suggested_size);
@@ -407,7 +409,7 @@ void stream::read_cb(::uv_stream_t *_uv_stream, ssize_t _nread, const ::uv_buf_t
   auto t = instance::from(_uv_stream);
   t->uv_status() = _nread;
 
-  auto &read_cb = t->supplemental_data().on_read();
+  auto &read_cb = t->supplemental_data().on_read;
   if (!read_cb)
   {
     if (_uv_buf->base)  buffer::instance::from(buffer::instance::from_base(_uv_buf->base))->unref();
@@ -427,7 +429,7 @@ void stream::connection_cb(::uv_stream_t *_uv_stream, int _status)
 {
   auto t = instance::from(_uv_stream);
   t->uv_status() = _status;
-  auto &connection_cb = t->supplemental_data().on_connection();
+  auto &connection_cb = t->supplemental_data().on_connection;
   if (connection_cb)  connection_cb(stream(_uv_stream));
 }
 
@@ -522,8 +524,10 @@ public: /*conversion operators*/
 
 
 
-template<>
-tcp stream::accept< tcp >() const
+#define BUGGY_DOXYGEN
+#undef BUGGY_DOXYGEN
+//! \cond
+template<> tcp stream::accept< tcp >() const
 {
   using instance = handle::instance< tcp >;
 
@@ -547,7 +551,7 @@ tcp stream::accept< tcp >() const
 
   return static_cast< tcp& >(client);
 }
-
+//! \endcond
 
 
 /*! \brief Pipe handle type.
@@ -646,8 +650,10 @@ public: /*conversion operators*/
 
 
 
-template<>
-pipe stream::accept< pipe >() const
+#define BUGGY_DOXYGEN
+#undef BUGGY_DOXYGEN
+//! \cond
+template<> pipe stream::accept< pipe >() const
 {
   using instance = handle::instance< pipe >;
 
@@ -672,6 +678,7 @@ pipe stream::accept< pipe >() const
 
   return static_cast< pipe& >(client);
 }
+//! \endcond
 
 
 
