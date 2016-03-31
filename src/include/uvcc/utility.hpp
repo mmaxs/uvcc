@@ -7,7 +7,7 @@
 #include <utility>      // forward() move()
 #include <memory>       // addressof()
 #include <stdexcept>    // runtime_error
-#include <typeinfo>     // typeid()
+#include <typeinfo>     // type_info
 
 
 namespace uv
@@ -450,6 +450,78 @@ public: /*interface*/
   template< typename _T_, typename = std::enable_if_t< is_one_of< _T_, _Ts_... >::value > >
         typename std::decay< _T_ >::type& get()       noexcept  { return *reinterpret_cast<       typename std::decay< _T_ >::type* >(&storage); }
   //! \}
+};
+
+
+
+/*! \brief The analogue of `std::unique_ptr` that managed object type is not defined at compile time and can be varied. */
+class any_ptr
+{
+private: /*data*/
+  const std::type_info *type_tag = nullptr;
+  void (*Delete)(void*) = nullptr;
+  void *ptr = nullptr;
+
+public: /*constructors*/
+  ~any_ptr()  { destroy(); }
+  constexpr any_ptr() = default;
+
+  any_ptr(const any_ptr&) = delete;
+  any_ptr& operator =(const any_ptr&) = delete;
+
+  any_ptr(any_ptr &&_that) noexcept : type_tag(_that.type_tag), Delete(_that.Delete), ptr(_that.ptr)  { _that.release(); }
+  any_ptr& operator =(any_ptr &&_that)
+  {
+    if (ptr != _that.ptr)
+    {
+      destroy();
+      new (this) any_ptr(std::move(_that));
+    };
+    return *this;
+  }
+
+  constexpr any_ptr(nullptr_t) noexcept  {}
+  any_ptr& operator =(nullptr_t)  { destroy(); return *this; }
+
+  template< typename _T_ > explicit any_ptr(_T_* &&_ptr) noexcept
+  {
+    ptr = _ptr;
+    Delete = default_delete< _T_ >::Delete;
+    type_tag = &typeid(_T_);
+    _ptr = nullptr;
+  }
+
+private: /*functions*/
+  void destroy()
+  {
+    if (Delete)  Delete(ptr);
+    Delete = nullptr;
+    type_tag = nullptr;
+  }
+
+public: /*intreface*/
+  void* release() noexcept
+  {
+    void *p = ptr;
+    ptr = nullptr; Delete = nullptr; type_tag = nullptr;
+    return p;
+  }
+
+  void reset(nullptr_t _ptr = nullptr)  { destroy(); }
+  template< typename _T_ > void reset(_T_* &&_ptr)
+  {
+    if (ptr == _ptr)  return;
+    destroy();
+    new (this) any_ptr(std::move(_ptr));
+  }
+
+  template< typename _T_ = void >
+  const typename std::decay< _T_ >::type* get() const noexcept  { return static_cast< const typename std::decay< _T_ >::type* >(ptr); }
+  template< typename _T_ = void >
+        typename std::decay< _T_ >::type* get()       noexcept  { return static_cast<       typename std::decay< _T_ >::type* >(ptr); }
+
+public: /*conversion operators*/
+  explicit operator bool() const noexcept  { return (ptr != nullptr); }  /*!< \brief Equivalent to `(get() != nullptr)`. */
 };
 
 
