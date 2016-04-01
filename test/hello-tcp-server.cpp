@@ -21,7 +21,7 @@ int main(int _argc, char *_argv[])
   uv::tcp server(uv::loop::Default());
 
   uv::buffer greeting;
-  greeting.base() = "server: Hello from uvcc!\n";
+  greeting.base() = "server: Hello from uvcc!\n";  // static memory
   greeting.len() = strlen(greeting.base());
 
   sockaddr_in listen_addr;
@@ -29,6 +29,7 @@ int main(int _argc, char *_argv[])
   listen_addr.sin_port = uv::hton16(80);
   listen_addr.sin_addr.s_addr = uv::hton32(0x7F000001);
   server.bind(listen_addr, 0);
+  if (!server)  { PRINT_UV_ERR("bind", server.uv_status()); return server.uv_status(); };
 
   server.listen(5, [&greeting](uv::stream _server)
       {
@@ -36,6 +37,24 @@ int main(int _argc, char *_argv[])
         
         uv::tcp client = _server.accept< uv::tcp >();
         if (!client)  { PRINT_UV_ERR("accept", client.uv_status()); return; };
+
+        client.read_start(
+            [](uv::handle, std::size_t _suggested_size)  { return uv::buffer{_suggested_size}; },
+            [](uv::stream _stream, ssize_t _nread, uv::buffer _buf)
+            {
+              if (_nread < 0)
+              {
+                _stream.read_stop();
+                PRINT_UV_ERR("read", _nread);
+              }
+              else if (_nread > 0)
+              {
+                fwrite(_buf.base(), 1, _nread, stdout);
+                fflush(stdout);
+              };
+            }
+        );
+        if (!client)  { PRINT_UV_ERR("read_start", client.uv_status()); return; };
 
         uv::write wr;
         wr.on_request() = [](uv::write _wr)  { if (!_wr)  PRINT_UV_ERR("write", _wr.uv_status()); };
@@ -46,6 +65,7 @@ int main(int _argc, char *_argv[])
         shut_wr.run(client);
       }
   );
+  if (!server)  { PRINT_UV_ERR("listen", server.uv_status()); return server.uv_status(); };
 
   return uv::loop::Default().run(UV_RUN_DEFAULT);
 }
