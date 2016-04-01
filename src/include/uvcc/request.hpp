@@ -276,12 +276,13 @@ public: /*conversion operators*/
 template< typename >
 void connect::connect_cb(::uv_connect_t *_uv_req, int _status)
 {
-  ref_guard< stream::instance > unref_handle(*stream::instance::from(_uv_req->handle), adopt_ref);
-  auto t = instance::from(_uv_req);
-  ref_guard< instance > unref_req(*t, adopt_ref);
+  auto self = instance::from(_uv_req);
 
-  t->uv_status() = _status;
-  auto &connect_cb = t->on_request();
+  ref_guard< stream::instance > unref_handle(*stream::instance::from(_uv_req->handle), adopt_ref);
+  ref_guard< instance > unref_req(*self, adopt_ref);
+
+  self->uv_status() = _status;
+  auto &connect_cb = self->on_request();
   if (connect_cb)  connect_cb(connect(_uv_req));
 }
 
@@ -342,9 +343,11 @@ public: /*interface*/
       \sa libuv API documentation: [`uv_write()`](http://docs.libuv.org/en/v1.x/stream.html#c.uv_write). */
   int run(stream _stream, const buffer _buf)
   {
+    auto self = instance::from(uv_req);
+
     stream::instance::from(_stream.uv_handle)->ref();
-    buffer &b = (instance::from(uv_req)->supplemental_data() = std::move(_buf));
-    instance::from(uv_req)->ref();
+    buffer &b = (self->supplemental_data() = std::move(_buf));
+    self->ref();
 
     return uv_status(::uv_write(static_cast< uv_t* >(uv_req), static_cast< stream::uv_t* >(_stream), static_cast< const buffer::uv_t* >(b), b.count(), write_cb));
   }
@@ -352,10 +355,12 @@ public: /*interface*/
       \sa libuv API documentation: [`uv_write2()`](http://docs.libuv.org/en/v1.x/stream.html#c.uv_write2). */
   int run(pipe _pipe, const buffer _buf, stream _send_handle)
   {
+    auto self = instance::from(uv_req);
+
     pipe::instance::from(_pipe.uv_handle)->ref();
-    buffer &b = (instance::from(uv_req)->supplemental_data() = std::move(_buf));
+    buffer &b = (self->supplemental_data() = std::move(_buf));
     stream::instance::from(_send_handle.uv_handle)->ref();
-    instance::from(uv_req)->ref();
+    self->ref();
 
     return uv_status(::uv_write2(static_cast< uv_t* >(uv_req), static_cast< stream::uv_t* >(_pipe), static_cast< const buffer::uv_t* >(b), b.count(), static_cast< stream::uv_t* >(_send_handle), write2_cb));
   }
@@ -376,13 +381,14 @@ public: /*conversion operators*/
 template< typename >
 void write::write_cb(::uv_write_t *_uv_req, int _status)
 {
-  buffer b(std::move(instance::from(_uv_req)->supplemental_data()));
-  ref_guard< stream::instance > unref_handle(*stream::instance::from(_uv_req->handle), adopt_ref);
-  auto t = instance::from(_uv_req);
-  ref_guard< instance > unref_req(*t, adopt_ref);
+  auto self = instance::from(_uv_req);
 
-  t->uv_status() = _status;
-  auto &write_cb = t->on_request();
+  ref_guard< stream::instance > unref_handle(*stream::instance::from(_uv_req->handle), adopt_ref);
+  buffer b(std::move(self->supplemental_data()));
+  ref_guard< instance > unref_req(*self, adopt_ref);
+
+  self->uv_status() = _status;
+  auto &write_cb = self->on_request();
   if (write_cb)  write_cb(write(_uv_req));
 }
 template< typename >
@@ -452,12 +458,13 @@ public: /*conversion operators*/
 template< typename >
 void shutdown::shutdown_cb(::uv_shutdown_t *_uv_req, int _status)
 {
-  ref_guard< stream::instance > unref_handle(*stream::instance::from(_uv_req->handle), adopt_ref);
-  auto t = instance::from(_uv_req);
-  ref_guard< instance > unref_req(*t, adopt_ref);
+  auto self = instance::from(_uv_req);
 
-  t->uv_status() = _status;
-  auto &shutdown_cb = t->on_request();
+  ref_guard< stream::instance > unref_handle(*stream::instance::from(_uv_req->handle), adopt_ref);
+  ref_guard< instance > unref_req(*self, adopt_ref);
+
+  self->uv_status() = _status;
+  auto &shutdown_cb = self->on_request();
   if (shutdown_cb)  shutdown_cb(shutdown(_uv_req));
 }
 
