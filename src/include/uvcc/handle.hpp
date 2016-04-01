@@ -343,8 +343,10 @@ public: /*interface*/
       \details The stream is tried to be set for reading only if nonempty `_alloc_cb` and `_read_cb` functions
       are  provided, or else `UV_EINVAL` is returned with no involving any libuv API or uvcc function.
       Repeated call to this function results in the automatic call to `read_stop()` firstly,
-      and `_alloc_cb` function can be empty in this case, which means that it doesn't change.
-      \sa libuv API documentation: [`uv_read_start()`](http://docs.libuv.org/en/v1.x/stream.html#c.uv_read_start). */
+      and `_alloc_cb` function can be empty in this case, which means that it doesn't change from the previous call.
+      \sa libuv API documentation: [`uv_read_start()`](http://docs.libuv.org/en/v1.x/stream.html#c.uv_read_start).
+      \note This function adds an extra reference to the stream instance, which is released when the counterpart
+      function `read_stop()` is called. */
   int read_start(const on_buffer_t &_alloc_cb, const on_read_t &_read_cb) const
   {
     if (!_read_cb)  return uv_status(UV_EINVAL);
