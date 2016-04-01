@@ -295,7 +295,7 @@ public: /*types*/
        \note The libuv API usually calls back the user `uv_read_cb` function with a _null-initialized_ `uv_buf_t`
        buffer structure (where `buf->base = nullptr` and `buf->len = 0`) on error and EOF and does not try to retrieve
        something from the [`uv_alloc_cb`](http://docs.libuv.org/en/v1.x/handle.html#c.uv_alloc_cb) callback in
-       such a cases, so the uvcc `stream::on_read_t` callback is provided with a dummy _null-initialized_ buffer. */
+       such a cases, so the uvcc `stream::on_read_t` callback is supplied with a dummy _null-initialized_ buffer. */
   using on_connection_t = std::function< void(stream _server) >;
   /*!< \brief The function type of the callback called when a stream server has received an incoming connection.
        \details The user can accept the connection by calling accept().
