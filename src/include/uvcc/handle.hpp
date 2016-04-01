@@ -268,10 +268,10 @@ public: /*conversion operators*/
 template< class _HANDLE_ >
 void handle::instance< _HANDLE_ >::close_cb(::uv_handle_t *_uv_handle)
 {
-  auto instance = from(_uv_handle);
-  auto &destroy_cb = instance->on_destroy();
+  auto self = from(_uv_handle);
+  auto &destroy_cb = self->on_destroy();
   if (destroy_cb)  destroy_cb(_uv_handle->data);
-  instance->Delete(instance);
+  self->Delete(self);
 }
 
 
@@ -339,27 +339,46 @@ private: /*functions*/
   template< typename = void > static void connection_cb(::uv_stream_t*, int);
 
 public: /*interface*/
-  /*! \details Start reading incoming data from the stream.
+  /*! \brief Start reading incoming data from the stream.
+      \details The stream is tried to be set for reading only if nonempty `_alloc_cb` and `_read_cb` functions
+      are  provided, or else `UV_EINVAL` is returned with no involving any libuv API or uvcc function.
+      Repeated call to this function results in the automatic call to `read_stop()` firstly,
+      and `_alloc_cb` function can be empty in this case, which means that it doesn't change.
       \sa libuv API documentation: [`uv_read_start()`](http://docs.libuv.org/en/v1.x/stream.html#c.uv_read_start). */
   int read_start(const on_buffer_t &_alloc_cb, const on_read_t &_read_cb) const
   {
-    auto &cb = instance::from(uv_handle)->supplemental_data();
+    if (!_read_cb)  return uv_status(UV_EINVAL);
+
+    auto self = instance::from(uv_handle);
+    auto &cb = self->supplemental_data();
+
+    if (!_alloc_cb and !cb.on_read)  return uv_status(UV_EINVAL);
+
+    self->ref();  // first, make sure it would exist for the future _read_cb() calls until read_stop()
     if (cb.on_read)  read_stop();
+
     cb.on_buffer = _alloc_cb;
-    cb.on_read = _read_cb;
+    if (_read_cb)  cb.on_read = _read_cb;
     return uv_status(::uv_read_start(static_cast< uv_t* >(uv_handle), alloc_cb, read_cb));
   }
-  /*! \details Stop reading data from the stream.
+  /*! \brief Stop reading data from the stream.
       \sa libuv API documentation: [`uv_read_stop()`](http://docs.libuv.org/en/v1.x/stream.html#c.uv_read_stop). */
   int read_stop() const
   {
     uv_status(::uv_read_stop(static_cast< uv_t* >(uv_handle)));
-    auto &read_cb = instance::from(uv_handle)->supplemental_data().on_read;
-    if (read_cb)  read_cb = on_read_t();
+
+    auto self = instance::from(uv_handle);
+    auto &read_cb = self->supplemental_data().on_read;
+    if (read_cb)
+    {
+      read_cb = on_read_t();
+      self->unref();  // release the excess reference from read_start()
+    };
+
     return uv_status();
   }
 
-  /*! \details Start listening for incoming connections.
+  /*! \brief Start listening for incoming connections.
       \sa libuv API documentation: [`uv_listen()`](http://docs.libuv.org/en/v1.x/stream.html#c.uv_listen).*/
   int listen(int _backlog, const on_connection_t &_connection_cb) const
   {
@@ -371,6 +390,7 @@ public: /*interface*/
       ```
       template<> tcp accept< tcp >() const;
       template<> pipe accept< pipe >() const;
+      template<> tty accept< tty >() const;
       ```
       \sa libuv API documentation: [`uv_accept()`](http://docs.libuv.org/en/v1.x/stream.html#c.uv_accept). */
   template< class _STREAM_ > _STREAM_ accept() const;
@@ -394,28 +414,17 @@ template< typename >
 void stream::alloc_cb(::uv_handle_t *_uv_handle, std::size_t _suggested_size, ::uv_buf_t *_uv_buf)
 {
   auto &alloc_cb = instance::from(_uv_handle)->supplemental_data().on_buffer;
-  if (alloc_cb)
-  {
-    buffer &&b = alloc_cb(stream(reinterpret_cast< uv_t* >(_uv_handle)), _suggested_size);
-    buffer::instance::from(b.uv_buf)->ref();
-    *_uv_buf = b[0];
-  }
-  else
-    *_uv_buf = ::uv_buf_init(nullptr, 0);
+  buffer &&b = alloc_cb(stream(reinterpret_cast< uv_t* >(_uv_handle)), _suggested_size);
+  buffer::instance::from(b.uv_buf)->ref();  // add the reference for the future moving the buffer instance into read_cb() parameter
+  *_uv_buf = b[0];
 }
 template< typename >
 void stream::read_cb(::uv_stream_t *_uv_stream, ssize_t _nread, const ::uv_buf_t *_uv_buf)
 {
-  auto t = instance::from(_uv_stream);
-  t->uv_status() = _nread;
+  auto self = instance::from(_uv_stream);
+  self->uv_status() = _nread;
 
-  auto &read_cb = t->supplemental_data().on_read;
-  if (!read_cb)
-  {
-    if (_uv_buf->base)  buffer::instance::from(buffer::instance::from_base(_uv_buf->base))->unref();
-    return;
-  };
-
+  auto &read_cb = self->supplemental_data().on_read;
   if (_uv_buf->base)
     read_cb(stream(_uv_stream), _nread, buffer(buffer::instance::from_base(_uv_buf->base), adopt_ref));
     // don't forget to specify adopt_ref flag when using ref_guard to unref the object
@@ -427,9 +436,9 @@ void stream::read_cb(::uv_stream_t *_uv_stream, ssize_t _nread, const ::uv_buf_t
 template< typename >
 void stream::connection_cb(::uv_stream_t *_uv_stream, int _status)
 {
-  auto t = instance::from(_uv_stream);
-  t->uv_status() = _status;
-  auto &connection_cb = t->supplemental_data().on_connection;
+  auto self = instance::from(_uv_stream);
+  self->uv_status() = _status;
+  auto &connection_cb = self->supplemental_data().on_connection;
   if (connection_cb)  connection_cb(stream(_uv_stream));
 }
 
@@ -484,7 +493,7 @@ public: /*constructors*/
     uv_status(::uv_tcp_open(static_cast< uv_t* >(uv_handle), _sock));
   }
 
-public: /*intreface*/
+public: /*interface*/
   /*! \brief Get the platform dependent socket descriptor. The alias for `handle::fileno()`. */
   ::uv_os_sock_t socket() const noexcept  { return (::uv_os_sock_t)fileno(); }
 
@@ -604,7 +613,7 @@ public: /*constructors*/
     uv_status(::uv_pipe_open(static_cast< uv_t* >(uv_handle), _fd));
   }
 
-public: /*intreface*/
+public: /*interface*/
   /*! \brief Non-zero if this pipe is used for passing handles. */
   int ipc() const noexcept  { return static_cast< uv_t* >(uv_handle)->ipc; }
 
@@ -706,7 +715,7 @@ public: /*constructors*/
   udp(udp&&) noexcept = default;
   udp& operator =(udp&&) noexcept = default;
 
-public: /*intreface*/
+public: /*interface*/
   ::uv_os_sock_t socket() const noexcept  { return (::uv_os_sock_t)fileno(); }
 
 public: /*conversion operators*/
