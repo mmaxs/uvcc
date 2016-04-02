@@ -18,8 +18,6 @@
 
 int main(int _argc, char *_argv[])
 {
-  uv::tcp server(uv::loop::Default());
-
   uv::buffer greeting;
   greeting.base() = "server: Hello from uvcc!\n";  // static memory
   greeting.len() = strlen(greeting.base());
@@ -28,6 +26,8 @@ int main(int _argc, char *_argv[])
   uv::reset(listen_addr);
   listen_addr.sin_port = uv::hton16(80);
   listen_addr.sin_addr.s_addr = uv::hton32(0x7F000001);
+
+  uv::tcp server(uv::loop::Default());
   server.bind(listen_addr);
   if (!server)  { PRINT_UV_ERR("bind", server.uv_status()); return server.uv_status(); };
 
