@@ -200,6 +200,9 @@ The original code is slightly modified to work with recent libuv version > 0.10.
 \verbatim /example/lxjs2012-demo.c \endverbatim
 \includelineno lxjs2012-demo.c
 
+\verbatim /example/lxjs2012-demo-uvcc.cpp \endverbatim
+\includelineno lxjs2012-demo-uvcc.cpp
+
 ["translation noise"](https://books.google.ru/books?id=Uemuaza3fTEC&pg=PT26&dq=%22translation+noise%22&hl=en&sa=X&ved=0ahUKEwigoJ3Dq8bLAhVoc3IKHQGQCFYQ6AEIGTAA)
 
 
