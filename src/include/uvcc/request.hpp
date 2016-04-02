@@ -5,13 +5,14 @@
 #include "uvcc/utility.hpp"
 #include "uvcc/handle.hpp"
 #include "uvcc/buffer.hpp"
+#include "uvcc/loop.hpp"
 
 #include <uv.h>
 #include <cstddef>      // offsetof
 #include <memory>       // addressof()
 #include <functional>   // function
 #include <utility>      // swap() move()
-#include <type_traits>  // aligned_storage is_standard_layout conditional_t is_void
+#include <type_traits>  // aligned_storage is_standard_layout conditional_t is_void enable_if_t
 
 
 namespace uv
@@ -252,7 +253,7 @@ public: /*interface*/
 
   /*! \brief Run the request for `uv::tcp` stream.
       \sa libuv API documentation: [`uv_tcp_connect()`](http://docs.libuv.org/en/v1.x/tcp.html#c.uv_tcp_connect). */
-  template< typename _T_, typename = std::enable_if_t< is_one_of< _T_, ::sockaddr_in, ::sockaddr_in6, ::sockaddr_storage >::value > >
+  template< typename _T_, typename = std::enable_if_t< is_one_of< _T_, ::sockaddr, ::sockaddr_in, ::sockaddr_in6, ::sockaddr_storage >::value > >
   int run(tcp _tcp, const _T_ &_sockaddr)
   {
     tcp::instance::from(_tcp.uv_handle)->ref();
@@ -301,13 +302,13 @@ public: /*types*/
   /*!< \brief The function type of the callback called after data was written on a stream.
        \sa libuv API documentation: [`uv_write_cb`](http://docs.libuv.org/en/v1.x/stream.html#c.uv_write_cb). */
 
-private: /*types*/
-  using instance = request::instance< write >;
-
 protected: /*types*/
   //! \cond
   using supplemental_data_t = buffer;
   //! \endcond
+
+private: /*types*/
+  using instance = request::instance< write >;
 
 private: /*constructors*/
   explicit write(uv_t *_uv_req)
@@ -557,6 +558,7 @@ public: /*conversion operators*/
 
 
 
+/*! \brief Getaddrinfo request type. */
 class getaddrinfo : public request
 {
   //! \cond
@@ -565,28 +567,94 @@ class getaddrinfo : public request
 
 public: /*types*/
   using uv_t = ::uv_getaddrinfo_t;
-  using on_request_t = std::function< void(int) >;
+  using on_request_t = std::function< void(getaddrinfo, const ::addrinfo *_result) >;
+  /*!< \brief The function type of the callback that is called with the `getaddrinfo` request result once complete.
+       \sa libuv API documentation: [`uv_getaddrinfo_cb`](http://docs.libuv.org/en/v1.x/dns.html#c.uv_getaddrinfo_cb). */
+
+protected: /*types*/
+  //! \cond
+  struct supplemental_data_t
+  {
+    const ::addrinfo *addrinfo = nullptr;
+    ~supplemental_data_t()  { ::uv_freeaddrinfo(const_cast< ::addrinfo* >(addrinfo)); }
+  };
+  //! \endcond
 
 private: /*types*/
   using instance = request::instance< getaddrinfo >;
 
+private: /*constructors*/
+  explicit getaddrinfo(uv_t *_uv_req)
+  {
+    if (_uv_req)  instance::from(_uv_req)->ref();
+    uv_req = _uv_req;
+  }
+
 public: /*constructors*/
   ~getaddrinfo() = default;
+  getaddrinfo()
+  {
+    uv_req = instance::create();
+    instance::from(uv_req)->supplemental_data().addrinfo = addrinfo();
+  }
 
- 
   getaddrinfo(const getaddrinfo&) = default;
   getaddrinfo& operator =(const getaddrinfo&) = default;
 
   getaddrinfo(getaddrinfo&&) noexcept = default;
   getaddrinfo& operator =(getaddrinfo&&) noexcept = default;
 
+private: /*functions*/
+  template< typename = void > static void getaddrinfo_cb(::uv_getaddrinfo_t*, int, ::addrinfo*);
+
+public: /*interface*/
+  const on_request_t& on_request() const noexcept  { return instance::from(uv_req)->on_request(); }
+        on_request_t& on_request()       noexcept  { return instance::from(uv_req)->on_request(); }
+
+  /*! \brief The libuv loop that started this `getaddrinfo` request and where completion will be reported. */
+  uv::loop loop() const noexcept  { return uv::loop{static_cast< uv_t* >(uv_req)->loop}; }
+
+  /*! \brief The pointer to a `struct addrinfo` containing the request result. */
+  const ::addrinfo* addrinfo() const noexcept  { return static_cast< uv_t* >(uv_req)->addrinfo; }
+
+  /*! \brief Run the request.
+      \sa libuv API documentation: [`uv_getaddrinfo()`](http://docs.libuv.org/en/v1.x/dns.html#c.uv_getaddrinfo). */
+  int run(uv::loop _loop, const char *_hostname, const char *_service, const ::addrinfo *_hints = nullptr)
+  {
+    uv::loop::instance::from(_loop.uv_loop)->ref();
+    instance::from(uv_req)->ref();
+
+    return uv_status(
+        ::uv_getaddrinfo(
+            static_cast< loop::uv_t* >(_loop.uv_loop),
+            static_cast< uv_t* >(uv_req),
+            getaddrinfo_cb,
+            _hostname, _service, _hints
+        )
+    );
+  }
+
 public: /*conversion operators*/
   explicit operator const uv_t*() const noexcept  { return static_cast< const uv_t* >(uv_req); }
   explicit operator       uv_t*()       noexcept  { return static_cast<       uv_t* >(uv_req); }
 };
 
+template< typename >
+void getaddrinfo::getaddrinfo_cb(::uv_getaddrinfo_t *_uv_req, int _status, ::addrinfo *_result)
+{
+  auto self = instance::from(_uv_req);
+
+  ref_guard< uv::loop::instance > unref_loop(*uv::loop::instance::from(_uv_req->loop), adopt_ref);
+  ref_guard< instance > unref_req(*self, adopt_ref);
+
+  self->uv_status() = _status;
+  auto &getaddrinfo_cb = self->on_request();
+  if (getaddrinfo_cb)  getaddrinfo_cb(getaddrinfo(_uv_req), _result);
+}
 
 
+
+/*! \brief Getnameinfo request type. */
 class getnameinfo : public request
 {
   //! \cond
@@ -595,13 +663,23 @@ class getnameinfo : public request
 
 public: /*types*/
   using uv_t = ::uv_getnameinfo_t;
-  using on_request_t = std::function< void(int) >;
+  using on_request_t = std::function< void(getnameinfo, const char *_hostname, const char *_service) >;
+  /*!< \brief The function type of the callback that is called with the `getnameinfo` request result once complete.
+       \sa libuv API documentation: [`uv_getnameinfo_cb`](http://docs.libuv.org/en/v1.x/dns.html#c.uv_getnameinfo_cb). */
 
 private: /*types*/
   using instance = request::instance< getnameinfo >;
 
+private: /*constructors*/
+  explicit getnameinfo(uv_t *_uv_req)
+  {
+    if (_uv_req)  instance::from(_uv_req)->ref();
+    uv_req = _uv_req;
+  }
+
 public: /*constructors*/
   ~getnameinfo() = default;
+  getnameinfo()  { uv_req = instance::create(); }
 
   getnameinfo(const getnameinfo&) = default;
   getnameinfo& operator =(const getnameinfo&) = default;
@@ -609,10 +687,56 @@ public: /*constructors*/
   getnameinfo(getnameinfo&&) noexcept = default;
   getnameinfo& operator =(getnameinfo&&) noexcept = default;
 
+private: /*functions*/
+  template< typename = void > static void getnameinfo_cb(::uv_getnameinfo_t*, int, const char*, const char*);
+
+public: /*interface*/
+  const on_request_t& on_request() const noexcept  { return instance::from(uv_req)->on_request(); }
+        on_request_t& on_request()       noexcept  { return instance::from(uv_req)->on_request(); }
+
+  /*! \brief The libuv loop that started this `getnameinfo` request and where completion will be reported. */
+  uv::loop loop() const noexcept  { return uv::loop{static_cast< uv_t* >(uv_req)->loop}; }
+
+  /*! \brief The char array containing the resulting host. It’s null terminated. */
+  const char (& host() const noexcept) [NI_MAXHOST]  { return static_cast< uv_t* >(uv_req)->host; }
+  /*! \brief The char array containing the resulting service. It’s null terminated. */
+  const char (& service() const noexcept) [NI_MAXSERV]  { return static_cast< uv_t* >(uv_req)->service; }
+
+  /*! \brief Run the request.
+      \sa libuv API documentation: [`uv_getnameinfo()`](http://docs.libuv.org/en/v1.x/dns.html#c.uv_getnameinfo). */
+  template< typename _T_, typename = std::enable_if_t< is_one_of< _T_, ::sockaddr, ::sockaddr_in, ::sockaddr_in6, ::sockaddr_storage >::value > >
+  int run(uv::loop _loop, const _T_ &_sa, int _NI_FLAGS = 0)
+  {
+    uv::loop::instance::from(_loop.uv_loop)->ref();
+    instance::from(uv_req)->ref();
+
+    return uv_status(
+        ::uv_getnameinfo(
+            static_cast< loop::uv_t* >(_loop.uv_loop),
+            static_cast< uv_t* >(uv_req),
+            getnameinfo_cb,
+            reinterpret_cast< const ::sockaddr* >(&_sa), _NI_FLAGS
+        )
+    );
+  }
+
 public: /*conversion operators*/
   explicit operator const uv_t*() const noexcept  { return static_cast< const uv_t* >(uv_req); }
   explicit operator       uv_t*()       noexcept  { return static_cast<       uv_t* >(uv_req); }
 };
+
+template< typename >
+void getnameinfo::getnameinfo_cb(::uv_getnameinfo_t *_uv_req, int _status, const char* _hostname, const char* _service)
+{
+  auto self = instance::from(_uv_req);
+
+  ref_guard< uv::loop::instance > unref_loop(*uv::loop::instance::from(_uv_req->loop), adopt_ref);
+  ref_guard< instance > unref_req(*self, adopt_ref);
+
+  self->uv_status() = _status;
+  auto &getnameinfo_cb = self->on_request();
+  if (getnameinfo_cb)  getnameinfo_cb(getnameinfo(_uv_req), _hostname, _service);
+}
 
 
 //! \}

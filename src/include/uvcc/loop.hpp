@@ -17,6 +17,8 @@ namespace uv
 
 
 class handle;
+class getaddrinfo;
+class getnameinfo;
 
 
 /*! \defgroup g__loop Event loop
@@ -30,7 +32,11 @@ class handle;
     \sa libuv API documentation: [`uv_loop_t`](http://docs.libuv.org/en/v1.x/loop.html#uv-loop-t-event-loop). */
 class loop
 {
+  //! \cond
   friend class handle;
+  friend class getaddrinfo;
+  friend class getnameinfo;
+  //! \endcond
 
 public: /*types*/
   using uv_t = ::uv_loop_t;
