@@ -28,7 +28,7 @@ int main(int _argc, char *_argv[])
   uv::reset(listen_addr);
   listen_addr.sin_port = uv::hton16(80);
   listen_addr.sin_addr.s_addr = uv::hton32(0x7F000001);
-  server.bind(listen_addr, 0);
+  server.bind(listen_addr);
   if (!server)  { PRINT_UV_ERR("bind", server.uv_status()); return server.uv_status(); };
 
   server.listen(5, [&greeting](uv::stream _server)
