@@ -1,7 +1,7 @@
 
 
 #include "uvcc.hpp"
-#include "uvcc/sockaddr.hpp"
+#include "uvcc/netstruct.hpp"
 #include <cstdio>
 
 #pragma GCC diagnostic ignored "-Wunused-variable"
@@ -19,7 +19,9 @@
 int main(int _argc, char *_argv[])
 {
   uv::buffer greeting;
-  greeting.base() = "server: Hello from uvcc!\n";  // static memory
+  greeting.base() = const_cast< char* >(
+      "server: Hello from uvcc!\n"
+  );
   greeting.len() = strlen(greeting.base());
 
   sockaddr_in listen_addr;
