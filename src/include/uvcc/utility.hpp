@@ -2,6 +2,7 @@
 #ifndef UVCC_UTILITY__HPP
 #define UVCC_UTILITY__HPP
 
+#include <cstddef>      // nullptr_t
 #include <type_traits>  // is_void is_convertible enable_if_t decay common_type aligned_storage
 #include <atomic>       // atomic memory_order_*
 #include <utility>      // forward() move()
@@ -480,8 +481,8 @@ public: /*constructors*/
     return *this;
   }
 
-  constexpr any_ptr(nullptr_t) noexcept  {}
-  any_ptr& operator =(nullptr_t)  { destroy(); return *this; }
+  constexpr any_ptr(std::nullptr_t) noexcept  {}
+  any_ptr& operator =(std::nullptr_t)  { destroy(); return *this; }
 
   template< typename _T_ > explicit any_ptr(_T_* &&_ptr) noexcept
   {
@@ -507,7 +508,7 @@ public: /*intreface*/
     return p;
   }
 
-  void reset(nullptr_t _ptr = nullptr)  { destroy(); }
+  void reset(std::nullptr_t _ptr = nullptr)  { destroy(); }
   template< typename _T_ > void reset(_T_* &&_ptr)
   {
     if (ptr == _ptr)  return;
