@@ -4,6 +4,7 @@
  */
 
 #include "uvcc.hpp"
+#include <cstring>  // strlen()
 #include <cstdio>
 
 
@@ -27,16 +28,15 @@ int main(int _argc, char *_argv[])
     {
       if (!_connect_req)  { PRINT_UV_ERR("connect", _connect_req.uv_status()); return; };
 
-      uv::tcp &&tcp_handle = static_cast< uv::tcp&& >(_connect_req.handle());
+      uv::tcp tcp_handle = static_cast< uv::tcp&& >(_connect_req.handle());
       tcp_handle.read_start(
           [](uv::handle, std::size_t _suggested_size)  { return uv::buffer{_suggested_size}; },
           [](uv::stream _stream, ssize_t _nread, uv::buffer _buf)
           {
-            if (_nread < 0)
-            {
+            if (_nread == UV_EOF)
               _stream.read_stop();
+            else if (_nread < 0)
               PRINT_UV_ERR("read", _nread);
-            }
             else if (_nread > 0)
             {
               fwrite(_buf.base(), 1, _nread, stdout);
@@ -47,12 +47,12 @@ int main(int _argc, char *_argv[])
       if (!tcp_handle)  { PRINT_UV_ERR("read_start", tcp_handle.uv_status()); return; };
 
       uv::buffer buf;
-      buf.base() = const_cast< char* >(  // static memory:
+      buf.base() = const_cast< char* >(
           "GET / HTTP/1.0\r\n"
           "Host: www.nyan.cat\r\n"
           "\r\n"
       );
-      buf.len() = strlen(buf.base());
+      buf.len() = std::strlen(buf.base());
 
       uv::write wr;
       wr.on_request() = [](uv::write _wr)  { if (!_wr)  PRINT_UV_ERR("write", _wr.uv_status()); };
