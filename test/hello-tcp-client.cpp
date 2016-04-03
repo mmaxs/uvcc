@@ -58,7 +58,7 @@ int main(int _argc, char *_argv[])
   };
 
   sockaddr_in server_addr;
-  uv::reset(server_addr);
+  uv::init(server_addr);
   server_addr.sin_port = uv::hton16(80);
   server_addr.sin_addr.s_addr = uv::hton32(0x7F000001);
 

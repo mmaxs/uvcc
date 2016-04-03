@@ -25,7 +25,7 @@ int main(int _argc, char *_argv[])
   greeting.len() = strlen(greeting.base());
 
   sockaddr_in listen_addr;
-  uv::reset(listen_addr);
+  uv::init(listen_addr);
   listen_addr.sin_port = uv::hton16(80);
   listen_addr.sin_addr.s_addr = uv::hton32(0x7F000001);
 
