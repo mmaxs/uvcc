@@ -289,9 +289,10 @@ To compile bundled examples use the following make goal:
 where SOURCE_FILE_BASE_NAME is a base name of one of the source files located in /example subdirectory.
 
 On Windows you can use [Mingw-w64](http://mingw-w64.org) compiler, make utility, and the command shell that are packaged
-with [Cygwin](https://cygwin.com) or [Msys2](http://msys2.github.io) projects. Then add the goal prefix:
+with [Cygwin](https://cygwin.com) or [Msys2](http://msys2.github.io) projects.
+Then add a non-empty definition for "WINDOWS" environment variable as a first command argument:
 
-> make windows/example/SOURCE_FILE_BASE_NAME
+> make WINDOWS=1 example/SOURCE_FILE_BASE_NAME
 
 You will get Windows native binaries built against the libuv Windows release saved
 in /libuv-x64-v1.8.0.build8 subdirectory. If you don't have libuv installed in your Windows system root folder

@@ -5,20 +5,26 @@ BUILD_ROOT = $(ROOT)/build
 
 
 # libuv path
-windows/%: LIBUV = $(ROOT)/libuv-x64-v1.8.0.build8
+ifdef WINDOWS
+LIBUV = $(ROOT)/libuv-x64-v1.8.0.build8
+endif
 
 
 # CXX common settings and flags
 CXX_FILE_SUFFIXES = .cpp .c
 CXX_HEADER_SUFFIXES = .hpp .h
 CXX = c++
-windows/%: CXX = x86_64-w64-mingw32-c++
+ifdef WINDOWS
+CXX = x86_64-w64-mingw32-c++
+endif
 CXXSTD = -std=c++1y
 
 
 # preprocessor flags
 IFLAGS = -iquote $(ROOT)/src/include
-windows/%: IFLAGS = -iquote $(ROOT)/src/include -I $(LIBUV)/include
+ifdef WINDOWS
+IFLAGS = -iquote $(ROOT)/src/include -I $(LIBUV)/include
+endif
 CPPFLAGS = $(IFLAGS)
 ifndef DEBUG
 CPPFLAGS += -D NDEBUG
@@ -31,9 +37,11 @@ CXXFLAGS = $(CXXSTD) -Wall -Wpedantic -O2 -g -pipe
 
 # linker flags
 LDFLAGS =
-windows/%: LDFLAGS = -static-libgcc -static-libstdc++
 LDLIBS = -luv
-windows/%: LDLIBS = -L $(LIBUV) -luv
+ifdef WINDOWS
+LDFLAGS = -static-libgcc -static-libstdc++
+LDLIBS = -L $(LIBUV) -luv
+endif
 
 # static linking
 # use LDSTATIC variable to specify static linking options, e.g.:
@@ -76,11 +84,9 @@ export
 
 %: test/% example/%;
 
-windows/test/%: test/windows/% ;
 test/%:
 	$(MAKE) -C test $*
 
-windows/example/%: example/windows/% ;
 example/%:
 	$(MAKE) -C example $*
 

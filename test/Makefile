@@ -1,6 +1,8 @@
 
 # additional settings, sources, and prerequisites for specific targets
-windows/%: LDLIBS += -lWs2_32
+ifdef WINDOWS
+LDLIBS += -lWs2_32
+endif
 
 
 export
@@ -19,10 +21,6 @@ clean:
 	# clean parts related to main sources
 	$(MAKE) -C $(ROOT)/src -f $(ROOT)/Makefile.d/clean.rules $@
 
-# windows-specific builds use generic rules
-windows/%:
-	$(MAKE) -f $(ROOT)/Makefile.d/compile.rules $*
-	$(MAKE) -f $(ROOT)/Makefile.d/link.rules $*
 
 # use generic rules for all other targets
 %:
