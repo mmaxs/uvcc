@@ -1,21 +1,600 @@
+vim: fdm=indent fdc=2
+
+[design]
+http://docs.libuv.org/en/v1.x/design.html#design-overview
+http://docs.libuv.org/en/v1.x/design.html#handles-and-requests
+http://docs.libuv.org/en/v1.x/design.html#the-i-o-loop
+http://docs.libuv.org/en/v1.x/design.html#file-i-o
+
+[errors]
+http://docs.libuv.org/en/v1.x/errors.html#error-handling
+  http://docs.libuv.org/en/v1.x/errors.html#error-constants
+  http://docs.libuv.org/en/v1.x/errors.html#c.UV_E2BIG
+  http://docs.libuv.org/en/v1.x/errors.html#c.UV_EACCES
+  http://docs.libuv.org/en/v1.x/errors.html#c.UV_EADDRINUSE
+  http://docs.libuv.org/en/v1.x/errors.html#c.UV_EADDRNOTAVAIL
+  http://docs.libuv.org/en/v1.x/errors.html#c.UV_EAFNOSUPPORT
+  http://docs.libuv.org/en/v1.x/errors.html#c.UV_EAGAIN
+  http://docs.libuv.org/en/v1.x/errors.html#c.UV_EAI_ADDRFAMILY
+  http://docs.libuv.org/en/v1.x/errors.html#c.UV_EAI_AGAIN
+  http://docs.libuv.org/en/v1.x/errors.html#c.UV_EAI_BADFLAGS
+  http://docs.libuv.org/en/v1.x/errors.html#c.UV_EAI_BADHINTS
+  http://docs.libuv.org/en/v1.x/errors.html#c.UV_EAI_CANCELED
+  http://docs.libuv.org/en/v1.x/errors.html#c.UV_EAI_FAIL
+  http://docs.libuv.org/en/v1.x/errors.html#c.UV_EAI_FAMILY
+  http://docs.libuv.org/en/v1.x/errors.html#c.UV_EAI_MEMORY
+  http://docs.libuv.org/en/v1.x/errors.html#c.UV_EAI_NODATA
+  http://docs.libuv.org/en/v1.x/errors.html#c.UV_EAI_NONAME
+  http://docs.libuv.org/en/v1.x/errors.html#c.UV_EAI_OVERFLOW
+  http://docs.libuv.org/en/v1.x/errors.html#c.UV_EAI_PROTOCOL
+  http://docs.libuv.org/en/v1.x/errors.html#c.UV_EAI_SERVICE
+  http://docs.libuv.org/en/v1.x/errors.html#c.UV_EAI_SOCKTYPE
+  http://docs.libuv.org/en/v1.x/errors.html#c.UV_EALREADY
+  http://docs.libuv.org/en/v1.x/errors.html#c.UV_EBADF
+  http://docs.libuv.org/en/v1.x/errors.html#c.UV_EBUSY
+  http://docs.libuv.org/en/v1.x/errors.html#c.UV_ECANCELED
+  http://docs.libuv.org/en/v1.x/errors.html#c.UV_ECHARSET
+  http://docs.libuv.org/en/v1.x/errors.html#c.UV_ECONNABORTED
+  http://docs.libuv.org/en/v1.x/errors.html#c.UV_ECONNREFUSED
+  http://docs.libuv.org/en/v1.x/errors.html#c.UV_ECONNRESET
+  http://docs.libuv.org/en/v1.x/errors.html#c.UV_EDESTADDRREQ
+  http://docs.libuv.org/en/v1.x/errors.html#c.UV_EEXIST
+  http://docs.libuv.org/en/v1.x/errors.html#c.UV_EFAULT
+  http://docs.libuv.org/en/v1.x/errors.html#c.UV_EFBIG
+  http://docs.libuv.org/en/v1.x/errors.html#c.UV_EHOSTUNREACH
+  http://docs.libuv.org/en/v1.x/errors.html#c.UV_EINTR
+  http://docs.libuv.org/en/v1.x/errors.html#c.UV_EINVAL
+  http://docs.libuv.org/en/v1.x/errors.html#c.UV_EIO
+  http://docs.libuv.org/en/v1.x/errors.html#c.UV_EISCONN
+  http://docs.libuv.org/en/v1.x/errors.html#c.UV_EISDIR
+  http://docs.libuv.org/en/v1.x/errors.html#c.UV_ELOOP
+  http://docs.libuv.org/en/v1.x/errors.html#c.UV_EMFILE
+  http://docs.libuv.org/en/v1.x/errors.html#c.UV_EMSGSIZE
+  http://docs.libuv.org/en/v1.x/errors.html#c.UV_ENAMETOOLONG
+  http://docs.libuv.org/en/v1.x/errors.html#c.UV_ENETDOWN
+  http://docs.libuv.org/en/v1.x/errors.html#c.UV_ENETUNREACH
+  http://docs.libuv.org/en/v1.x/errors.html#c.UV_ENFILE
+  http://docs.libuv.org/en/v1.x/errors.html#c.UV_ENOBUFS
+  http://docs.libuv.org/en/v1.x/errors.html#c.UV_ENODEV
+  http://docs.libuv.org/en/v1.x/errors.html#c.UV_ENOENT
+  http://docs.libuv.org/en/v1.x/errors.html#c.UV_ENOMEM
+  http://docs.libuv.org/en/v1.x/errors.html#c.UV_ENONET
+  http://docs.libuv.org/en/v1.x/errors.html#c.UV_ENOPROTOOPT
+  http://docs.libuv.org/en/v1.x/errors.html#c.UV_ENOSPC
+  http://docs.libuv.org/en/v1.x/errors.html#c.UV_ENOSYS
+  http://docs.libuv.org/en/v1.x/errors.html#c.UV_ENOTCONN
+  http://docs.libuv.org/en/v1.x/errors.html#c.UV_ENOTDIR
+  http://docs.libuv.org/en/v1.x/errors.html#c.UV_ENOTEMPTY
+  http://docs.libuv.org/en/v1.x/errors.html#c.UV_ENOTSOCK
+  http://docs.libuv.org/en/v1.x/errors.html#c.UV_ENOTSUP
+  http://docs.libuv.org/en/v1.x/errors.html#c.UV_EPERM
+  http://docs.libuv.org/en/v1.x/errors.html#c.UV_EPIPE
+  http://docs.libuv.org/en/v1.x/errors.html#c.UV_EPROTO
+  http://docs.libuv.org/en/v1.x/errors.html#c.UV_EPROTONOSUPPORT
+  http://docs.libuv.org/en/v1.x/errors.html#c.UV_EPROTOTYPE
+  http://docs.libuv.org/en/v1.x/errors.html#c.UV_ERANGE
+  http://docs.libuv.org/en/v1.x/errors.html#c.UV_EROFS
+  http://docs.libuv.org/en/v1.x/errors.html#c.UV_ESHUTDOWN
+  http://docs.libuv.org/en/v1.x/errors.html#c.UV_ESPIPE
+  http://docs.libuv.org/en/v1.x/errors.html#c.UV_ESRCH
+  http://docs.libuv.org/en/v1.x/errors.html#c.UV_ETIMEDOUT
+  http://docs.libuv.org/en/v1.x/errors.html#c.UV_ETXTBSY
+  http://docs.libuv.org/en/v1.x/errors.html#c.UV_EXDEV
+  http://docs.libuv.org/en/v1.x/errors.html#c.UV_UNKNOWN
+  http://docs.libuv.org/en/v1.x/errors.html#c.UV_EOF
+  http://docs.libuv.org/en/v1.x/errors.html#c.UV_ENXIO
+  http://docs.libuv.org/en/v1.x/errors.html#c.UV_EMLINK
+http://docs.libuv.org/en/v1.x/errors.html#api
+  http://docs.libuv.org/en/v1.x/errors.html#c.uv_strerror
+  http://docs.libuv.org/en/v1.x/errors.html#c.uv_err_name
+
+[version]
+http://docs.libuv.org/en/v1.x/version.html#version-checking-macros-and-functions
+  http://docs.libuv.org/en/v1.x/version.html#macros
+  http://docs.libuv.org/en/v1.x/version.html#c.UV_VERSION_MAJOR
+  http://docs.libuv.org/en/v1.x/version.html#c.UV_VERSION_MINOR
+  http://docs.libuv.org/en/v1.x/version.html#c.UV_VERSION_PATCH
+  http://docs.libuv.org/en/v1.x/version.html#c.UV_VERSION_IS_RELEASE
+  http://docs.libuv.org/en/v1.x/version.html#c.UV_VERSION_SUFFIX
+  http://docs.libuv.org/en/v1.x/version.html#c.UV_VERSION_HEX
+  http://docs.libuv.org/en/v1.x/version.html#functions
+  http://docs.libuv.org/en/v1.x/version.html#c.uv_version
+  http://docs.libuv.org/en/v1.x/version.html#c.uv_version_string
 
 [loop]
+http://docs.libuv.org/en/v1.x/loop.html#uv-loop-t-event-loop
+http://docs.libuv.org/en/v1.x/loop.html#data-types
+http://docs.libuv.org/en/v1.x/loop.html#c.uv_loop_t
+http://docs.libuv.org/en/v1.x/loop.html#c.uv_run_mode
+http://docs.libuv.org/en/v1.x/loop.html#c.uv_walk_cb
+http://docs.libuv.org/en/v1.x/loop.html#public-members
+http://docs.libuv.org/en/v1.x/loop.html#c.uv_loop_t.data
+http://docs.libuv.org/en/v1.x/loop.html#api
+http://docs.libuv.org/en/v1.x/loop.html#c.uv_loop_init
+http://docs.libuv.org/en/v1.x/loop.html#c.uv_loop_configure
+http://docs.libuv.org/en/v1.x/loop.html#c.uv_loop_close
+http://docs.libuv.org/en/v1.x/loop.html#c.uv_default_loop
+http://docs.libuv.org/en/v1.x/loop.html#c.uv_run
+http://docs.libuv.org/en/v1.x/loop.html#c.uv_loop_alive
+http://docs.libuv.org/en/v1.x/loop.html#c.uv_stop
 http://docs.libuv.org/en/v1.x/loop.html#c.uv_loop_size
+http://docs.libuv.org/en/v1.x/loop.html#c.uv_backend_fd
+http://docs.libuv.org/en/v1.x/loop.html#c.uv_backend_timeout
+http://docs.libuv.org/en/v1.x/loop.html#c.uv_now
+http://docs.libuv.org/en/v1.x/loop.html#c.uv_update_time
+http://docs.libuv.org/en/v1.x/loop.html#c.uv_walk
 
 [handle]
+http://docs.libuv.org/en/v1.x/handle.html#uv-handle-t-base-handle
+http://docs.libuv.org/en/v1.x/handle.html#data-types
+http://docs.libuv.org/en/v1.x/handle.html#c.uv_handle_t
+http://docs.libuv.org/en/v1.x/handle.html#c.uv_any_handle
+http://docs.libuv.org/en/v1.x/handle.html#c.uv_alloc_cb
+http://docs.libuv.org/en/v1.x/handle.html#c.uv_close_cb
+http://docs.libuv.org/en/v1.x/handle.html#public-members
+http://docs.libuv.org/en/v1.x/handle.html#c.uv_handle_t.loop
+http://docs.libuv.org/en/v1.x/handle.html#c.uv_handle_t.data
+http://docs.libuv.org/en/v1.x/handle.html#api
+http://docs.libuv.org/en/v1.x/handle.html#c.uv_is_active
+http://docs.libuv.org/en/v1.x/handle.html#c.uv_is_closing
+http://docs.libuv.org/en/v1.x/handle.html#c.uv_close
+http://docs.libuv.org/en/v1.x/handle.html#c.uv_ref
+http://docs.libuv.org/en/v1.x/handle.html#c.uv_unref
+http://docs.libuv.org/en/v1.x/handle.html#c.uv_has_ref
 http://docs.libuv.org/en/v1.x/handle.html#c.uv_handle_size
+http://docs.libuv.org/en/v1.x/handle.html#miscellaneous-api-functions
+http://docs.libuv.org/en/v1.x/handle.html#c.uv_send_buffer_size
+http://docs.libuv.org/en/v1.x/handle.html#c.uv_recv_buffer_size
+http://docs.libuv.org/en/v1.x/handle.html#c.uv_fileno
+http://docs.libuv.org/en/v1.x/handle.html#reference-counting
 
 [request]
+http://docs.libuv.org/en/v1.x/request.html#uv-req-t-base-request
+http://docs.libuv.org/en/v1.x/request.html#data-types
+http://docs.libuv.org/en/v1.x/request.html#c.uv_req_t
+http://docs.libuv.org/en/v1.x/request.html#c.uv_any_req
+http://docs.libuv.org/en/v1.x/request.html#public-members
+http://docs.libuv.org/en/v1.x/request.html#c.uv_req_t.data
+http://docs.libuv.org/en/v1.x/request.html#c.uv_req_t.type
+http://docs.libuv.org/en/v1.x/request.html#api
+http://docs.libuv.org/en/v1.x/request.html#c.uv_cancel
 http://docs.libuv.org/en/v1.x/request.html#c.uv_req_size
 
+[timer]
+http://docs.libuv.org/en/v1.x/timer.html#uv-timer-t-timer-handle
+http://docs.libuv.org/en/v1.x/timer.html#data-types
+http://docs.libuv.org/en/v1.x/timer.html#c.uv_timer_t
+http://docs.libuv.org/en/v1.x/timer.html#c.uv_timer_cb
+http://docs.libuv.org/en/v1.x/timer.html#public-members
+http://docs.libuv.org/en/v1.x/timer.html#api
+http://docs.libuv.org/en/v1.x/timer.html#c.uv_timer_init
+http://docs.libuv.org/en/v1.x/timer.html#c.uv_timer_start
+http://docs.libuv.org/en/v1.x/timer.html#c.uv_timer_stop
+http://docs.libuv.org/en/v1.x/timer.html#c.uv_timer_again
+http://docs.libuv.org/en/v1.x/timer.html#c.uv_timer_set_repeat
+http://docs.libuv.org/en/v1.x/timer.html#c.uv_timer_get_repeat
+
+[prepare]
+http://docs.libuv.org/en/v1.x/prepare.html#uv-prepare-t-prepare-handle
+http://docs.libuv.org/en/v1.x/prepare.html#data-types
+http://docs.libuv.org/en/v1.x/prepare.html#c.uv_prepare_t
+http://docs.libuv.org/en/v1.x/prepare.html#c.uv_prepare_cb
+http://docs.libuv.org/en/v1.x/prepare.html#public-members
+http://docs.libuv.org/en/v1.x/prepare.html#api
+http://docs.libuv.org/en/v1.x/prepare.html#c.uv_prepare_init
+http://docs.libuv.org/en/v1.x/prepare.html#c.uv_prepare_start
+http://docs.libuv.org/en/v1.x/prepare.html#c.uv_prepare_stop
+
+[check]
+http://docs.libuv.org/en/v1.x/check.html#uv-check-t-check-handle
+http://docs.libuv.org/en/v1.x/check.html#data-types
+http://docs.libuv.org/en/v1.x/check.html#c.uv_check_t
+http://docs.libuv.org/en/v1.x/check.html#c.uv_check_cb
+http://docs.libuv.org/en/v1.x/check.html#public-members
+http://docs.libuv.org/en/v1.x/check.html#api
+http://docs.libuv.org/en/v1.x/check.html#c.uv_check_init
+http://docs.libuv.org/en/v1.x/check.html#c.uv_check_start
+http://docs.libuv.org/en/v1.x/check.html#c.uv_check_stop
+
+[idle]
+http://docs.libuv.org/en/v1.x/idle.html#uv-idle-t-idle-handle
+http://docs.libuv.org/en/v1.x/idle.html#data-types
+http://docs.libuv.org/en/v1.x/idle.html#c.uv_idle_t
+http://docs.libuv.org/en/v1.x/idle.html#c.uv_idle_cb
+http://docs.libuv.org/en/v1.x/idle.html#public-members
+http://docs.libuv.org/en/v1.x/idle.html#api
+http://docs.libuv.org/en/v1.x/idle.html#c.uv_idle_init
+http://docs.libuv.org/en/v1.x/idle.html#c.uv_idle_start
+http://docs.libuv.org/en/v1.x/idle.html#c.uv_idle_stop
+
+[async]
+http://docs.libuv.org/en/v1.x/async.html#uv-async-t-async-handle
+http://docs.libuv.org/en/v1.x/async.html#data-types
+http://docs.libuv.org/en/v1.x/async.html#c.uv_async_t
+http://docs.libuv.org/en/v1.x/async.html#c.uv_async_cb
+http://docs.libuv.org/en/v1.x/async.html#public-members
+http://docs.libuv.org/en/v1.x/async.html#api
+http://docs.libuv.org/en/v1.x/async.html#c.uv_async_init
+http://docs.libuv.org/en/v1.x/async.html#c.uv_async_send
+
+[poll]
+http://docs.libuv.org/en/v1.x/poll.html#uv-poll-t-poll-handle
+http://docs.libuv.org/en/v1.x/poll.html#data-types
+http://docs.libuv.org/en/v1.x/poll.html#c.uv_poll_t
+http://docs.libuv.org/en/v1.x/poll.html#c.uv_poll_cb
+http://docs.libuv.org/en/v1.x/poll.html#c.uv_poll_event
+http://docs.libuv.org/en/v1.x/poll.html#public-members
+http://docs.libuv.org/en/v1.x/poll.html#api
+http://docs.libuv.org/en/v1.x/poll.html#c.uv_poll_init
+http://docs.libuv.org/en/v1.x/poll.html#c.uv_poll_init_socket
+http://docs.libuv.org/en/v1.x/poll.html#c.uv_poll_start
+http://docs.libuv.org/en/v1.x/poll.html#c.uv_poll_stop
+
+[signal]
+http://docs.libuv.org/en/v1.x/signal.html#uv-signal-t-signal-handle
+http://docs.libuv.org/en/v1.x/signal.html#data-types
+http://docs.libuv.org/en/v1.x/signal.html#c.uv_signal_t
+http://docs.libuv.org/en/v1.x/signal.html#c.uv_signal_cb
+http://docs.libuv.org/en/v1.x/signal.html#public-members
+http://docs.libuv.org/en/v1.x/signal.html#c.uv_signal_t.signum
+http://docs.libuv.org/en/v1.x/signal.html#api
+http://docs.libuv.org/en/v1.x/signal.html#c.uv_signal_init
+http://docs.libuv.org/en/v1.x/signal.html#c.uv_signal_start
+http://docs.libuv.org/en/v1.x/signal.html#c.uv_signal_stop
+
+[process]
+http://docs.libuv.org/en/v1.x/process.html#uv-process-t-process-handle
+http://docs.libuv.org/en/v1.x/process.html#data-types
+http://docs.libuv.org/en/v1.x/process.html#c.uv_process_t
+http://docs.libuv.org/en/v1.x/process.html#c.uv_process_options_t
+http://docs.libuv.org/en/v1.x/process.html#c.uv_exit_cb
+http://docs.libuv.org/en/v1.x/process.html#c.uv_process_flags
+http://docs.libuv.org/en/v1.x/process.html#c.uv_stdio_container_t
+http://docs.libuv.org/en/v1.x/process.html#c.uv_stdio_flags
+http://docs.libuv.org/en/v1.x/process.html#public-members
+http://docs.libuv.org/en/v1.x/process.html#c.uv_process_t.pid
+http://docs.libuv.org/en/v1.x/process.html#c.uv_process_options_t.exit_cb
+http://docs.libuv.org/en/v1.x/process.html#c.uv_process_options_t.file
+http://docs.libuv.org/en/v1.x/process.html#c.uv_process_options_t.args
+http://docs.libuv.org/en/v1.x/process.html#c.uv_process_options_t.env
+http://docs.libuv.org/en/v1.x/process.html#c.uv_process_options_t.cwd
+http://docs.libuv.org/en/v1.x/process.html#c.uv_process_options_t.flags
+http://docs.libuv.org/en/v1.x/process.html#c.uv_process_options_t.stdio_count
+http://docs.libuv.org/en/v1.x/process.html#c.uv_process_options_t.stdio
+http://docs.libuv.org/en/v1.x/process.html#c.uv_process_options_t.uid
+http://docs.libuv.org/en/v1.x/process.html#c.uv_process_options_t.gid
+http://docs.libuv.org/en/v1.x/process.html#c.uv_stdio_container_t.flags
+http://docs.libuv.org/en/v1.x/process.html#c.uv_stdio_container_t.data
+http://docs.libuv.org/en/v1.x/process.html#api
+http://docs.libuv.org/en/v1.x/process.html#c.uv_disable_stdio_inheritance
+http://docs.libuv.org/en/v1.x/process.html#c.uv_spawn
+http://docs.libuv.org/en/v1.x/process.html#c.uv_process_kill
+http://docs.libuv.org/en/v1.x/process.html#c.uv_kill
+
 [stream]
+http://docs.libuv.org/en/v1.x/stream.html#uv-stream-t-stream-handle
+http://docs.libuv.org/en/v1.x/stream.html#data-types
+http://docs.libuv.org/en/v1.x/stream.html#c.uv_stream_t
+http://docs.libuv.org/en/v1.x/stream.html#c.uv_connect_t
+http://docs.libuv.org/en/v1.x/stream.html#c.uv_shutdown_t
+http://docs.libuv.org/en/v1.x/stream.html#c.uv_write_t
+http://docs.libuv.org/en/v1.x/stream.html#c.uv_read_cb
+http://docs.libuv.org/en/v1.x/stream.html#c.uv_write_cb
+http://docs.libuv.org/en/v1.x/stream.html#c.uv_connect_cb
+http://docs.libuv.org/en/v1.x/stream.html#c.uv_shutdown_cb
 http://docs.libuv.org/en/v1.x/stream.html#c.uv_connection_cb
+http://docs.libuv.org/en/v1.x/stream.html#public-members
+http://docs.libuv.org/en/v1.x/stream.html#c.uv_stream_t.write_queue_size
+http://docs.libuv.org/en/v1.x/stream.html#c.uv_connect_t.handle
+http://docs.libuv.org/en/v1.x/stream.html#c.uv_shutdown_t.handle
+http://docs.libuv.org/en/v1.x/stream.html#c.uv_write_t.handle
+http://docs.libuv.org/en/v1.x/stream.html#c.uv_write_t.send_handle
+http://docs.libuv.org/en/v1.x/stream.html#api
+http://docs.libuv.org/en/v1.x/stream.html#c.uv_shutdown
 http://docs.libuv.org/en/v1.x/stream.html#c.uv_listen
 http://docs.libuv.org/en/v1.x/stream.html#c.uv_accept
+http://docs.libuv.org/en/v1.x/stream.html#c.uv_read_start
+http://docs.libuv.org/en/v1.x/stream.html#c.uv_read_stop
+http://docs.libuv.org/en/v1.x/stream.html#c.uv_write
+http://docs.libuv.org/en/v1.x/stream.html#c.uv_write2
+http://docs.libuv.org/en/v1.x/stream.html#c.uv_try_write
+http://docs.libuv.org/en/v1.x/stream.html#c.uv_is_readable
+http://docs.libuv.org/en/v1.x/stream.html#c.uv_is_writable
+http://docs.libuv.org/en/v1.x/stream.html#c.uv_stream_set_blocking
 
 [tcp]
--
+http://docs.libuv.org/en/v1.x/tcp.html#uv-tcp-t-tcp-handle
+http://docs.libuv.org/en/v1.x/tcp.html#data-types
+http://docs.libuv.org/en/v1.x/tcp.html#c.uv_tcp_t
+http://docs.libuv.org/en/v1.x/tcp.html#public-members
+http://docs.libuv.org/en/v1.x/tcp.html#api
+http://docs.libuv.org/en/v1.x/tcp.html#c.uv_tcp_init
+http://docs.libuv.org/en/v1.x/tcp.html#c.uv_tcp_init_ex
+http://docs.libuv.org/en/v1.x/tcp.html#c.uv_tcp_open
+http://docs.libuv.org/en/v1.x/tcp.html#c.uv_tcp_nodelay
+http://docs.libuv.org/en/v1.x/tcp.html#c.uv_tcp_keepalive
+http://docs.libuv.org/en/v1.x/tcp.html#c.uv_tcp_simultaneous_accepts
+http://docs.libuv.org/en/v1.x/tcp.html#c.uv_tcp_bind
+http://docs.libuv.org/en/v1.x/tcp.html#c.uv_tcp_getsockname
+http://docs.libuv.org/en/v1.x/tcp.html#c.uv_tcp_getpeername
+http://docs.libuv.org/en/v1.x/tcp.html#c.uv_tcp_connect
 
 [pipe]
--
+http://docs.libuv.org/en/v1.x/pipe.html#uv-pipe-t-pipe-handle
+http://docs.libuv.org/en/v1.x/pipe.html#data-types
+http://docs.libuv.org/en/v1.x/pipe.html#c.uv_pipe_t
+http://docs.libuv.org/en/v1.x/pipe.html#public-members
+http://docs.libuv.org/en/v1.x/pipe.html#api
+http://docs.libuv.org/en/v1.x/pipe.html#c.uv_pipe_init
+http://docs.libuv.org/en/v1.x/pipe.html#c.uv_pipe_open
+http://docs.libuv.org/en/v1.x/pipe.html#c.uv_pipe_bind
+http://docs.libuv.org/en/v1.x/pipe.html#c.uv_pipe_connect
+http://docs.libuv.org/en/v1.x/pipe.html#c.uv_pipe_getsockname
+http://docs.libuv.org/en/v1.x/pipe.html#c.uv_pipe_getpeername
+http://docs.libuv.org/en/v1.x/pipe.html#c.uv_pipe_pending_instances
+http://docs.libuv.org/en/v1.x/pipe.html#c.uv_pipe_pending_count
+http://docs.libuv.org/en/v1.x/pipe.html#c.uv_pipe_pending_type
+
+[tty]
+http://docs.libuv.org/en/v1.x/tty.html#uv-tty-t-tty-handle
+http://docs.libuv.org/en/v1.x/tty.html#data-types
+http://docs.libuv.org/en/v1.x/tty.html#c.uv_tty_t
+http://docs.libuv.org/en/v1.x/tty.html#c.uv_tty_mode_t
+http://docs.libuv.org/en/v1.x/tty.html#public-members
+http://docs.libuv.org/en/v1.x/tty.html#api
+http://docs.libuv.org/en/v1.x/tty.html#c.uv_tty_init
+http://docs.libuv.org/en/v1.x/tty.html#c.uv_tty_set_mode
+http://docs.libuv.org/en/v1.x/tty.html#c.uv_tty_reset_mode
+http://docs.libuv.org/en/v1.x/tty.html#c.uv_tty_get_winsize
+
+[udp]
+http://docs.libuv.org/en/v1.x/udp.html#uv-udp-t-udp-handle
+http://docs.libuv.org/en/v1.x/udp.html#data-types
+http://docs.libuv.org/en/v1.x/udp.html#c.uv_udp_t
+http://docs.libuv.org/en/v1.x/udp.html#c.uv_udp_send_t
+http://docs.libuv.org/en/v1.x/udp.html#c.uv_udp_flags
+http://docs.libuv.org/en/v1.x/udp.html#c.uv_udp_send_cb
+http://docs.libuv.org/en/v1.x/udp.html#c.uv_udp_recv_cb
+http://docs.libuv.org/en/v1.x/udp.html#c.uv_membership
+http://docs.libuv.org/en/v1.x/udp.html#public-members
+http://docs.libuv.org/en/v1.x/udp.html#c.uv_udp_t.send_queue_size
+http://docs.libuv.org/en/v1.x/udp.html#c.uv_udp_t.send_queue_count
+http://docs.libuv.org/en/v1.x/udp.html#c.uv_udp_send_t.handle
+http://docs.libuv.org/en/v1.x/udp.html#api
+http://docs.libuv.org/en/v1.x/udp.html#c.uv_udp_init
+http://docs.libuv.org/en/v1.x/udp.html#c.uv_udp_init_ex
+http://docs.libuv.org/en/v1.x/udp.html#c.uv_udp_open
+http://docs.libuv.org/en/v1.x/udp.html#c.uv_udp_bind
+http://docs.libuv.org/en/v1.x/udp.html#c.uv_udp_getsockname
+http://docs.libuv.org/en/v1.x/udp.html#c.uv_udp_set_membership
+http://docs.libuv.org/en/v1.x/udp.html#c.uv_udp_set_multicast_loop
+http://docs.libuv.org/en/v1.x/udp.html#c.uv_udp_set_multicast_ttl
+http://docs.libuv.org/en/v1.x/udp.html#c.uv_udp_set_multicast_interface
+http://docs.libuv.org/en/v1.x/udp.html#c.uv_udp_set_broadcast
+http://docs.libuv.org/en/v1.x/udp.html#c.uv_udp_set_ttl
+http://docs.libuv.org/en/v1.x/udp.html#c.uv_udp_send
+http://docs.libuv.org/en/v1.x/udp.html#c.uv_udp_try_send
+http://docs.libuv.org/en/v1.x/udp.html#c.uv_udp_recv_start
+http://docs.libuv.org/en/v1.x/udp.html#c.uv_udp_recv_stop
+
+[fs_event]
+http://docs.libuv.org/en/v1.x/fs_event.html#uv-fs-event-t-fs-event-handle
+http://docs.libuv.org/en/v1.x/fs_event.html#data-types
+http://docs.libuv.org/en/v1.x/fs_event.html#c.uv_fs_event_t
+http://docs.libuv.org/en/v1.x/fs_event.html#c.uv_fs_event_cb
+http://docs.libuv.org/en/v1.x/fs_event.html#c.uv_fs_event
+http://docs.libuv.org/en/v1.x/fs_event.html#c.uv_fs_event_flags
+http://docs.libuv.org/en/v1.x/fs_event.html#public-members
+http://docs.libuv.org/en/v1.x/fs_event.html#api
+http://docs.libuv.org/en/v1.x/fs_event.html#c.uv_fs_event_init
+http://docs.libuv.org/en/v1.x/fs_event.html#c.uv_fs_event_start
+http://docs.libuv.org/en/v1.x/fs_event.html#c.uv_fs_event_stop
+http://docs.libuv.org/en/v1.x/fs_event.html#c.uv_fs_event_getpath
+
+[fs_poll]
+http://docs.libuv.org/en/v1.x/fs_poll.html#uv-fs-poll-t-fs-poll-handle
+http://docs.libuv.org/en/v1.x/fs_poll.html#data-types
+http://docs.libuv.org/en/v1.x/fs_poll.html#c.uv_fs_poll_t
+http://docs.libuv.org/en/v1.x/fs_poll.html#c.uv_fs_poll_cb
+http://docs.libuv.org/en/v1.x/fs_poll.html#public-members
+http://docs.libuv.org/en/v1.x/fs_poll.html#api
+http://docs.libuv.org/en/v1.x/fs_poll.html#c.uv_fs_poll_init
+http://docs.libuv.org/en/v1.x/fs_poll.html#c.uv_fs_poll_start
+http://docs.libuv.org/en/v1.x/fs_poll.html#c.uv_fs_poll_stop
+http://docs.libuv.org/en/v1.x/fs_poll.html#c.uv_fs_poll_getpath
+
+[fs]
+http://docs.libuv.org/en/v1.x/fs.html#filesystem-operations
+http://docs.libuv.org/en/v1.x/fs.html#data-types
+http://docs.libuv.org/en/v1.x/fs.html#c.uv_fs_t
+http://docs.libuv.org/en/v1.x/fs.html#c.uv_timespec_t
+http://docs.libuv.org/en/v1.x/fs.html#c.uv_stat_t
+http://docs.libuv.org/en/v1.x/fs.html#c.uv_fs_type
+http://docs.libuv.org/en/v1.x/fs.html#c.uv_dirent_t
+http://docs.libuv.org/en/v1.x/fs.html#public-members
+http://docs.libuv.org/en/v1.x/fs.html#c.uv_fs_t.loop
+http://docs.libuv.org/en/v1.x/fs.html#c.uv_fs_t.fs_type
+http://docs.libuv.org/en/v1.x/fs.html#c.uv_fs_t.path
+http://docs.libuv.org/en/v1.x/fs.html#c.uv_fs_t.result
+http://docs.libuv.org/en/v1.x/fs.html#c.uv_fs_t.statbuf
+http://docs.libuv.org/en/v1.x/fs.html#c.uv_fs_t.ptr
+http://docs.libuv.org/en/v1.x/fs.html#api
+http://docs.libuv.org/en/v1.x/fs.html#c.uv_fs_req_cleanup
+http://docs.libuv.org/en/v1.x/fs.html#c.uv_fs_close
+http://docs.libuv.org/en/v1.x/fs.html#c.uv_fs_open
+http://docs.libuv.org/en/v1.x/fs.html#c.uv_fs_read
+http://docs.libuv.org/en/v1.x/fs.html#c.uv_fs_unlink
+http://docs.libuv.org/en/v1.x/fs.html#c.uv_fs_write
+http://docs.libuv.org/en/v1.x/fs.html#c.uv_fs_mkdir
+http://docs.libuv.org/en/v1.x/fs.html#c.uv_fs_mkdtemp
+http://docs.libuv.org/en/v1.x/fs.html#c.uv_fs_rmdir
+http://docs.libuv.org/en/v1.x/fs.html#c.uv_fs_scandir
+http://docs.libuv.org/en/v1.x/fs.html#c.uv_fs_scandir_next
+http://docs.libuv.org/en/v1.x/fs.html#c.uv_fs_stat
+http://docs.libuv.org/en/v1.x/fs.html#c.uv_fs_fstat
+http://docs.libuv.org/en/v1.x/fs.html#c.uv_fs_lstat
+http://docs.libuv.org/en/v1.x/fs.html#c.uv_fs_rename
+http://docs.libuv.org/en/v1.x/fs.html#c.uv_fs_fsync
+http://docs.libuv.org/en/v1.x/fs.html#c.uv_fs_fdatasync
+http://docs.libuv.org/en/v1.x/fs.html#c.uv_fs_ftruncate
+http://docs.libuv.org/en/v1.x/fs.html#c.uv_fs_sendfile
+http://docs.libuv.org/en/v1.x/fs.html#c.uv_fs_access
+http://docs.libuv.org/en/v1.x/fs.html#c.uv_fs_chmod
+http://docs.libuv.org/en/v1.x/fs.html#c.uv_fs_fchmod
+http://docs.libuv.org/en/v1.x/fs.html#c.uv_fs_utime
+http://docs.libuv.org/en/v1.x/fs.html#c.uv_fs_futime
+http://docs.libuv.org/en/v1.x/fs.html#c.uv_fs_link
+http://docs.libuv.org/en/v1.x/fs.html#c.uv_fs_symlink
+http://docs.libuv.org/en/v1.x/fs.html#c.uv_fs_readlink
+http://docs.libuv.org/en/v1.x/fs.html#c.uv_fs_realpath
+http://docs.libuv.org/en/v1.x/fs.html#c.uv_fs_chown
+http://docs.libuv.org/en/v1.x/fs.html#c.uv_fs_fchown
+
+[threadpool]
+http://docs.libuv.org/en/v1.x/threadpool.html#thread-pool-work-scheduling
+http://docs.libuv.org/en/v1.x/threadpool.html#data-types
+http://docs.libuv.org/en/v1.x/threadpool.html#c.uv_work_t
+http://docs.libuv.org/en/v1.x/threadpool.html#c.uv_work_cb
+http://docs.libuv.org/en/v1.x/threadpool.html#c.uv_after_work_cb
+http://docs.libuv.org/en/v1.x/threadpool.html#public-members
+http://docs.libuv.org/en/v1.x/threadpool.html#c.uv_work_t.loop
+http://docs.libuv.org/en/v1.x/threadpool.html#api
+http://docs.libuv.org/en/v1.x/threadpool.html#c.uv_queue_work
+
+[dns]
+http://docs.libuv.org/en/v1.x/dns.html#dns-utility-functions
+http://docs.libuv.org/en/v1.x/dns.html#data-types
+http://docs.libuv.org/en/v1.x/dns.html#c.uv_getaddrinfo_t
+http://docs.libuv.org/en/v1.x/dns.html#c.uv_getaddrinfo_cb
+http://docs.libuv.org/en/v1.x/dns.html#c.uv_getnameinfo_t
+http://docs.libuv.org/en/v1.x/dns.html#c.uv_getnameinfo_cb
+http://docs.libuv.org/en/v1.x/dns.html#public-members
+http://docs.libuv.org/en/v1.x/dns.html#c.uv_getaddrinfo_t.loop
+http://docs.libuv.org/en/v1.x/dns.html#c.uv_getaddrinfo_t.addrinfo
+http://docs.libuv.org/en/v1.x/dns.html#c.uv_getnameinfo_t.loop
+http://docs.libuv.org/en/v1.x/dns.html#c.uv_getnameinfo_t.host
+http://docs.libuv.org/en/v1.x/dns.html#c.uv_getnameinfo_t.service
+http://docs.libuv.org/en/v1.x/dns.html#api
+http://docs.libuv.org/en/v1.x/dns.html#c.uv_getaddrinfo
+http://docs.libuv.org/en/v1.x/dns.html#c.uv_freeaddrinfo
+http://docs.libuv.org/en/v1.x/dns.html#c.uv_getnameinfo
+
+[dll]
+http://docs.libuv.org/en/v1.x/dll.html#shared-library-handling
+http://docs.libuv.org/en/v1.x/dll.html#data-types
+http://docs.libuv.org/en/v1.x/dll.html#c.uv_lib_t
+http://docs.libuv.org/en/v1.x/dll.html#public-members
+http://docs.libuv.org/en/v1.x/dll.html#api
+http://docs.libuv.org/en/v1.x/dll.html#c.uv_dlopen
+http://docs.libuv.org/en/v1.x/dll.html#c.uv_dlclose
+http://docs.libuv.org/en/v1.x/dll.html#c.uv_dlsym
+http://docs.libuv.org/en/v1.x/dll.html#c.uv_dlerror
+
+[threading]
+http://docs.libuv.org/en/v1.x/threading.html#threading-and-synchronization-utilities
+http://docs.libuv.org/en/v1.x/threading.html#data-types
+http://docs.libuv.org/en/v1.x/threading.html#c.uv_thread_t
+http://docs.libuv.org/en/v1.x/threading.html#c.uv_thread_cb
+http://docs.libuv.org/en/v1.x/threading.html#c.uv_key_t
+http://docs.libuv.org/en/v1.x/threading.html#c.uv_once_t
+http://docs.libuv.org/en/v1.x/threading.html#c.uv_mutex_t
+http://docs.libuv.org/en/v1.x/threading.html#c.uv_rwlock_t
+http://docs.libuv.org/en/v1.x/threading.html#c.uv_sem_t
+http://docs.libuv.org/en/v1.x/threading.html#c.uv_cond_t
+http://docs.libuv.org/en/v1.x/threading.html#c.uv_barrier_t
+http://docs.libuv.org/en/v1.x/threading.html#api
+http://docs.libuv.org/en/v1.x/threading.html#threads
+http://docs.libuv.org/en/v1.x/threading.html#c.uv_thread_create
+http://docs.libuv.org/en/v1.x/threading.html#c.uv_thread_self
+http://docs.libuv.org/en/v1.x/threading.html#c.uv_thread_join
+http://docs.libuv.org/en/v1.x/threading.html#c.uv_thread_equal
+http://docs.libuv.org/en/v1.x/threading.html#thread-local-storage
+http://docs.libuv.org/en/v1.x/threading.html#c.uv_key_create
+http://docs.libuv.org/en/v1.x/threading.html#c.uv_key_delete
+http://docs.libuv.org/en/v1.x/threading.html#c.uv_key_get
+http://docs.libuv.org/en/v1.x/threading.html#c.uv_key_set
+http://docs.libuv.org/en/v1.x/threading.html#once-only-initialization
+http://docs.libuv.org/en/v1.x/threading.html#c.uv_once
+http://docs.libuv.org/en/v1.x/threading.html#mutex-locks
+http://docs.libuv.org/en/v1.x/threading.html#c.uv_mutex_init
+http://docs.libuv.org/en/v1.x/threading.html#c.uv_mutex_destroy
+http://docs.libuv.org/en/v1.x/threading.html#c.uv_mutex_lock
+http://docs.libuv.org/en/v1.x/threading.html#c.uv_mutex_trylock
+http://docs.libuv.org/en/v1.x/threading.html#c.uv_mutex_unlock
+http://docs.libuv.org/en/v1.x/threading.html#read-write-locks
+http://docs.libuv.org/en/v1.x/threading.html#c.uv_rwlock_init
+http://docs.libuv.org/en/v1.x/threading.html#c.uv_rwlock_destroy
+http://docs.libuv.org/en/v1.x/threading.html#c.uv_rwlock_rdlock
+http://docs.libuv.org/en/v1.x/threading.html#c.uv_rwlock_tryrdlock
+http://docs.libuv.org/en/v1.x/threading.html#c.uv_rwlock_rdunlock
+http://docs.libuv.org/en/v1.x/threading.html#c.uv_rwlock_wrlock
+http://docs.libuv.org/en/v1.x/threading.html#c.uv_rwlock_trywrlock
+http://docs.libuv.org/en/v1.x/threading.html#c.uv_rwlock_wrunlock
+http://docs.libuv.org/en/v1.x/threading.html#semaphores
+http://docs.libuv.org/en/v1.x/threading.html#c.uv_sem_init
+http://docs.libuv.org/en/v1.x/threading.html#c.uv_sem_destroy
+http://docs.libuv.org/en/v1.x/threading.html#c.uv_sem_post
+http://docs.libuv.org/en/v1.x/threading.html#c.uv_sem_wait
+http://docs.libuv.org/en/v1.x/threading.html#c.uv_sem_trywait
+http://docs.libuv.org/en/v1.x/threading.html#conditions
+http://docs.libuv.org/en/v1.x/threading.html#c.uv_cond_init
+http://docs.libuv.org/en/v1.x/threading.html#c.uv_cond_destroy
+http://docs.libuv.org/en/v1.x/threading.html#c.uv_cond_signal
+http://docs.libuv.org/en/v1.x/threading.html#c.uv_cond_broadcast
+http://docs.libuv.org/en/v1.x/threading.html#c.uv_cond_wait
+http://docs.libuv.org/en/v1.x/threading.html#c.uv_cond_timedwait
+http://docs.libuv.org/en/v1.x/threading.html#barriers
+http://docs.libuv.org/en/v1.x/threading.html#c.uv_barrier_init
+http://docs.libuv.org/en/v1.x/threading.html#c.uv_barrier_destroy
+http://docs.libuv.org/en/v1.x/threading.html#c.uv_barrier_wait
+
+[misc]
+http://docs.libuv.org/en/v1.x/misc.html#miscellaneous-utilities
+http://docs.libuv.org/en/v1.x/misc.html#data-types
+http://docs.libuv.org/en/v1.x/misc.html#c.uv_buf_t
+http://docs.libuv.org/en/v1.x/misc.html#c.uv_buf_t.uv_buf_t.base
+http://docs.libuv.org/en/v1.x/misc.html#c.uv_buf_t.uv_buf_t.len
+http://docs.libuv.org/en/v1.x/misc.html#c.uv_malloc_func
+http://docs.libuv.org/en/v1.x/misc.html#c.uv_realloc_func
+http://docs.libuv.org/en/v1.x/misc.html#c.uv_calloc_func
+http://docs.libuv.org/en/v1.x/misc.html#c.uv_free_func
+http://docs.libuv.org/en/v1.x/misc.html#c.uv_file
+http://docs.libuv.org/en/v1.x/misc.html#c.uv_os_sock_t
+http://docs.libuv.org/en/v1.x/misc.html#c.uv_os_fd_t
+http://docs.libuv.org/en/v1.x/misc.html#c.uv_rusage_t
+http://docs.libuv.org/en/v1.x/misc.html#c.uv_cpu_info_t
+http://docs.libuv.org/en/v1.x/misc.html#c.uv_interface_address_t
+http://docs.libuv.org/en/v1.x/misc.html#c.uv_passwd_t
+http://docs.libuv.org/en/v1.x/misc.html#api
+http://docs.libuv.org/en/v1.x/misc.html#c.uv_guess_handle
+http://docs.libuv.org/en/v1.x/misc.html#c.uv_replace_allocator
+http://docs.libuv.org/en/v1.x/misc.html#c.uv_buf_init
+http://docs.libuv.org/en/v1.x/misc.html#c.uv_setup_args
+http://docs.libuv.org/en/v1.x/misc.html#c.uv_get_process_title
+http://docs.libuv.org/en/v1.x/misc.html#c.uv_set_process_title
+http://docs.libuv.org/en/v1.x/misc.html#c.uv_resident_set_memory
+http://docs.libuv.org/en/v1.x/misc.html#c.uv_uptime
+http://docs.libuv.org/en/v1.x/misc.html#c.uv_getrusage
+http://docs.libuv.org/en/v1.x/misc.html#c.uv_cpu_info
+http://docs.libuv.org/en/v1.x/misc.html#c.uv_free_cpu_info
+http://docs.libuv.org/en/v1.x/misc.html#c.uv_interface_addresses
+http://docs.libuv.org/en/v1.x/misc.html#c.uv_free_interface_addresses
+http://docs.libuv.org/en/v1.x/misc.html#c.uv_loadavg
+  http://docs.libuv.org/en/v1.x/misc.html#c.uv_ip4_addr
+  http://docs.libuv.org/en/v1.x/misc.html#c.uv_ip6_addr
+http://docs.libuv.org/en/v1.x/misc.html#c.uv_ip4_name
+http://docs.libuv.org/en/v1.x/misc.html#c.uv_ip6_name
+http://docs.libuv.org/en/v1.x/misc.html#c.uv_inet_ntop
+  http://docs.libuv.org/en/v1.x/misc.html#c.uv_inet_pton
+http://docs.libuv.org/en/v1.x/misc.html#c.uv_exepath
+http://docs.libuv.org/en/v1.x/misc.html#c.uv_cwd
+http://docs.libuv.org/en/v1.x/misc.html#c.uv_chdir
+http://docs.libuv.org/en/v1.x/misc.html#c.uv_os_homedir
+http://docs.libuv.org/en/v1.x/misc.html#c.uv_os_tmpdir
+http://docs.libuv.org/en/v1.x/misc.html#c.uv_os_get_passwd
+http://docs.libuv.org/en/v1.x/misc.html#c.uv_os_free_passwd
+http://docs.libuv.org/en/v1.x/misc.html#c.uv_get_total_memory
+http://docs.libuv.org/en/v1.x/misc.html#c.uv_hrtime
+http://docs.libuv.org/en/v1.x/misc.html#c.uv_print_all_handles
+http://docs.libuv.org/en/v1.x/misc.html#c.uv_print_active_handles
 
