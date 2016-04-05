@@ -29,6 +29,9 @@ CPPFLAGS = $(IFLAGS)
 ifndef DEBUG
 CPPFLAGS += -D NDEBUG
 endif
+ifdef WINDOWS
+CPPFLAGS += -D _WIN32_WINNT=0x0601
+endif
 
 
 # compiler flags
