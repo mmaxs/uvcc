@@ -1,4 +1,4 @@
-vim: fdm=indent fdc=2
+ vim: fdm=expr fde=!empty(getline(v\:lnum)) fdc=2
 
 [design]
 http://docs.libuv.org/en/v1.x/design.html#design-overview
@@ -8,7 +8,7 @@ http://docs.libuv.org/en/v1.x/design.html#file-i-o
 
 [errors]
 http://docs.libuv.org/en/v1.x/errors.html#error-handling
-  http://docs.libuv.org/en/v1.x/errors.html#error-constants
+http://docs.libuv.org/en/v1.x/errors.html#error-constants
   http://docs.libuv.org/en/v1.x/errors.html#c.UV_E2BIG
   http://docs.libuv.org/en/v1.x/errors.html#c.UV_EACCES
   http://docs.libuv.org/en/v1.x/errors.html#c.UV_EADDRINUSE
@@ -84,12 +84,12 @@ http://docs.libuv.org/en/v1.x/errors.html#error-handling
   http://docs.libuv.org/en/v1.x/errors.html#c.UV_EOF
   http://docs.libuv.org/en/v1.x/errors.html#c.UV_ENXIO
   http://docs.libuv.org/en/v1.x/errors.html#c.UV_EMLINK
-http://docs.libuv.org/en/v1.x/errors.html#api
-  http://docs.libuv.org/en/v1.x/errors.html#c.uv_strerror
-  http://docs.libuv.org/en/v1.x/errors.html#c.uv_err_name
+  http://docs.libuv.org/en/v1.x/errors.html#api
++ http://docs.libuv.org/en/v1.x/errors.html#c.uv_strerror
++ http://docs.libuv.org/en/v1.x/errors.html#c.uv_err_name
 
 [version]
-http://docs.libuv.org/en/v1.x/version.html#version-checking-macros-and-functions
+  http://docs.libuv.org/en/v1.x/version.html#version-checking-macros-and-functions
   http://docs.libuv.org/en/v1.x/version.html#macros
   http://docs.libuv.org/en/v1.x/version.html#c.UV_VERSION_MAJOR
   http://docs.libuv.org/en/v1.x/version.html#c.UV_VERSION_MINOR
@@ -102,27 +102,27 @@ http://docs.libuv.org/en/v1.x/version.html#version-checking-macros-and-functions
   http://docs.libuv.org/en/v1.x/version.html#c.uv_version_string
 
 [loop]
-http://docs.libuv.org/en/v1.x/loop.html#uv-loop-t-event-loop
-http://docs.libuv.org/en/v1.x/loop.html#data-types
-http://docs.libuv.org/en/v1.x/loop.html#c.uv_loop_t
-http://docs.libuv.org/en/v1.x/loop.html#c.uv_run_mode
-http://docs.libuv.org/en/v1.x/loop.html#c.uv_walk_cb
-http://docs.libuv.org/en/v1.x/loop.html#public-members
-http://docs.libuv.org/en/v1.x/loop.html#c.uv_loop_t.data
-http://docs.libuv.org/en/v1.x/loop.html#api
-http://docs.libuv.org/en/v1.x/loop.html#c.uv_loop_init
-http://docs.libuv.org/en/v1.x/loop.html#c.uv_loop_configure
-http://docs.libuv.org/en/v1.x/loop.html#c.uv_loop_close
-http://docs.libuv.org/en/v1.x/loop.html#c.uv_default_loop
-http://docs.libuv.org/en/v1.x/loop.html#c.uv_run
-http://docs.libuv.org/en/v1.x/loop.html#c.uv_loop_alive
-http://docs.libuv.org/en/v1.x/loop.html#c.uv_stop
-http://docs.libuv.org/en/v1.x/loop.html#c.uv_loop_size
-http://docs.libuv.org/en/v1.x/loop.html#c.uv_backend_fd
-http://docs.libuv.org/en/v1.x/loop.html#c.uv_backend_timeout
-http://docs.libuv.org/en/v1.x/loop.html#c.uv_now
-http://docs.libuv.org/en/v1.x/loop.html#c.uv_update_time
-http://docs.libuv.org/en/v1.x/loop.html#c.uv_walk
+  http://docs.libuv.org/en/v1.x/loop.html#uv-loop-t-event-loop
+  http://docs.libuv.org/en/v1.x/loop.html#data-types
++ http://docs.libuv.org/en/v1.x/loop.html#c.uv_loop_t
+  http://docs.libuv.org/en/v1.x/loop.html#c.uv_run_mode
++ http://docs.libuv.org/en/v1.x/loop.html#c.uv_walk_cb
+  http://docs.libuv.org/en/v1.x/loop.html#public-members
++ http://docs.libuv.org/en/v1.x/loop.html#c.uv_loop_t.data
+  http://docs.libuv.org/en/v1.x/loop.html#api
++ http://docs.libuv.org/en/v1.x/loop.html#c.uv_loop_init
++ http://docs.libuv.org/en/v1.x/loop.html#c.uv_loop_configure
++ http://docs.libuv.org/en/v1.x/loop.html#c.uv_loop_close
++ http://docs.libuv.org/en/v1.x/loop.html#c.uv_default_loop
++ http://docs.libuv.org/en/v1.x/loop.html#c.uv_run
++ http://docs.libuv.org/en/v1.x/loop.html#c.uv_loop_alive
++ http://docs.libuv.org/en/v1.x/loop.html#c.uv_stop
+- http://docs.libuv.org/en/v1.x/loop.html#c.uv_loop_size
++ http://docs.libuv.org/en/v1.x/loop.html#c.uv_backend_fd
++ http://docs.libuv.org/en/v1.x/loop.html#c.uv_backend_timeout
++ http://docs.libuv.org/en/v1.x/loop.html#c.uv_now
++ http://docs.libuv.org/en/v1.x/loop.html#c.uv_update_time
++ http://docs.libuv.org/en/v1.x/loop.html#c.uv_walk
 
 [handle]
 http://docs.libuv.org/en/v1.x/handle.html#uv-handle-t-base-handle
@@ -580,12 +580,12 @@ http://docs.libuv.org/en/v1.x/misc.html#c.uv_free_cpu_info
 http://docs.libuv.org/en/v1.x/misc.html#c.uv_interface_addresses
 http://docs.libuv.org/en/v1.x/misc.html#c.uv_free_interface_addresses
 http://docs.libuv.org/en/v1.x/misc.html#c.uv_loadavg
-  http://docs.libuv.org/en/v1.x/misc.html#c.uv_ip4_addr
-  http://docs.libuv.org/en/v1.x/misc.html#c.uv_ip6_addr
++ http://docs.libuv.org/en/v1.x/misc.html#c.uv_ip4_addr
++ http://docs.libuv.org/en/v1.x/misc.html#c.uv_ip6_addr
 http://docs.libuv.org/en/v1.x/misc.html#c.uv_ip4_name
 http://docs.libuv.org/en/v1.x/misc.html#c.uv_ip6_name
 http://docs.libuv.org/en/v1.x/misc.html#c.uv_inet_ntop
-  http://docs.libuv.org/en/v1.x/misc.html#c.uv_inet_pton
++ http://docs.libuv.org/en/v1.x/misc.html#c.uv_inet_pton
 http://docs.libuv.org/en/v1.x/misc.html#c.uv_exepath
 http://docs.libuv.org/en/v1.x/misc.html#c.uv_cwd
 http://docs.libuv.org/en/v1.x/misc.html#c.uv_chdir
