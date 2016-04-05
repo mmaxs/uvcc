@@ -18,13 +18,16 @@
 namespace uv
 {
 /*! \defgroup g__netstruct Network-related structures initialization
-    \ingroup g__utility */
+    \ingroup g__utility
+    \sa Linux: [ip(7):`sockaddr_in`](http://man7.org/linux/man-pages/man7/ip.7.html),
+               [ipv6(7):`sockaddr_in6`](http://man7.org/linux/man-pages/man7/ipv6.7.html),
+               [socket(7):`sockaddr_storage`](http://man7.org/linux/man-pages/man7/socket.7.html).
+    \sa Windows: [`sockaddr_in`](https://msdn.microsoft.com/en-us/library/ms740496(v=vs.85).aspx),
+                 [`sockaddr_in6`](https://msdn.microsoft.com/en-us/library/ms740496(v=vs.85).aspx),
+                 [`sockaddr_storage`](https://msdn.microsoft.com/en-us/library/ms740504(v=vs.85).aspx). */
 //! \{
 
-
-/*! \name sockaddr_in
-    \sa Linux: [ip(7): `sockaddr_in`](http://man7.org/linux/man-pages/man7/ip.7.html).
-        Windows: [`sockaddr_in`](https://msdn.microsoft.com/en-us/library/ms740496(v=vs.85).aspx). */
+//! \name sockaddr_in
 //! \{
 
 /*! \brief Initialize a `sockaddr_in` structure. */
@@ -51,9 +54,7 @@ int init(::sockaddr_in &_sa, const char *_ip, const char *_port = nullptr)
 //! \}
 
 
-/*! \name sockaddr_in6
-    \sa Linux: [ipv6(7): `sockaddr_in6`](http://man7.org/linux/man-pages/man7/ipv6.7.html).
-        Windows: [`sockaddr_in6`](https://msdn.microsoft.com/en-us/library/ms740496(v=vs.85).aspx). */
+//! \name sockaddr_in6
 //! \{
 
 /*! \brief Initialize a `sockaddr_in6` structure. */
@@ -80,9 +81,7 @@ int init(::sockaddr_in6 &_sa, const char *_ip, const char *_port = nullptr)
 //! \}
 
 
-/*! \name sockaddr_storage
-    \sa Linux: [socket(7): `sockaddr_storage`](http://man7.org/linux/man-pages/man7/socket.7.html).
-        Windows: [`sockaddr_storage`](https://msdn.microsoft.com/en-us/library/ms740504(v=vs.85).aspx). */
+//! \name sockaddr_storage
 //! \{
 
 template< typename = void >
