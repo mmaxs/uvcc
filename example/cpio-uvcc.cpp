@@ -33,10 +33,11 @@ int main(int _argc, char *_argv[])
       },
       [](uv::stream _stream, ssize_t _nread, uv::buffer _buffer) -> void  // read_cb
       {
-        if (_nread == UV_EOF)
+        if (_nread < 0)
+        {
           _stream.read_stop();
-        else if (_nread < 0)
-          PRINT_UV_ERR("read", _nread);
+          if (_nread != UV_EOF)  PRINT_UV_ERR("read", _nread);
+        }
         else if (_nread > 0)
         {
           uv::write wr;

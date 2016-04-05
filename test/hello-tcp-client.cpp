@@ -1,7 +1,6 @@
 
 
 #include "uvcc.hpp"
-#include "uvcc/netstruct.hpp"
 #include <cstdio>
 
 #pragma GCC diagnostic ignored "-Wunused-variable"
@@ -37,7 +36,7 @@ int main(int _argc, char *_argv[])
           if (_nread < 0)
           {
             _stream.read_stop();
-            PRINT_UV_ERR("read", _nread);
+            if (_nread != UV_EOF)  PRINT_UV_ERR("read", _nread);
           }
           else if (_nread > 0)
           {

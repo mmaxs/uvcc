@@ -57,10 +57,11 @@ void alloc_cb(uv_handle_t*, size_t _suggested_size, uv_buf_t *_buf)
 
 void read_cb(uv_stream_t *_stream, ssize_t _nread, const uv_buf_t *_buf)
 {
-  if (_nread == UV_EOF)
+  if (_nread < 0)
+  {
     uv_read_stop(_stream);
-  else if (_nread < 0)
-    PRINT_UV_ERR("read", _nread);
+    if (_nread != UV_EOF)  PRINT_UV_ERR("read", _nread);
+  }
   else if (_nread > 0)
   {
     /* initialize a new buffer descriptor specifying the actual data length */
