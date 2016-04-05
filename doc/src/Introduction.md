@@ -200,10 +200,13 @@ The original code is slightly modified to work with recent libuv version > 0.10.
 \verbatim /example/lxjs2012-demo.c \endverbatim
 \includelineno lxjs2012-demo.c
 
+Here is the very same program being rewritten using uvcc.
+One can find that the code becomes more compact and has far less
+["translation noise"](https://books.google.ru/books?id=Uemuaza3fTEC&pg=PT26&dq=%22translation+noise%22&hl=en&sa=X&ved=0ahUKEwigoJ3Dq8bLAhVoc3IKHQGQCFYQ6AEIGTAA).
+
 \verbatim /example/lxjs2012-demo-uvcc.cpp \endverbatim
 \includelineno lxjs2012-demo-uvcc.cpp
 
-["translation noise"](https://books.google.ru/books?id=Uemuaza3fTEC&pg=PT26&dq=%22translation+noise%22&hl=en&sa=X&ved=0ahUKEwigoJ3Dq8bLAhVoc3IKHQGQCFYQ6AEIGTAA)
 
 
 [Introduction to libuv – Thorsten Lorenz](http://www.youtube.com/watch?v=cLL28s6yb1I)
@@ -239,16 +242,16 @@ Here is a performance comparison between the two variants:
 
 \verbatim
 Mike@U250 [CYGWIN] /cygdrive/d/wroot/libuv/uvcc/uvcc.git
-$ cat /dev/zero | ./build/example/cpio-uv.exe | dd of=/dev/null iflag=fullblock bs=1M count=10240
-10240+0 records in
-10240+0 records out
-10737418240 bytes (11 GB, 10 GiB) copied, 23.3906 s, 459 MB/s
+$ cat /dev/zero | ./build/example/cpio-uv.exe | dd of=/dev/null iflag=fullblock bs=1M count=50240
+50240+0 records in
+50240+0 records out
+52680458240 bytes (53 GB, 49 GiB) copied, 120.507 s, 437 MB/s
 
 Mike@U250 [CYGWIN] /cygdrive/d/wroot/libuv/uvcc/uvcc.git
-$ cat /dev/zero | ./build/example/cpio-uvcc.exe | dd of=/dev/null iflag=fullblock bs=1M count=10240
-10240+0 records in
-10240+0 records out
-10737418240 bytes (11 GB, 10 GiB) copied, 25.1898 s, 426 MB/s
+$ cat /dev/zero | ./build/example/cpio-uvcc.exe | dd of=/dev/null iflag=fullblock bs=1M count=50240
+50240+0 records in
+50240+0 records out
+52680458240 bytes (53 GB, 49 GiB) copied, 122.482 s, 430 MB/s
 \endverbatim
 
 Obviously there is an impact of reference counting operations that slightly reduce the performance.
@@ -260,14 +263,15 @@ Obviously there is an impact of reference counting operations that slightly redu
 
 A simple program that copies its `stdin` to `stdout` and also to each file specified as a program argument.
 
-It demonstrates two points: the very same uvcc buffer can be easily dispatched to different asynchronous operations and its lifetime
-will continue until the last operation has completed and the example for a simple version of the buffer and request pool implementation.
+It demonstrates two points: 1) the very same uvcc buffer can be easily dispatched to different asynchronous operations and its lifetime
+will continue until the last operation has completed, and 2) the example for a simple version of the buffer and request pool implementation.
 
-Pools help avoid intense memory allocation requests and the effect of continuous linear increasing of the memory consumed by the program
+Pools help avoid intense memory allocation requests and the effect of continuous increasing of the memory consumed by the program
 until the C/C++ memory allocator decides to actually free up the allocated space.
 The provided simple implementation is an auto-growing pool that is not thread-safe, so only one dedicated thread might acquire an item
-from the pool in multi-thread environment. The condition of item's `nrefs() == 1` indicates that no more references
-are left anywhere at the runtime other than in the pool container itself. In debug build some diagnostic messages are printed out.
+from the pool in multi-thread environment. The condition of item's `nrefs() == 1` indicates that no more references are left anywhere
+at the runtime other than in the pool container itself.
+In debug build some diagnostic messages are printed out.
 
 \sa _stackoverflow.com_: ["libuv allocated memory buffers re-use techniques"](http://stackoverflow.com/questions/28511541/libuv-allocated-memory-buffers-re-use-techniques)
 
@@ -282,21 +286,24 @@ are left anywhere at the runtime other than in the pool container itself. In deb
 uvcc consists only of header files. You need just to copy files and subfolders from /src/include directory into one of
 the directories being searched for header files in your project and include uvcc.hpp header into your source files.
 
-To compile bundled examples use the following make goal:
+To compile bundled examples and tests use the following make goal:
+> make example/SOURCE_FILE_BASE_NAME test/SOURCE_FILE_BASE_NAME
 
-> make example/SOURCE_FILE_BASE_NAME
-
-where SOURCE_FILE_BASE_NAME is a base name of one of the source files located in /example subdirectory.
+where SOURCE_FILE_BASE_NAME is the base name (i.e. the name without extension) of one of the source files located
+in /example (or /test) subdirectory.
 
 On Windows you can use [Mingw-w64](http://mingw-w64.org) compiler, make utility, and the command shell that are packaged
 with [Cygwin](https://cygwin.com) or [Msys2](http://msys2.github.io) projects.
-Then add a non-empty definition for "WINDOWS" environment variable as a first command argument:
-
+Then add a non-empty definition for "WINDOWS" environment variable as a first command line argument:
 > make WINDOWS=1 example/SOURCE_FILE_BASE_NAME
 
 You will get Windows native binaries built against the libuv Windows release saved
 in /libuv-x64-v1.8.0.build8 subdirectory. If you don't have libuv installed in your Windows system root folder
 don't forget to copy libuv.dll from the saved libuv release subdirectory and put it along with the resulting executable files.
+
+For debug builds add a non-empty definition for "DEBUG" environment variable as one of the command line arguments
+before specifying any make target.
+> make DEBUG=1 example/SOURCE_FILE_BASE_NAME
 
 All build results will be placed in /build/example subdirectory from the uvcc root directory.
 

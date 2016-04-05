@@ -110,6 +110,35 @@ int init(::sockaddr_storage &_sa, const char *_ip, const char *_port = nullptr)
 //! \{
 
 /*! \details Initialize an `addrinfo` structure for to be used as a hints argument in `uv::getaddrinfo` request.
+
+The `_family` argument might be AF_UNSPEC or AF_INET or AF_INET6 or AF_NETBIOS (Windows only) .
+
+The `_socktype` argument might be SOCK_DGRAM or SOCK_STREAM.
+
+The `_flags` argument can be a combination of the following values:
++ AI_ADDRCONFIG
++ AI_ALL
++ AI_CANONNAME
++ AI_NUMERICHOST
++ AI_NUMERICSERV
++ AI_PASSIVE
++ AI_V4MAPPED
+
+Linux only - extensions for Internationalized Domain Names:
++ AI_CANONIDN
++ AI_IDN
++ AI_IDN_ALLOW_UNASSIGNED
++ AI_IDN_USE_STD3_ASCII_RULES
+
+Windows only:
++ AI_DISABLE_IDN_ENCODING
++ AI_FILESERVER
++ AI_FLAGS
++ AI_FQDN
++ AI_NON_AUTHORITATIVE
++ AI_RETURN_PREFERRED_NAMES
++ AI_SECURE
+.
     \sa Linux: [`getaddrinfo()`](http://man7.org/linux/man-pages/man3/getaddrinfo.3.html).
         Windows: [`addrinfo`](https://msdn.microsoft.com/en-us/library/ms737530(v=vs.85).aspx),
                  [`getaddrinfo()`](https://msdn.microsoft.com/en-us/library/ms738520(v=vs.85).aspx),
