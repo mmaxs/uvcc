@@ -8,6 +8,7 @@
 #include "uvcc/request.hpp"
 #include "uvcc/thread.hpp"
 #include "uvcc/endian.hpp"
+#include "uvcc/netstruct.hpp"
 
 #endif
 
