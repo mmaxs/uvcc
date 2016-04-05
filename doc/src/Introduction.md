@@ -267,7 +267,7 @@ Pools help avoid intense memory allocation requests and the effect of continuous
 until the C/C++ memory allocator decides to actually free up the allocated space.
 The provided simple implementation is an auto-growing pool that is not thread-safe, so only one dedicated thread might acquire an item
 from the pool in multi-thread environment. The condition of item's `nrefs() == 1` indicates that no more references
-are left anywhere at the runtime other than in the pool container itself.
+are left anywhere at the runtime other than in the pool container itself. In debug build some diagnostic messages are printed out.
 
 \sa _stackoverflow.com_: ["libuv allocated memory buffers re-use techniques"](http://stackoverflow.com/questions/28511541/libuv-allocated-memory-buffers-re-use-techniques)
 
