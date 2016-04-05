@@ -63,7 +63,7 @@ int main(int _argc, char *_argv[])
       shut_wr.run(tcp_handle);
     };
 
-    uv::tcp tcp_handle(uv::loop::Default());
+    uv::tcp tcp_handle(uv::loop::Default(), AF_UNSPEC);
     connect_req.run(tcp_handle, *_result->ai_addr);
   };
 
