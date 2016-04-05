@@ -479,20 +479,22 @@ public: /*constructors*/
 
   /*! \details Create a socket with the specified flags.
       \note With `AF_UNSPEC` flag no socket is created.
-      \sa libuv API documentation: [`uv_tcp_init_ex()`](http://docs.libuv.org/en/v1.x/tcp.html#c.uv_tcp_init_ex). */
-  tcp(uv::loop _loop, unsigned int _flags = AF_INET)
+      \sa libuv API documentation: [`uv_tcp_init_ex()`](http://docs.libuv.org/en/v1.x/tcp.html#c.uv_tcp_init_ex).
+      \sa libuv enhancement proposals: <https://github.com/libuv/leps/blob/master/003-create-sockets-early.md>. */
+  tcp(uv::loop _loop, unsigned int _flags)
   {
     uv_handle = instance::create();
     uv_status(::uv_tcp_init_ex(static_cast< uv::loop::uv_t* >(_loop), static_cast< uv_t* >(uv_handle), _flags));
   }
   /*! \details Create a socket object from an existing OS native socket descriptor.
       \sa libuv API documentation: [`uv_tcp_open()`](http://docs.libuv.org/en/v1.x/tcp.html#c.uv_tcp_open),
-                               [`uv_tcp_init()`](http://docs.libuv.org/en/v1.x/tcp.html#c.uv_tcp_init). */
-  tcp(uv::loop _loop, ::uv_os_sock_t _sock)
+                                   [`uv_tcp_init()`](http://docs.libuv.org/en/v1.x/tcp.html#c.uv_tcp_init). */
+  tcp(uv::loop _loop, ::uv_os_sock_t _sock, bool _set_blocking)
   {
     uv_handle = instance::create();
     if (uv_status(::uv_tcp_init(static_cast< uv::loop::uv_t* >(_loop), static_cast< uv_t* >(uv_handle))) != 0)  return;
-    uv_status(::uv_tcp_open(static_cast< uv_t* >(uv_handle), _sock));
+    if (uv_status(::uv_tcp_open(static_cast< uv_t* >(uv_handle), _sock)) != 0)  return;
+    if (_set_blocking)  set_blocking(_set_blocking);
   }
 
 public: /*interface*/
@@ -613,11 +615,12 @@ public: /*constructors*/
   }
   /*! \details Create a pipe object from an existing OS native pipe descriptor.
       \sa libuv API documentation: [`uv_pipe_open()`](http://docs.libuv.org/en/v1.x/pipe.html#c.uv_pipe_open). */
-  pipe(uv::loop _loop, ::uv_file _fd, bool _ipc = false)
+  pipe(uv::loop _loop, ::uv_file _fd, bool _ipc = false, bool _set_blocking = false)
   {
     uv_handle = instance::create();
     if (uv_status(::uv_pipe_init(static_cast< uv::loop::uv_t* >(_loop), static_cast< uv_t* >(uv_handle), _ipc)) != 0)  return;
-    uv_status(::uv_pipe_open(static_cast< uv_t* >(uv_handle), _fd));
+    if (uv_status(::uv_pipe_open(static_cast< uv_t* >(uv_handle), _fd)) != 0)  return;
+    if (_set_blocking)  set_blocking(_set_blocking);
   }
 
 public: /*interface*/
