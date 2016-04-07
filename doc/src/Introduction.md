@@ -178,8 +178,7 @@ if necessary.
 uvcc sources are accompanied with several illustrative example programs the source code of which can be found in the
 /example subdirectory.
 
-* \subpage p__example_lxjs2012 "lxjs2012-demo" - an example used by Bert Belder at
-                               [LXJS 2012](http://www.youtube.com/watch?v=nGn60vDSxQ4) to demonstrate the libuv basics. \n
+* \subpage p__example_lxjs2012 "lxjs2012-demo" - an example used by Bert Belder at LXJS 2012 to demonstrate the libuv basics. \n
                                It shows how uvcc simplifies the code.
 
 * \subpage p__example_cpio "cpio" - a simple program that copies its `stdin` to `stdout`. \n
@@ -193,12 +192,13 @@ uvcc sources are accompanied with several illustrative example programs the sour
 
 \page p__example_lxjs2012 lxjs2012-demo
 
-The example used by Bert Belder at [LXJS 2012](http://www.youtube.com/watch?v=nGn60vDSxQ4) to introduce the libuv basics.
+The example used by Bert Belder at LXJS 2012 to introduce the libuv basics.
+\sa Video at _youtube.com_: [LXJS 2012 - Bert Belder - libuv](http://www.youtube.com/watch?v=nGn60vDSxQ4).
 
 The original code is slightly modified to work with recent libuv version > 0.10.
 
-\verbatim /example/lxjs2012-demo.c \endverbatim
-\includelineno lxjs2012-demo.c
+\verbatim /example/lxjs2012-demo-uv.c \endverbatim
+\includelineno lxjs2012-demo-uv.c
 
 Here is the very same program being rewritten using uvcc.
 One can find that the code becomes more compact and has far less
