@@ -58,13 +58,9 @@ int main(int _argc, char *_argv[])
       uv::write wr;
       wr.on_request() = [](uv::write _wr)  { if (!_wr)  PRINT_UV_ERR("write", _wr.uv_status()); };
       wr.run(tcp_handle, buf);
-
-      uv::shutdown shut_wr;
-      shut_wr.on_request() = [](uv::shutdown _shut_wr)  { if (!_shut_wr)  PRINT_UV_ERR("shutdown", _shut_wr.uv_status()); };
-      shut_wr.run(tcp_handle);
     };
 
-    uv::tcp tcp_handle(uv::loop::Default(), AF_UNSPEC);
+    uv::tcp tcp_handle(uv::loop::Default());
     connect_req.run(tcp_handle, *_result->ai_addr);
   };
 

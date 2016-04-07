@@ -23,12 +23,13 @@ int main(int _argc, char *_argv[])
   );
   greeting.len() = strlen(greeting.base());
 
+  sockaddr_storage listen_addr;
+  // uv.init(server_addr, AF_INET);
+  // reinterpret_cast< sockaddr_in& >(listen_addr).sin_port = uv::hton16(54321);
+  // reinterpret_cast< sockaddr_in& >(listen_addr).sin_addr.s_addr = uv::hton32(0x7F000001);
   const char *ip = _argc > 1 ? _argv[1] : "127.0.0.1";
   const char *port = _argc > 2 ? _argv[2] : "54321";
-  sockaddr_storage listen_addr;
   int status = uv::init(listen_addr, ip, port);
-  // reinterpret_cast< sockaddr_in& >(listen_addr).sin_port = uv::hton16(80);
-  // reinterpret_cast< sockaddr_in& >(listen_addr).sin_addr.s_addr = uv::hton32(0x7F000001);
   if (status != 0)  { PRINT_UV_ERR("init", status); return status; };
 
   uv::tcp server(uv::loop::Default(), reinterpret_cast< sockaddr& >(listen_addr).sa_family);
