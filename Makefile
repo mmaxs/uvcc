@@ -6,7 +6,7 @@ BUILD_ROOT = $(ROOT)/build
 
 # libuv path
 ifdef WINDOWS
-LIBUV = $(ROOT)/libuv-x64-v1.8.0.build8
+LIBUV = $(ROOT)/libuv-x64-v1.9.0.build9
 endif
 
 

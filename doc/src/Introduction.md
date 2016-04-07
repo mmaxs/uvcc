@@ -310,7 +310,7 @@ Then add a non-empty definition for "WINDOWS" environment variable as a first co
 > make WINDOWS=1 example/SOURCE_FILE_BASE_NAME
 
 You will get Windows native binaries built against the libuv Windows release saved
-in /libuv-x64-v1.8.0.build8 subdirectory. If you don't have libuv installed in your Windows system root folder
+in /libuv-x64-v1.9.0.build9 subdirectory. If you don't have libuv installed in your Windows system root folder
 don't forget to copy libuv.dll from the saved libuv release subdirectory and put it along with the resulting executable files.
 
 For debug builds add a non-empty definition for "DEBUG" environment variable as one of the command line arguments
