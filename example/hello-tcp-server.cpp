@@ -1,10 +1,6 @@
 
-
 #include "uvcc.hpp"
 #include <cstdio>
-
-#pragma GCC diagnostic ignored "-Wunused-variable"
-#pragma GCC diagnostic ignored "-Wwrite-strings"
 
 
 #define PRINT_UV_ERR(prefix, code)  do {\

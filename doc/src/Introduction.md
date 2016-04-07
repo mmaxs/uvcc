@@ -193,24 +193,36 @@ uvcc sources are accompanied with several illustrative example programs the sour
 \page p__example_lxjs2012 lxjs2012-demo
 
 The example used by Bert Belder at LXJS 2012 to introduce the libuv basics.
-\sa Video at _youtube.com_: [LXJS 2012 - Bert Belder - libuv](http://www.youtube.com/watch?v=nGn60vDSxQ4).
+\sa Video at _youtube.com_: ["LXJS 2012 - Bert Belder - libuv"](http://www.youtube.com/watch?v=nGn60vDSxQ4).
 
-The original code is slightly modified to work with recent libuv version > 0.10.
+The original code is slightly modified to work with recent libuv versions > 0.10.
 
-\verbatim /example/lxjs2012-demo-uv.c \endverbatim
+\verbatim example/lxjs2012-demo-uv.c \endverbatim
 \includelineno lxjs2012-demo-uv.c
 
 Here is the very same program being rewritten using uvcc.
-One can find that the code becomes more compact and has far less
+One can find that the code has become more compact and has far less
 ["translation noise"](https://books.google.ru/books?id=Uemuaza3fTEC&pg=PT26&dq=%22translation+noise%22&hl=en&sa=X&ved=0ahUKEwigoJ3Dq8bLAhVoc3IKHQGQCFYQ6AEIGTAA).
 
-\verbatim /example/lxjs2012-demo-uvcc.cpp \endverbatim
+\verbatim example/lxjs2012-demo-uvcc.cpp \endverbatim
 \includelineno lxjs2012-demo-uvcc.cpp
 
 
+\sa There are another helpful introductory talks on libuv that can be found at _youtube.com_: \n
+["Introduction to libuv – Thorsten Lorenz"](http://www.youtube.com/watch?v=cLL28s6yb1I), \n
+["using libuv and http parser to build a webserver"](http://www.youtube.com/watch?v=aLm40q7qm3w).
 
-[Introduction to libuv – Thorsten Lorenz](http://www.youtube.com/watch?v=cLL28s6yb1I)
-[using libuv and http parser to build a webserver HD (with captions)](http://www.youtube.com/watch?v=aLm40q7qm3w)
+- - -
+
+Here are the examples of the elementary TCP client and server programs written with uvcc.
+Each program sends a greeting to the remote peer, closes its write side of the TCP connection and
+keeps reading from the remote peer until it closes the connection.
+\verbatim example/hello-tcp-server.cpp \endverbatim
+\includelineno hello-tcp-server.cpp
+\verbatim example/hello-tcp-client.cpp \endverbatim
+\includelineno hello-tcp-client.cpp
+
+
 
 \page p__example_cpio cpio
 
@@ -231,11 +243,11 @@ There are some points that should be mentioned:
 
 .
 
-\verbatim /example/cpio-uv.c \endverbatim
+\verbatim example/cpio-uv.c \endverbatim
 \includelineno cpio-uv.c
 
 The following is the above program being rewritten using uvcc. All the considered points are taken into account by design of uvcc.
-\verbatim /example/cpio-uvcc.cpp \endverbatim
+\verbatim example/cpio-uvcc.cpp \endverbatim
 \includelineno cpio-uvcc.cpp
 
 Here is a performance comparison between the two variants:
@@ -275,7 +287,7 @@ In debug build some diagnostic messages are printed out.
 
 \sa _stackoverflow.com_: ["libuv allocated memory buffers re-use techniques"](http://stackoverflow.com/questions/28511541/libuv-allocated-memory-buffers-re-use-techniques)
 
-\verbatim /example/tee.cpp \endverbatim
+\verbatim example/tee.cpp \endverbatim
 \includelineno tee.cpp
 
 
