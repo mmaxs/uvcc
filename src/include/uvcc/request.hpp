@@ -607,6 +607,25 @@ public: /*constructors*/
 private: /*functions*/
   template< typename = void > static void getaddrinfo_cb(::uv_getaddrinfo_t*, int, ::addrinfo*);
 
+  int run(uv::loop _loop, const char *_hostname, const char *_service, const ::addrinfo *_hints)
+  {
+    auto &request_cb = on_request();
+    if (request_cb)
+    {
+      uv::loop::instance::from(_loop.uv_loop)->ref();
+      instance::from(uv_req)->ref();
+    };
+
+    return uv_status(
+        ::uv_getaddrinfo(
+            static_cast< loop::uv_t* >(_loop.uv_loop),
+            static_cast< uv_t* >(uv_req),
+            request_cb ? static_cast< ::uv_getaddrinfo_cb >(getaddrinfo_cb) : nullptr,
+            _hostname, _service, _hints
+        )
+    );
+  }
+
 public: /*interface*/
   const on_request_t& on_request() const noexcept  { return instance::from(uv_req)->on_request(); }
         on_request_t& on_request()       noexcept  { return instance::from(uv_req)->on_request(); }
@@ -618,20 +637,17 @@ public: /*interface*/
   const ::addrinfo* addrinfo() const noexcept  { return static_cast< uv_t* >(uv_req)->addrinfo; }
 
   /*! \brief Run the request.
-      \sa libuv API documentation: [`uv_getaddrinfo()`](http://docs.libuv.org/en/v1.x/dns.html#c.uv_getaddrinfo). */
-  int run(uv::loop _loop, const char *_hostname, const char *_service, const ::addrinfo *_hints = nullptr)
+      \details For supplying `_hints` argument the appropriate helper function for \ref g__netstruct can be utilized.
+      \sa libuv API documentation: [`uv_getaddrinfo()`](http://docs.libuv.org/en/v1.x/dns.html#c.uv_getaddrinfo).
+      \note If the request callback is empty, the request runs **synchronously**. */
+  int run(uv::loop _loop, const char *_hostname, const char *_service, const ::addrinfo &_hints)
   {
-    uv::loop::instance::from(_loop.uv_loop)->ref();
-    instance::from(uv_req)->ref();
-
-    return uv_status(
-        ::uv_getaddrinfo(
-            static_cast< loop::uv_t* >(_loop.uv_loop),
-            static_cast< uv_t* >(uv_req),
-            getaddrinfo_cb,
-            _hostname, _service, _hints
-        )
-    );
+    return run(std::move(_loop), _hostname, _service, &_hints);
+  }
+  /*! \brief Idem with empty `_hints`. */
+  int run(uv::loop _loop, const char *_hostname, const char *_service)
+  {
+    return run(std::move(_loop), _hostname, _service, nullptr);
   }
 
 public: /*conversion operators*/
@@ -703,18 +719,33 @@ public: /*interface*/
   const char (& service() const noexcept) [NI_MAXSERV]  { return static_cast< uv_t* >(uv_req)->service; }
 
   /*! \brief Run the request.
-      \sa libuv API documentation: [`uv_getnameinfo()`](http://docs.libuv.org/en/v1.x/dns.html#c.uv_getnameinfo). */
+      \sa libuv API documentation: [`uv_getnameinfo()`](http://docs.libuv.org/en/v1.x/dns.html#c.uv_getnameinfo).
+      \note If the request callback is empty, the request runs **synchronously**.
+
+      Available `_NI_FLAGS` are:
++ NI_DGRAM
++ NI_NAMEREQD
++ NI_NOFQDN
++ NI_NUMERICHOST
++ NI_NUMERICSERV
+.
+      \sa Linux: [`getnameinfo()`](http://man7.org/linux/man-pages/man3/getnameinfo.3.html).
+          Windows: [`getnameinfo()`](https://msdn.microsoft.com/en-us/library/ms738532(v=vs.85).aspx). */
   template< typename _T_, typename = std::enable_if_t< is_one_of< _T_, ::sockaddr, ::sockaddr_in, ::sockaddr_in6, ::sockaddr_storage >::value > >
   int run(uv::loop _loop, const _T_ &_sa, int _NI_FLAGS = 0)
   {
-    uv::loop::instance::from(_loop.uv_loop)->ref();
-    instance::from(uv_req)->ref();
+    auto &request_cb = on_request();
+    if (request_cb)
+    {
+      uv::loop::instance::from(_loop.uv_loop)->ref();
+      instance::from(uv_req)->ref();
+    };
 
     return uv_status(
         ::uv_getnameinfo(
             static_cast< loop::uv_t* >(_loop.uv_loop),
             static_cast< uv_t* >(uv_req),
-            getnameinfo_cb,
+            request_cb ? static_cast< ::uv_getnameinfo_cb >(getnameinfo_cb) : nullptr,
             reinterpret_cast< const ::sockaddr* >(&_sa), _NI_FLAGS
         )
     );
