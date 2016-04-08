@@ -62,7 +62,7 @@ public: /*types*/
   using uv_t = ::uv_req_t;
   using on_destroy_t = std::function< void(void *_data) >;
   /*!< \brief The function type of the callback called when the request object is about to be destroyed. */
-  using on_request_t = void;
+  using on_request_t = null_t;
 
 protected: /*types*/
   //! \cond
@@ -72,7 +72,7 @@ protected: /*types*/
   {
   public: /*types*/
     using uv_t = typename _REQUEST_::uv_t;
-    using on_request_t = std::conditional_t< std::is_void< typename _REQUEST_::on_request_t >::value, null_t, typename _REQUEST_::on_request_t >;
+    using on_request_t = typename _REQUEST_::on_request_t;
 
   private: /*types*/
     using supplemental_data_t = typename _REQUEST_::supplemental_data_t;
@@ -529,6 +529,72 @@ public: /*conversion operators*/
 
 
 
+
+/*! \brief The request type for storing a file handle and performing operations on it in synchronous mode. */
+class file : public request
+{
+  //! \cond
+  friend class request::instance< file >;
+  //! \endcond
+
+public: /*types*/
+  using uv_t = ::uv_fs_t;
+  using on_request_t = empty_t;
+
+protected: /*types*/
+  //! \cond
+  struct supplemental_data_t
+  {
+    ::uv_file fd = -1;
+    uv_t *uv_req = nullptr;
+    ~supplemental_data_t()
+    {
+      if (fd >= 0)  ::uv_fs_close(uv_req->loop, uv_req, fd, nullptr);
+      ::uv_fs_req_cleanup(uv_req);
+    }
+  };
+  //! \endcond
+
+private: /*types*/
+  using instance = request::instance< file >;
+
+private: /*constructors*/
+  explicit file(uv_t *_uv_req)
+  {
+    if (_uv_req)  instance::from(_uv_req)->ref();
+    uv_req = _uv_req;
+  }
+
+public: /*constructors*/
+  ~file() = default;
+  file(const char* _path, int _flags, int _mode, uv::loop _loop = uv::loop::Default())
+  {
+    uv_req = instance::create();
+    instance::from(uv_req)->supplemental_data().uv_req = static_cast< uv_t* >(uv_req);
+    uv_status(
+        ::uv_fs_open(static_cast< loop::uv_t* >(_loop), static_cast< uv_t* >(uv_req), _path, _flags, _mode, nullptr)
+    );
+    instance::from(uv_req)->supplemental_data().fd = static_cast< uv_t* >(uv_req)->result;
+  }
+
+  file(const file&) = default;
+  file& operator =(const file&) = default;
+
+  file(file&&) noexcept = default;
+  file& operator =(file&&) noexcept = default;
+
+public: /*interface*/
+  /*! \brief The libuv loop that performed the last operation on this `file` request. */
+  uv::loop loop() const noexcept  { return uv::loop(static_cast< uv_t* >(uv_req)->loop); }
+
+public: /*conversion operators*/
+  explicit operator const uv_t*() const noexcept  { return static_cast< const uv_t* >(uv_req); }
+  explicit operator       uv_t*()       noexcept  { return static_cast<       uv_t* >(uv_req); }
+};
+
+
+
+
 class work : public request
 {
   //! \cond
@@ -631,7 +697,7 @@ public: /*interface*/
         on_request_t& on_request()       noexcept  { return instance::from(uv_req)->on_request(); }
 
   /*! \brief The libuv loop that started this `getaddrinfo` request and where completion will be reported. */
-  uv::loop loop() const noexcept  { return uv::loop{static_cast< uv_t* >(uv_req)->loop}; }
+  uv::loop loop() const noexcept  { return uv::loop(static_cast< uv_t* >(uv_req)->loop); }
 
   /*! \brief The pointer to a `struct addrinfo` containing the request result. */
   const ::addrinfo* addrinfo() const noexcept  { return static_cast< uv_t* >(uv_req)->addrinfo; }
@@ -711,7 +777,7 @@ public: /*interface*/
         on_request_t& on_request()       noexcept  { return instance::from(uv_req)->on_request(); }
 
   /*! \brief The libuv loop that started this `getnameinfo` request and where completion will be reported. */
-  uv::loop loop() const noexcept  { return uv::loop{static_cast< uv_t* >(uv_req)->loop}; }
+  uv::loop loop() const noexcept  { return uv::loop(static_cast< uv_t* >(uv_req)->loop); }
 
   /*! \brief The char array containing the resulting host. It’s null terminated. */
   const char (& host() const noexcept) [NI_MAXHOST]  { return static_cast< uv_t* >(uv_req)->host; }
