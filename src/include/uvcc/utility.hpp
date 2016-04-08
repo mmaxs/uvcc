@@ -86,9 +86,12 @@ template< typename _T_ > struct default_destroy
 #define BUGGY_DOXYGEN
 #undef BUGGY_DOXYGEN
 
-/*! \brief The type of an absent entity.
-    \details Used to substitute nonexistent and `void` types in various template expressions e.g. like `sizeof()`, `alignof()`. */
+/*! \brief The type of an absent entity. Cannot be instantiated.
+    \details Used to substitute nonexistent and `void` types in various template metaprogramming expressions.
+    It may also service as a guard that ensure a template is not instantiated in unexpected manner. */
 struct null_t  { null_t() = delete; };
+/*! \brief The type of an empty entity. Like `null_t` above, but is allowed to be instantiated that might be feasible for code simplicity. */
+struct empty_t { constexpr empty_t() = default; };
 
 
 /*! \brief Checks if a type `_T_` belongs to a type list `_Ts_`.
