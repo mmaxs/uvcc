@@ -38,14 +38,14 @@ that can be associated with the libuv object:
 * [`uv_req_t.data`](http://docs.libuv.org/en/v1.x/request.html#c.uv_req_t.data),
 * [`uv_loop_t.data`](http://docs.libuv.org/en/v1.x/loop.html#c.uv_loop_t.data).
 
-Each of the uvcc classes representing these libuv types provides a destroy callback which is called when the reference count
+Each of the uvcc classes representing these libuv types provides a destroy callback that is called when the reference count
 for the object instance becomes zero:
 * `uv::handle::on_destroy_t`
 * `uv::request::on_destroy_t`
 * `uv::loop::on_destroy_t`
 
 The callback is intended to give the option to manipulate the user-defined data associated with the object
-through the `.data` pointer before the last variable referencing this object is been destroyed.
+through the `.data` pointer before the last variable referencing this object has been destroyed.
 
 For the `uv::handle` calss the destroy callback functionality is based on the underlying libuv API
 [`uv_close_cb`](http://docs.libuv.org/en/v1.x/handle.html#c.uv_close_cb) feature.
@@ -226,7 +226,9 @@ keeps reading from the remote peer until it closes the connection.
 
 \page p__example_cpio cpio
 
-A simple program that copies its stdin to stdout written in pure C using libuv.
+A simple program that copies its `stdin` to `stdout` written in pure C using libuv.
+
+For the sake of simplicity it is assumed that both streams can be handled with as pipes.
 
 There are some points that should be mentioned:
 - [1] The structure describing a write request should be allocated on the heap.
