@@ -90,7 +90,7 @@ template< typename _T_ > struct default_destroy
     \details Used to substitute nonexistent and `void` types in various template metaprogramming expressions.
     It may also service as a guard that ensure a template is not instantiated in unexpected manner. */
 struct null_t  { null_t() = delete; };
-/*! \brief The type of an empty entity. Like `null_t` above, but is allowed to be instantiated that might be feasible for code simplicity. */
+/*! \brief The type of an empty entity. Like `null_t`, but is allowed to be instantiated that might be feasible for code simplicity. */
 struct empty_t { constexpr empty_t() = default; };
 
 

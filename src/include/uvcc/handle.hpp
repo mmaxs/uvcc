@@ -207,8 +207,10 @@ public: /*interface*/
 
   /*! \brief The tag indicating the libuv type of the handle. */
   ::uv_handle_type type() const noexcept  { return static_cast< uv_t* >(uv_handle)->type; }
-  /*! \brief The libuv loop where the handle is running on. */
-  uv::loop loop() const noexcept  { return uv::loop{static_cast< uv_t* >(uv_handle)->loop}; }
+  /*! \brief The libuv loop where the handle is running on.
+      \details It is guaranteed that it will be a valid instance at least within the callback of the requests
+      running with the handle. */
+  uv::loop loop() const noexcept  { return uv::loop(static_cast< uv_t* >(uv_handle)->loop); }
 
   /*! \brief The pointer to the user-defined arbitrary data. libuv and uvcc does not use this field. */
   void* const& data() const noexcept  { return static_cast< uv_t* >(uv_handle)->data; }
@@ -486,7 +488,7 @@ public: /*constructors*/
     uv_handle = instance::create();
     uv_status(::uv_tcp_init_ex(static_cast< uv::loop::uv_t* >(_loop), static_cast< uv_t* >(uv_handle), _flags));
   }
-  /*! \details Create a socket object from an existing OS native socket descriptor.
+  /*! \details Create a socket object from an existing native platform depended socket descriptor.
       \sa libuv API documentation: [`uv_tcp_open()`](http://docs.libuv.org/en/v1.x/tcp.html#c.uv_tcp_open),
                                    [`uv_tcp_init()`](http://docs.libuv.org/en/v1.x/tcp.html#c.uv_tcp_init). */
   tcp(uv::loop _loop, ::uv_os_sock_t _sock, bool _set_blocking)
@@ -552,18 +554,14 @@ template<> tcp stream::accept< tcp >() const
   stream client;
   client.uv_handle = instance::create();
   if (
-    client.uv_status(
-        ::uv_tcp_init(
-            static_cast< instance::uv_t* >(uv_handle)->loop,
-            static_cast< instance::uv_t* >(client.uv_handle)
-        )
-    ) < 0
+    client.uv_status(::uv_tcp_init(
+        static_cast< instance::uv_t* >(uv_handle)->loop,
+        static_cast< instance::uv_t* >(client.uv_handle)
+    )) < 0
   )
     uv_status(client.uv_status());
   else if (
-    uv_status(
-        ::uv_accept(static_cast< stream::uv_t* >(uv_handle), static_cast< stream::uv_t* >(client.uv_handle))
-    ) < 0
+    uv_status(::uv_accept(static_cast< stream::uv_t* >(uv_handle), static_cast< stream::uv_t* >(client))) < 0
   )
     client.uv_status(uv_status());
 
@@ -679,19 +677,15 @@ template<> pipe stream::accept< pipe >() const
   stream client;
   client.uv_handle = instance::create();
   if (
-    client.uv_status(
-        ::uv_pipe_init(
-            static_cast< instance::uv_t* >(uv_handle)->loop,
-            static_cast< instance::uv_t* >(client.uv_handle),
-            static_cast< instance::uv_t* >(uv_handle)->ipc
-        )
-    ) < 0
+    client.uv_status(::uv_pipe_init(
+        static_cast< instance::uv_t* >(uv_handle)->loop,
+        static_cast< instance::uv_t* >(client.uv_handle),
+        static_cast< instance::uv_t* >(uv_handle)->ipc
+    )) < 0
   )
     uv_status(client.uv_status());
   else if (
-    uv_status(
-        ::uv_accept(static_cast< stream::uv_t* >(uv_handle), static_cast< stream::uv_t* >(client.uv_handle))
-    ) < 0
+    uv_status(::uv_accept(static_cast< stream::uv_t* >(uv_handle), static_cast< stream::uv_t* >(client))) < 0
   )
     client.uv_status(uv_status());
 
