@@ -2,6 +2,7 @@
 #include "uvcc.hpp"
 #include <cstdio>
 #include <vector>
+#include <fcntl.h>  // O_*
 
 
 #define PRINT_UV_ERR(prefix, code)  do {\
@@ -14,6 +15,8 @@
 
 uv::pipe in(uv::loop::Default(), fileno(stdin)),
          out(uv::loop::Default(), fileno(stdout));
+
+std::vector< uv::file > files;
 
 
 int main(int _argc, char *_argv[])
@@ -29,6 +32,14 @@ int main(int _argc, char *_argv[])
     PRINT_UV_ERR("stdout open", out.uv_status());
     return out.uv_status();
   };
+
+  for (int i = 1; i < _argc; ++i)
+  {
+    uv::file f(_argv[i], O_CREAT|O_TRUNC/*|_O_WRONLY*/, _S_IREAD|_S_IWRITE);
+    if (f)  files.emplace_back(std::move(f));
+    fprintf(stderr, "file: %s\n", files.back().path());
+  }
+
 
   in.read_start(
       [](uv::handle, std::size_t) -> uv::buffer  // alloc_cb
@@ -50,7 +61,7 @@ int main(int _argc, char *_argv[])
         #endif
         return buf_pool.back();
       },
-      [](uv::stream _stream, ssize_t _nread, uv::buffer _buffer) -> void  // read_cb
+      [](uv::stream _stream, ssize_t _nread, uv::buffer _buf) -> void  // read_cb
       {
         if (_nread < 0)
         {
@@ -81,8 +92,14 @@ int main(int _argc, char *_argv[])
             return wr_pool.back();
           };
 
-          _buffer.len() = _nread;
-          wr().run(out, _buffer);
+          _buf.len() = _nread;
+          wr().run(out, _buf);
+
+          for (auto &f : files)
+          {
+            f.write(_buf);
+            if (!f)  PRINT_UV_ERR(f.path(), f.uv_status());
+          }
         };
       }
   );
