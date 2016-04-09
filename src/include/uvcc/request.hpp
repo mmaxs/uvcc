@@ -13,6 +13,11 @@
 #include <functional>   // function
 #include <utility>      // swap() move()
 #include <type_traits>  // aligned_storage is_standard_layout conditional_t is_void enable_if_t
+#ifdef _WIN32
+#include <io.h>         // _dup()
+#else
+#include <unistd.h>     // dup()
+#endif
 
 
 namespace uv
@@ -350,7 +355,11 @@ public: /*interface*/
     buffer &b = (self->supplemental_data() = std::move(_buf));
     self->ref();
 
-    return uv_status(::uv_write(static_cast< uv_t* >(uv_req), static_cast< stream::uv_t* >(_stream), static_cast< const buffer::uv_t* >(b), b.count(), write_cb));
+    return uv_status(::uv_write(
+        static_cast< uv_t* >(uv_req), static_cast< stream::uv_t* >(_stream),
+        static_cast< const buffer::uv_t* >(b), b.count(),
+        write_cb
+    ));
   }
   /*! \brief The overload for sending handles over a pipe.
       \sa libuv API documentation: [`uv_write2()`](http://docs.libuv.org/en/v1.x/stream.html#c.uv_write2). */
@@ -529,7 +538,6 @@ public: /*conversion operators*/
 
 
 
-
 /*! \brief The request type for storing a file handle and performing operations on it in synchronous mode. */
 class file : public request
 {
@@ -549,7 +557,7 @@ protected: /*types*/
     uv_t *uv_req = nullptr;
     ~supplemental_data_t()
     {
-      if (fd >= 0)  ::uv_fs_close(uv_req->loop, uv_req, fd, nullptr);
+      if (fd >= 0)  ::uv_fs_close(static_cast< uv::loop::uv_t* >(uv::loop::Default()), uv_req, fd, nullptr);
       ::uv_fs_req_cleanup(uv_req);
     }
   };
@@ -567,14 +575,28 @@ private: /*constructors*/
 
 public: /*constructors*/
   ~file() = default;
+  /*! \brief Open and possibly create a file.
+      \sa libuv API documentation: [`uv_fs_open()`](http://docs.libuv.org/en/v1.x/fs.html#c.uv_fs_open).
+
+      The file descriptor will be closed automatically with the use of `uv::loop::Default()`
+      driving loop when the instance reference count has became zero. */
   file(const char* _path, int _flags, int _mode, uv::loop _loop = uv::loop::Default())
   {
     uv_req = instance::create();
     instance::from(uv_req)->supplemental_data().uv_req = static_cast< uv_t* >(uv_req);
-    uv_status(
-        ::uv_fs_open(static_cast< loop::uv_t* >(_loop), static_cast< uv_t* >(uv_req), _path, _flags, _mode, nullptr)
-    );
+    uv_status(::uv_fs_open(
+        static_cast< loop::uv_t* >(_loop), static_cast< uv_t* >(uv_req),
+        _path, _flags, _mode,
+        nullptr
+    ));
     instance::from(uv_req)->supplemental_data().fd = static_cast< uv_t* >(uv_req)->result;
+  }
+  /*! \brief Create a file request object from an existing (possibly duplicated) file descriptor. */
+  file(::uv_file _fd)
+  {
+    uv_req = instance::create();
+    instance::from(uv_req)->supplemental_data().uv_req = static_cast< uv_t* >(uv_req);
+    instance::from(uv_req)->supplemental_data().fd = _fd;
   }
 
   file(const file&) = default;
@@ -584,14 +606,71 @@ public: /*constructors*/
   file& operator =(file&&) noexcept = default;
 
 public: /*interface*/
-  /*! \brief The libuv loop that performed the last operation on this `file` request. */
-  uv::loop loop() const noexcept  { return uv::loop(static_cast< uv_t* >(uv_req)->loop); }
+  /*! \brief Get the cross platform representation of a file handle (mostly being a POSIX-like file descriptor). */
+  ::uv_file fd() const noexcept  { return instance::from(uv_req)->supplemental_data().fd; }
+
+  /*! \brief Duplicate this file descriptor. */
+  ::uv_file dup() const noexcept
+  {
+    ::uv_file fd = instance::from(uv_req)->supplemental_data().fd;
+    if (fd < 0)  return -1;
+#ifdef _WIN32
+    return ::_dup(fd);
+#else
+    return ::dup(fd);
+#endif
+  }
+
+  /*! \brief Read data from the file into the buffers described by `_buf` object.
+      \returns The number of bytes read or relevant [libuv error constant](http://docs.libuv.org/en/v1.x/errors.html#error-constants).
+      \sa libuv API documentation: [`uv_fs_read()`](http://docs.libuv.org/en/v1.x/fs.html#c.uv_fs_read).
+      \sa Linux: [`preadv()`](http://man7.org/linux/man-pages/man2/preadv.2.html). */
+  int read(buffer &_buf, int64_t _offset = -1, uv::loop _loop = uv::loop::Default()) const noexcept
+  {
+    return uv_status(::uv_fs_read(
+        static_cast< loop::uv_t* >(_loop), static_cast< uv_t* >(uv_req),
+        instance::from(uv_req)->supplemental_data().fd,
+        static_cast< const buffer::uv_t* >(_buf), _buf.count(),
+        _offset,
+        nullptr
+    ));
+  }
+  /*! \brief Write data to the file from the buffers described by `_buf` object.
+      \returns The number of bytes written or relevant [libuv error constant](http://docs.libuv.org/en/v1.x/errors.html#error-constants).
+      \sa libuv API documentation: [`uv_fs_write()`](http://docs.libuv.org/en/v1.x/fs.html#c.uv_fs_write).
+      \sa Linux: [`pwritev()`](http://man7.org/linux/man-pages/man2/pwritev.2.html). */
+  int write(const buffer &_buf, int64_t _offset = -1, uv::loop _loop = uv::loop::Default()) noexcept
+  {
+    return uv_status(::uv_fs_write(
+        static_cast< loop::uv_t* >(_loop), static_cast< uv_t* >(uv_req),
+        instance::from(uv_req)->supplemental_data().fd,
+        static_cast< const buffer::uv_t* >(_buf), _buf.count(),
+        _offset,
+        nullptr
+    ));
+  }
+
+  /*! \brief Get information about the file.
+      \details The result of the request is stored internally in the libuv request description structure.
+      Use `uv_status()` member function to check the status of the request completion.
+      \sa libuv API documentation: [`uv_fs_t.statbuf`](http://docs.libuv.org/en/v1.x/fs.html#c.uv_fs_t.statbuf),
+                                   [`uv_stat_t`](http://docs.libuv.org/en/v1.x/fs.html#c.uv_stat_t),
+                                   [`uv_fs_fstat()`](http://docs.libuv.org/en/v1.x/fs.html#c.uv_fs_fstat).
+      \sa Linux: [`fstat()`](http://man7.org/linux/man-pages/man2/fstat.2.html). */
+  const ::uv_stat_t& fstat(uv::loop _loop = uv::loop::Default()) const noexcept
+  {
+    uv_status(::uv_fs_fstat(
+        static_cast< loop::uv_t* >(_loop), static_cast< uv_t* >(uv_req),
+        instance::from(uv_req)->supplemental_data().fd,
+        nullptr
+    ));
+    return static_cast< uv_t* >(uv_req)->statbuf;
+  }
 
 public: /*conversion operators*/
   explicit operator const uv_t*() const noexcept  { return static_cast< const uv_t* >(uv_req); }
   explicit operator       uv_t*()       noexcept  { return static_cast<       uv_t* >(uv_req); }
 };
-
 
 
 
@@ -682,21 +761,19 @@ private: /*functions*/
       instance::from(uv_req)->ref();
     };
 
-    return uv_status(
-        ::uv_getaddrinfo(
-            static_cast< loop::uv_t* >(_loop.uv_loop),
-            static_cast< uv_t* >(uv_req),
-            request_cb ? static_cast< ::uv_getaddrinfo_cb >(getaddrinfo_cb) : nullptr,
-            _hostname, _service, _hints
-        )
-    );
+    return uv_status(::uv_getaddrinfo(
+        static_cast< loop::uv_t* >(_loop), static_cast< uv_t* >(uv_req),
+        request_cb ? static_cast< ::uv_getaddrinfo_cb >(getaddrinfo_cb) : nullptr,
+        _hostname, _service, _hints
+    ));
   }
 
 public: /*interface*/
   const on_request_t& on_request() const noexcept  { return instance::from(uv_req)->on_request(); }
         on_request_t& on_request()       noexcept  { return instance::from(uv_req)->on_request(); }
 
-  /*! \brief The libuv loop that started this `getaddrinfo` request and where completion will be reported. */
+  /*! \brief The libuv loop that started this `getaddrinfo` request and where completion will be reported.
+      \details It is guaranteed that it will be a valid instance at least within the request callback. */
   uv::loop loop() const noexcept  { return uv::loop(static_cast< uv_t* >(uv_req)->loop); }
 
   /*! \brief The pointer to a `struct addrinfo` containing the request result. */
@@ -776,7 +853,8 @@ public: /*interface*/
   const on_request_t& on_request() const noexcept  { return instance::from(uv_req)->on_request(); }
         on_request_t& on_request()       noexcept  { return instance::from(uv_req)->on_request(); }
 
-  /*! \brief The libuv loop that started this `getnameinfo` request and where completion will be reported. */
+  /*! \brief The libuv loop that started this `getnameinfo` request and where completion will be reported.
+      \details It is guaranteed that it will be a valid instance at least within the request callback. */
   uv::loop loop() const noexcept  { return uv::loop(static_cast< uv_t* >(uv_req)->loop); }
 
   /*! \brief The char array containing the resulting host. It’s null terminated. */
@@ -807,14 +885,11 @@ public: /*interface*/
       instance::from(uv_req)->ref();
     };
 
-    return uv_status(
-        ::uv_getnameinfo(
-            static_cast< loop::uv_t* >(_loop.uv_loop),
-            static_cast< uv_t* >(uv_req),
-            request_cb ? static_cast< ::uv_getnameinfo_cb >(getnameinfo_cb) : nullptr,
-            reinterpret_cast< const ::sockaddr* >(&_sa), _NI_FLAGS
-        )
-    );
+    return uv_status(::uv_getnameinfo(
+        static_cast< loop::uv_t* >(_loop), static_cast< uv_t* >(uv_req),
+        request_cb ? static_cast< ::uv_getnameinfo_cb >(getnameinfo_cb) : nullptr,
+        reinterpret_cast< const ::sockaddr* >(&_sa), _NI_FLAGS
+    ));
   }
 
 public: /*conversion operators*/
