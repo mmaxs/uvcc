@@ -93,7 +93,7 @@ protected: /*types*/
     ref_count rc;
     type_storage< on_destroy_t > on_destroy_storage;
     mutable any_ptr supplemental_data_ptr;
-    alignas(::uv_any_handle) uv_t uv_handle;
+    alignas(::uv_any_handle) uv_t uv_handle = {0,};
 
   private: /*constructors*/
     instance() : uv_error(0), Delete(default_delete< instance >::Delete)  {}

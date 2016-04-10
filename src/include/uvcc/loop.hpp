@@ -53,7 +53,7 @@ private: /*types*/
     mutable int uv_error;
     ref_count rc;
     type_storage< on_destroy_t > on_destroy_storage;
-    uv_t uv_loop;
+    uv_t uv_loop = {0,};
 
   private: /*constructors*/
     instance()  { uv_error = ::uv_loop_init(&uv_loop); }
