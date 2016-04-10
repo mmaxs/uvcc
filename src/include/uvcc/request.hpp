@@ -897,7 +897,7 @@ public: /*interface*/
   /*! \brief Run the request.
       \details For supplying `_hints` argument the appropriate helper function for \ref g__netstruct can be utilized.
       \sa libuv API documentation: [`uv_getaddrinfo()`](http://docs.libuv.org/en/v1.x/dns.html#c.uv_getaddrinfo).
-      \note If the request callback is empty, the request runs **synchronously**. */
+      \note If the request callback is empty (has not been set), the request runs **synchronously**. */
   int run(uv::loop _loop, const char *_hostname, const char *_service, const ::addrinfo &_hints)
   {
     return run(std::move(_loop), _hostname, _service, &_hints);
