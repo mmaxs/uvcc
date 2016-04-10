@@ -62,7 +62,6 @@ int main(int _argc, char *_argv[])
         wr.run(client, greeting);
 
         uv::shutdown shut_wr;
-        shut_wr.on_request() = [](uv::shutdown _shut_wr)  { if (!_shut_wr)  PRINT_UV_ERR("shutdown", _shut_wr.uv_status()); };
         shut_wr.run(client);
       }
   );
