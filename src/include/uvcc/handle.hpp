@@ -77,7 +77,7 @@ public: /*types*/
 
 protected: /*types*/
   //! \cond
-  using supplemental_data_t = struct {};
+  using supplemental_data_t = empty_t;
 
   template< class _HANDLE_ > class instance
   {
