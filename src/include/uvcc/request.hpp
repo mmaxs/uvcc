@@ -9,6 +9,7 @@
 
 #include <uv.h>
 #include <cstddef>      // offsetof
+#include <cstring>      // memset()
 #include <memory>       // addressof()
 #include <functional>   // function
 #include <utility>      // swap() move()
@@ -553,12 +554,21 @@ protected: /*types*/
   //! \cond
   struct supplemental_data_t
   {
-    ::uv_file fd = -1;
     uv_t *uv_req = nullptr;
+    uv_t *req_fstat = nullptr;
     ~supplemental_data_t()
     {
-      if (fd >= 0)  ::uv_fs_close(static_cast< uv::loop::uv_t* >(uv::loop::Default()), uv_req, fd, nullptr);
-      ::uv_fs_req_cleanup(uv_req);
+      if (req_fstat)  ::uv_fs_req_cleanup(req_fstat);
+      if (uv_req)
+      {
+        if (uv_req->result >= 0)  // assuming that uv_req->result has been initialized with value < 0
+        {
+          uv_t req_close;
+          ::uv_fs_close(nullptr, &req_close, uv_req->result, nullptr);
+          ::uv_fs_req_cleanup(&req_close);
+        };
+        ::uv_fs_req_cleanup(uv_req);
+      };
     }
   };
   //! \endcond
@@ -580,25 +590,16 @@ public: /*constructors*/
       \sa Linux: [`open()`](http://man7.org/linux/man-pages/man2/open.2.html).
           Windows: [`_open()`](https://msdn.microsoft.com/en-us/library/z0kc8e3z.aspx).
 
-      The file descriptor will be closed automatically with the use of `uv::loop::Default()`
-      driving loop when the instance reference count has became zero. */
-  file(const char *_path, int _flags, int _mode, uv::loop _loop = uv::loop::Default())
+      The file descriptor will be closed automatically when the file instance reference count has became zero. */
+  file(const char *_path, int _flags, int _mode)
   {
     uv_req = instance::create();
     instance::from(uv_req)->supplemental_data().uv_req = static_cast< uv_t* >(uv_req);
     uv_status(::uv_fs_open(
-        static_cast< loop::uv_t* >(_loop), static_cast< uv_t* >(uv_req),
+        nullptr, static_cast< uv_t* >(uv_req),
         _path, _flags, _mode,
         nullptr
     ));
-    instance::from(uv_req)->supplemental_data().fd = static_cast< uv_t* >(uv_req)->result;
-  }
-  /*! \brief Create a file request object from an existing (possibly duplicated) file descriptor. */
-  file(::uv_file _fd)
-  {
-    uv_req = instance::create();
-    instance::from(uv_req)->supplemental_data().uv_req = static_cast< uv_t* >(uv_req);
-    instance::from(uv_req)->supplemental_data().fd = _fd;
   }
 
   file(const file&) = default;
@@ -609,19 +610,18 @@ public: /*constructors*/
 
 public: /*interface*/
   /*! \brief Get the cross platform representation of a file handle (mostly being a POSIX-like file descriptor). */
-  ::uv_file fd() const noexcept  { return instance::from(uv_req)->supplemental_data().fd; }
+  ::uv_file fd() const noexcept  { return static_cast< uv_t* >(uv_req)->result; }
   /*! \brief The file path. */
   const char* path() const noexcept  { return static_cast< uv_t* >(uv_req)->path; }
 
   /*! \brief Duplicate this file descriptor. */
   ::uv_file dup() const noexcept
   {
-    ::uv_file fd = instance::from(uv_req)->supplemental_data().fd;
-    if (fd < 0)  return -1;
+    if (fd() < 0)  return -1;
 #ifdef _WIN32
-    return ::_dup(fd);
+    return ::_dup(fd());
 #else
-    return ::dup(fd);
+    return ::dup(fd());
 #endif
   }
 
@@ -629,29 +629,35 @@ public: /*interface*/
       \returns The number of bytes read or relevant [libuv error constant](http://docs.libuv.org/en/v1.x/errors.html#error-constants).
       \sa libuv API documentation: [`uv_fs_read()`](http://docs.libuv.org/en/v1.x/fs.html#c.uv_fs_read).
       \sa Linux: [`preadv()`](http://man7.org/linux/man-pages/man2/preadv.2.html). */
-  int read(buffer &_buf, int64_t _offset = -1, uv::loop _loop = uv::loop::Default()) const noexcept
+  int read(buffer &_buf, int64_t _offset = -1) const noexcept
   {
-    return uv_status(::uv_fs_read(
-        static_cast< loop::uv_t* >(_loop), static_cast< uv_t* >(uv_req),
-        instance::from(uv_req)->supplemental_data().fd,
+    uv_t req_read;
+    uv_status(::uv_fs_read(
+        nullptr, &req_read,
+        fd(),
         static_cast< const buffer::uv_t* >(_buf), _buf.count(),
         _offset,
         nullptr
     ));
+    ::uv_fs_req_cleanup(&req_read);
+    return uv_status();
   }
   /*! \brief Write data to the file from the buffers described by `_buf` object.
       \returns The number of bytes written or relevant [libuv error constant](http://docs.libuv.org/en/v1.x/errors.html#error-constants).
       \sa libuv API documentation: [`uv_fs_write()`](http://docs.libuv.org/en/v1.x/fs.html#c.uv_fs_write).
       \sa Linux: [`pwritev()`](http://man7.org/linux/man-pages/man2/pwritev.2.html). */
-  int write(const buffer &_buf, int64_t _offset = -1, uv::loop _loop = uv::loop::Default()) noexcept
+  int write(const buffer &_buf, int64_t _offset = -1) noexcept
   {
-    return uv_status(::uv_fs_write(
-        static_cast< loop::uv_t* >(_loop), static_cast< uv_t* >(uv_req),
-        instance::from(uv_req)->supplemental_data().fd,
+    uv_t req_write;
+    uv_status(::uv_fs_write(
+        nullptr, &req_write,
+        fd(),
         static_cast< const buffer::uv_t* >(_buf), _buf.count(),
         _offset,
         nullptr
     ));
+    ::uv_fs_req_cleanup(&req_write);
+    return uv_status();
   }
 
   /*! \brief Get information about the file.
@@ -661,90 +667,117 @@ public: /*interface*/
                                    [`uv_stat_t`](http://docs.libuv.org/en/v1.x/fs.html#c.uv_stat_t),
                                    [`uv_fs_fstat()`](http://docs.libuv.org/en/v1.x/fs.html#c.uv_fs_fstat).
       \sa Linux: [`fstat()`](http://man7.org/linux/man-pages/man2/fstat.2.html). */
-  const ::uv_stat_t& fstat(uv::loop _loop = uv::loop::Default()) const noexcept
+  const ::uv_stat_t& fstat() const noexcept
   {
+    uv_t* &req_fstat = instance::from(uv_req)->supplemental_data().req_fstat;
+    if (!req_fstat)
+    {
+      req_fstat = new uv_t;
+      std::memset(req_fstat, 0, sizeof(*req_fstat));
+    }
+    else
+      ::uv_fs_req_cleanup(req_fstat);
+
     uv_status(::uv_fs_fstat(
-        static_cast< loop::uv_t* >(_loop), static_cast< uv_t* >(uv_req),
-        instance::from(uv_req)->supplemental_data().fd,
+        nullptr, req_fstat,
+        fd(),
         nullptr
     ));
-    return static_cast< uv_t* >(uv_req)->statbuf;
+    return req_fstat->statbuf;
   }
 
   /*! \brief Synchronize all modified file's in-core data with storage.
       \sa libuv API documentation: [`uv_fs_fsync()`](http://docs.libuv.org/en/v1.x/fs.html#c.uv_fs_fsync).
       \sa Linux: [`fsync()`](http://man7.org/linux/man-pages/man2/fsync.2.html). */
-  int fsync(uv::loop _loop = uv::loop::Default()) noexcept
+  int fsync() noexcept
   {
-    return uv_status(::uv_fs_fsync(
-        static_cast< loop::uv_t* >(_loop), static_cast< uv_t* >(uv_req),
-        instance::from(uv_req)->supplemental_data().fd,
+    uv_t req_fsync;
+    uv_status(::uv_fs_fsync(
+        nullptr, &req_fsync,
+        fd(),
         nullptr
     ));
+    ::uv_fs_req_cleanup(&req_fsync);
+    return uv_status();
   }
   /*! \brief Synchronize modified file's data with storage excluding
       flushing unnecessary metadata to reduce disk activity.
       \sa libuv API documentation: [`uv_fs_fdatasync()`](http://docs.libuv.org/en/v1.x/fs.html#c.uv_fs_fdatasync).
       \sa Linux: [`fdatasync()`](http://man7.org/linux/man-pages/man2/fdatasync.2.html). */
-  int fdatasync(uv::loop _loop = uv::loop::Default()) noexcept
+  int fdatasync() noexcept
   {
-    return uv_status(::uv_fs_fdatasync(
-        static_cast< loop::uv_t* >(_loop), static_cast< uv_t* >(uv_req),
-        instance::from(uv_req)->supplemental_data().fd,
+    uv_t req_fdatasync;
+    uv_status(::uv_fs_fdatasync(
+        nullptr, &req_fdatasync,
+        fd(),
         nullptr
     ));
+    ::uv_fs_req_cleanup(&req_fdatasync);
+    return uv_status();
   }
 
   /*! \brief Truncate the file to a specified length.
       \sa libuv API documentation: [`uv_fs_ftruncate()`](http://docs.libuv.org/en/v1.x/fs.html#c.uv_fs_ftruncate).
       \sa Linux: [`ftruncate()`](http://man7.org/linux/man-pages/man2/ftruncate.2.html). */
-  int ftruncate(int64_t _offset, uv::loop _loop = uv::loop::Default()) noexcept
+  int ftruncate(int64_t _offset) noexcept
   {
-    return uv_status(::uv_fs_ftruncate(
-        static_cast< loop::uv_t* >(_loop), static_cast< uv_t* >(uv_req),
-        instance::from(uv_req)->supplemental_data().fd,
+    uv_t req_ftruncate;
+    uv_status(::uv_fs_ftruncate(
+        nullptr, &req_ftruncate,
+        fd(),
         _offset,
         nullptr
     ));
+    ::uv_fs_req_cleanup(&req_ftruncate);
+    return uv_status();
   }
 
   /*! \brief Change permissions of the file.
       \sa libuv API documentation: [`uv_fs_fchmod()`](http://docs.libuv.org/en/v1.x/fs.html#c.uv_fs_fchmod).
       \sa Linux: [`fchmod()`](http://man7.org/linux/man-pages/man2/fchmod.2.html). */
-  int fchmod(int _mode, uv::loop _loop = uv::loop::Default())
+  int fchmod(int _mode)
   {
-    return uv_status(::uv_fs_fchmod(
-        static_cast< loop::uv_t* >(_loop), static_cast< uv_t* >(uv_req),
-        instance::from(uv_req)->supplemental_data().fd,
+    uv_t req_fchmod;
+    uv_status(::uv_fs_fchmod(
+        nullptr, &req_fchmod,
+        fd(),
         _mode,
         nullptr
     ));
+    ::uv_fs_req_cleanup(&req_fchmod);
+    return uv_status();
   }
   /*! \brief Change ownership of the file.
       \note Not implemented on Windows.
       \sa libuv API documentation: [`uv_fs_fchown()`](http://docs.libuv.org/en/v1.x/fs.html#c.uv_fs_fchown).
       \sa Linux: [`fchown()`](http://man7.org/linux/man-pages/man2/fchown.2.html). */
-  int fchown(::uv_uid_t _uid, ::uv_gid_t _gid, uv::loop _loop = uv::loop::Default())
+  int fchown(::uv_uid_t _uid, ::uv_gid_t _gid)
   {
-    return uv_status(::uv_fs_fchown(
-        static_cast< loop::uv_t* >(_loop), static_cast< uv_t* >(uv_req),
-        instance::from(uv_req)->supplemental_data().fd,
+    uv_t req_fchown;
+    uv_status(::uv_fs_fchown(
+        nullptr, &req_fchown,
+        fd(),
         _uid, _gid,
         nullptr
     ));
+    ::uv_fs_req_cleanup(&req_fchown);
+    return uv_status();
   }
 
   /*! \brief Change file timestamps.
       \sa libuv API documentation: [`uv_fs_futime()`](http://docs.libuv.org/en/v1.x/fs.html#c.uv_fs_futime).
       \sa Linux: [`futimes()`](http://man7.org/linux/man-pages/man3/futimes.3.html). */
-  int futime(double _atime, double _mtime, uv::loop _loop = uv::loop::Default())
+  int futime(double _atime, double _mtime)
   {
-    return uv_status(::uv_fs_futime(
-        static_cast< loop::uv_t* >(_loop), static_cast< uv_t* >(uv_req),
-        instance::from(uv_req)->supplemental_data().fd,
+    uv_t req_futime;
+    uv_status(::uv_fs_futime(
+        nullptr, &req_futime,
+        fd(),
         _atime, _mtime,
         nullptr
     ));
+    ::uv_fs_req_cleanup(&req_futime);
+    return uv_status();
   }
 
 public: /*conversion operators*/
@@ -841,7 +874,7 @@ private: /*functions*/
       instance::from(uv_req)->ref();
     };
 
-    ::uv_freeaddrinfo(static_cast< uv_t* >(uv_req)->addrinfo);  // it is assumed that *uv_req has initially been zeroed 
+    ::uv_freeaddrinfo(static_cast< uv_t* >(uv_req)->addrinfo);  // assuming that *uv_req has initially been zeroed
 
     return uv_status(::uv_getaddrinfo(
         static_cast< loop::uv_t* >(_loop), static_cast< uv_t* >(uv_req),

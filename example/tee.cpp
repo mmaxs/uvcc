@@ -35,9 +35,11 @@ int main(int _argc, char *_argv[])
 
   for (int i = 1; i < _argc; ++i)
   {
-    uv::file f(_argv[i], O_CREAT|O_TRUNC/*|_O_WRONLY*/, _S_IREAD|_S_IWRITE);
-    if (f)  files.emplace_back(std::move(f));
-    fprintf(stderr, "file: %s\n", files.back().path());
+    uv::file f(_argv[i], O_CREAT|O_TRUNC|_O_WRONLY, _S_IREAD|_S_IWRITE);
+    if (f)
+      files.emplace_back(std::move(f));
+    else
+      PRINT_UV_ERR(f.path(), f.uv_status());
   }
 
 
