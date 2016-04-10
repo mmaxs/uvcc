@@ -71,7 +71,7 @@ public: /*types*/
 
 protected: /*types*/
   //! \cond
-  using supplemental_data_t = struct {};
+  using supplemental_data_t = empty_t;
 
   template< class _REQUEST_ > class instance
   {
@@ -91,7 +91,7 @@ protected: /*types*/
     static_assert(sizeof(on_request_storage) <= 32, "non-static layout structure");
     alignas(32) mutable type_storage< supplemental_data_t > supplemental_data_storage;
     static_assert(sizeof(supplemental_data_storage) <= 32, "non-static layout structure");
-    alignas(32) uv_t uv_req;
+    alignas(32) uv_t uv_req = {0,};  // must be zeroed!
 
   private: /*constructors*/
     instance() : uv_error(0), Delete(default_delete< instance >::Delete)  {}
@@ -800,8 +800,8 @@ protected: /*types*/
   //! \cond
   struct supplemental_data_t
   {
-    const ::addrinfo *addrinfo = nullptr;
-    ~supplemental_data_t()  { ::uv_freeaddrinfo(const_cast< ::addrinfo* >(addrinfo)); }
+    uv_t *uv_req = nullptr;
+    ~supplemental_data_t()  { if (uv_req)  ::uv_freeaddrinfo(uv_req->addrinfo); }
   };
   //! \endcond
 
@@ -820,7 +820,7 @@ public: /*constructors*/
   getaddrinfo()
   {
     uv_req = instance::create();
-    instance::from(uv_req)->supplemental_data().addrinfo = addrinfo();
+    instance::from(uv_req)->supplemental_data().uv_req = static_cast< uv_t* >(uv_req);
   }
 
   getaddrinfo(const getaddrinfo&) = default;
@@ -840,6 +840,8 @@ private: /*functions*/
       uv::loop::instance::from(_loop.uv_loop)->ref();
       instance::from(uv_req)->ref();
     };
+
+    ::uv_freeaddrinfo(static_cast< uv_t* >(uv_req)->addrinfo);  // it is assumed that *uv_req has initially been zeroed 
 
     return uv_status(::uv_getaddrinfo(
         static_cast< loop::uv_t* >(_loop), static_cast< uv_t* >(uv_req),
@@ -938,9 +940,9 @@ public: /*interface*/
   uv::loop loop() const noexcept  { return uv::loop(static_cast< uv_t* >(uv_req)->loop); }
 
   /*! \brief The char array containing the resulting host. It’s null terminated. */
-  const char (& host() const noexcept) [NI_MAXHOST]  { return static_cast< uv_t* >(uv_req)->host; }
+  const char (& host() const noexcept)[NI_MAXHOST]  { return static_cast< uv_t* >(uv_req)->host; }
   /*! \brief The char array containing the resulting service. It’s null terminated. */
-  const char (& service() const noexcept) [NI_MAXSERV]  { return static_cast< uv_t* >(uv_req)->service; }
+  const char (& service() const noexcept)[NI_MAXSERV]  { return static_cast< uv_t* >(uv_req)->service; }
 
   /*! \brief Run the request.
       \sa libuv API documentation: [`uv_getnameinfo()`](http://docs.libuv.org/en/v1.x/dns.html#c.uv_getnameinfo).
