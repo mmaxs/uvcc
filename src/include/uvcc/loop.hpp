@@ -22,16 +22,16 @@ class handle;
 /*! \defgroup doxy_loop Event loop
     \brief The I/O event loop.
     \sa libuv API documentation: [the I/O loop](http://docs.libuv.org/en/v1.x/design.html#the-i-o-loop). */
-//! \{
 
-
-/*! \brief The I/O event loop class.
+/*! \ingroup doxy_loop
+    \brief The I/O event loop class.
     \details All event loops (including the default one) are the instances of this class.
     \sa libuv API documentation: [`uv_loop_t`](http://docs.libuv.org/en/v1.x/loop.html#uv-loop-t-event-loop). */
 class loop
 {
   //! \cond
   friend class handle;
+  friend class fs;
   friend class getaddrinfo;
   friend class getnameinfo;
   //! \endcond
@@ -220,7 +220,6 @@ public: /*conversion operators*/
 };
 
 
-//! \}
 }
 
 

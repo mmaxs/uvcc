@@ -6,6 +6,7 @@
 #include "uvcc/request-base.hpp"
 #include "uvcc/handle-fs.hpp"
 #include "uvcc/buffer.hpp"
+#include "uvcc/loop.hpp"
 
 #include <uv.h>
 #include <cstring>      // memset()
@@ -22,7 +23,7 @@ namespace uv
 
 
 /*! \ingroup doxy_request
-    \brief ...
+    \brief The base calss for filesystem requests.
     \sa libuv API documentation: [Filesystem operations](http://docs.libuv.org/en/v1.x/fs.html#filesystem-operations). */
 class fs : public request
 {
@@ -32,10 +33,21 @@ class fs : public request
 
 public: /*types*/
   using uv_t = ::uv_fs_t;
-  using on_request_t = std::function< void(int) >;
+
+  class file;
 
 private: /*types*/
   using instance = request::instance< fs >;
+
+private: /*constructors*/
+  explicit fs(uv_t *_uv_req)
+  {
+    if (_uv_req)  instance::from(_uv_req)->ref();
+    uv_req = _uv_req;
+  }
+
+protected: /*constructors*/
+  fs() noexcept = default;
 
 public: /*constructors*/
   ~fs() = default;
@@ -47,8 +59,11 @@ public: /*constructors*/
   fs& operator =(fs&&) noexcept = default;
 
 public: /*interface*/
-  const on_request_t& on_request() const noexcept  { return instance::from(uv_req)->on_request(); }
-        on_request_t& on_request()       noexcept  { return instance::from(uv_req)->on_request(); }
+  /*! \brief The tag indicating a libuv subtype of the filesystem request.
+      \sa libuv API documentation: [`uv_fs_type`](http://docs.libuv.org/en/v1.x/fs.html#c.uv_fs_type). */
+  ::uv_fs_type fs_type() const noexcept  { return static_cast< uv_t* >(uv_req)->fs_type; }
+  /*! \brief The libuv loop that started this filesystem request and where completion will be reported. */
+  uv::loop loop() const noexcept  { return uv::loop(static_cast< uv_t* >(uv_req)->loop); }
 
 public: /*conversion operators*/
   explicit operator const uv_t*() const noexcept  { return static_cast< const uv_t* >(uv_req); }
@@ -56,70 +71,130 @@ public: /*conversion operators*/
 };
 
 
-
-/*! \ingroup doxy_request
-    \brief The request type for storing a file handle and performing operations on it in synchronous mode. */
-class file : public request
+/*! \brief The open file handle. */
+class fs::file
 {
-  //! \cond
-  friend class request::instance< file >;
-  //! \endcond
-
 public: /*types*/
   using uv_t = ::uv_fs_t;
-  using on_request_t = empty_t;
-
-protected: /*types*/
-  //! \cond
-  struct supplemental_data_t
-  {
-    uv_t *uv_req = nullptr;
-    uv_t *req_fstat = nullptr;
-    ~supplemental_data_t()
-    {
-      if (req_fstat)  ::uv_fs_req_cleanup(req_fstat);
-      if (uv_req)
-      {
-        if (uv_req->result >= 0)  // assuming that uv_req->result has been initialized with value < 0
-        {
-          uv_t req_close;
-          ::uv_fs_close(nullptr, &req_close, uv_req->result, nullptr);
-          ::uv_fs_req_cleanup(&req_close);
-        };
-        ::uv_fs_req_cleanup(uv_req);
-      };
-    }
-  };
-  //! \endcond
+  using on_destroy_t = std::function< void(void *_data) >;
+  /*!< \brief The function type of the callback called when the file handle has been closed and is about to be destroyed. */
+  using on_open_t = std::function< void(file) >;
+  /*!< \brief The function type of the callback called after the asynchronous open operation has been completed. */
+  using on_read_t = std::function< void(file _file, ssize_t _nread, buffer _buffer) >;
+  /*!< \brief The function type of the callback called by `read_start()` when data was read from the file. */
 
 private: /*types*/
-  using instance = request::instance< file >;
+  class instance
+  {
+  private: /*data*/
+    mutable int uv_error;
+    ref_count rc;
+    type_storage< on_destroy_t > on_destroy_storage;
+    type_storage< on_open_t > on_open_storage;
+    type_storage< on_read_t > on_read_storage;
+    uv_t uv_fs = { 0,};
+
+  private: /*constructors*/
+    instance() : uv_error(0)  { uv_fs.result = -1; }
+
+  public: /*constructors*/
+    ~instance() = default;
+
+    instance(const instance&) = delete;
+    instance& operator =(const instance&) = delete;
+
+    instance(instance&&) = delete;
+    instance& operator =(instance&&) = delete;
+
+  private: /*functions*/
+    void destroy()
+    {
+      if (uv_fs.result >= 0)  // assuming that uv_fs.result has been initialized with value < 0
+      {
+        uv_t req_close;
+        ::uv_fs_close(nullptr, &req_close, uv_fs.result, nullptr);
+        ::uv_fs_req_cleanup(&req_close);
+      };
+
+      auto &destroy_cb = on_destroy_storage.value();
+      if (destroy_cb)  destroy_cb(uv_fs.data);
+
+      ::uv_fs_req_cleanup(&uv_fs);
+      delete this;
+    }
+
+  public: /*interface*/
+    static uv_t* create()  { return std::addressof((new instance())->uv_fs); }
+
+    constexpr static instance* from(uv_t *_uv_fs) noexcept
+    {
+      static_assert(std::is_standard_layout< instance >::value, "not a standard layout type");
+      return reinterpret_cast< instance* >(reinterpret_cast< char* >(_uv_fs) - offsetof(instance, uv_fs));
+    }
+
+    on_destroy_t& on_destroy() noexcept  { return on_destroy_storage.value(); }
+    on_open_t& on_open() noexcept  { return on_open_storage.value(); }
+    on_read_t& on_read() noexcept  { return on_read_storage.value(); }
+
+    void ref()  { rc.inc(); }
+    void unref() noexcept  { if (rc.dec() == 0)  destroy(); }
+    ref_count::type nrefs() const noexcept  { return rc.value(); }
+
+    int& uv_status() const noexcept  { return uv_error; }
+  };
+
+private: /*data*/
+  uv_t *uv_fs;
 
 private: /*constructors*/
-  explicit file(uv_t *_uv_req)
+  explicit file(uv_t *_uv_fs)
   {
-    if (_uv_req)  instance::from(_uv_req)->ref();
-    uv_req = _uv_req;
+    if (_uv_fs)  instance::from(_uv_fs)->ref();
+    uv_fs = _uv_fs;
   }
 
 public: /*constructors*/
   ~file() = default;
-  /*! \brief Open and possibly create a file.
+
+  /*! \name File handle constructors - open and possibly create a file:
       \sa libuv API documentation: [`uv_fs_open()`](http://docs.libuv.org/en/v1.x/fs.html#c.uv_fs_open).
       \sa Linux: [`open()`](http://man7.org/linux/man-pages/man2/open.2.html).
           Windows: [`_open()`](https://msdn.microsoft.com/en-us/library/z0kc8e3z.aspx).
 
-      The file descriptor will be closed automatically when the file instance reference count has became zero. */
+      The file descriptor will be closed automatically when the file handle reference count has became zero. */
+  //! \{
+  /*! \brief Open and possibly create a file _synchronously_. */
   file(const char *_path, int _flags, int _mode)
   {
-    uv_req = instance::create();
-    instance::from(uv_req)->supplemental_data().uv_req = static_cast< uv_t* >(uv_req);
+    uv_fs = instance::create();
     uv_status(::uv_fs_open(
-        nullptr, static_cast< uv_t* >(uv_req),
+        nullptr, uv_fs,
         _path, _flags, _mode,
         nullptr
     ));
   }
+  /*! \brief Open and possibly create a file.
+      \note If the `_open_cb` callback is empty the operation is completed _synchronously_
+       (and `_loop` parameter is ignored), otherwise it will be performed _asynchronously_. */
+  file(uv::loop _loop, const char *_path, int _flags, int _mode, const on_open_t &_open_cb)
+  {
+    uv_fs = instance::create();
+
+    if (_open_cb)
+    {
+      instance::from(uv_fs)->on_open() = _open_cb;
+
+      uv::loop::instance::from(_loop.uv_loop)->ref();
+      instance::from(uv_fs)->ref();
+    };
+
+    uv_status(::uv_fs_open(
+        static_cast< loop::uv_t* >(_loop), uv_fs,
+        _path, _flags, _mode,
+        _open_cb ? static_cast< ::uv_fs_cb >(open_cb) : nullptr
+    ));
+  }
+  //! \}
 
   file(const file&) = default;
   file& operator =(const file&) = default;
@@ -127,11 +202,29 @@ public: /*constructors*/
   file(file&&) noexcept = default;
   file& operator =(file&&) noexcept = default;
 
+private: /*functions*/
+  template< typename = void > static void open_cb(::uv_fs_t*);
+
+  int uv_status(int _value) const noexcept  { return (instance::from(uv_fs)->uv_status() = _value); }
+
 public: /*interface*/
+  void swap(file &_that) noexcept  { std::swap(uv_fs, _that.uv_fs); }
+  /*! \brief The current number of existing references to the same object as this request variable refers to. */
+  long nrefs() const noexcept  { return instance::from(uv_fs)->nrefs(); }
+  /*! \brief The status value returned by the last executed libuv API function on this handle. */
+  int uv_status() const noexcept  { return instance::from(uv_fs)->uv_status(); }
+
+  const on_destroy_t& on_destroy() const noexcept  { return instance::from(uv_fs)->on_destroy(); }
+        on_destroy_t& on_destroy()       noexcept  { return instance::from(uv_fs)->on_destroy(); }
+
+  /*! \brief The pointer to the user-defined arbitrary data. libuv and uvcc does not use this field. */
+  void* const& data() const noexcept  { return static_cast< uv_t* >(uv_fs)->data; }
+  void*      & data()       noexcept  { return static_cast< uv_t* >(uv_fs)->data; }
+
   /*! \brief Get the cross platform representation of a file handle (mostly being a POSIX-like file descriptor). */
-  ::uv_file fd() const noexcept  { return static_cast< uv_t* >(uv_req)->result; }
+  ::uv_file fd() const noexcept  { return static_cast< uv_t* >(uv_fs)->result; }
   /*! \brief The file path. */
-  const char* path() const noexcept  { return static_cast< uv_t* >(uv_req)->path; }
+  const char* path() const noexcept  { return static_cast< uv_t* >(uv_fs)->path; }
 
   /*! \brief Duplicate this file descriptor. */
   ::uv_file dup() const noexcept
@@ -143,12 +236,12 @@ public: /*interface*/
     return ::dup(fd());
 #endif
   }
-
+#if 0
   /*! \brief Read data from the file into the buffers described by `_buf` object.
       \returns The number of bytes read or relevant [libuv error constant](http://docs.libuv.org/en/v1.x/errors.html#error-constants).
       \sa libuv API documentation: [`uv_fs_read()`](http://docs.libuv.org/en/v1.x/fs.html#c.uv_fs_read).
       \sa Linux: [`preadv()`](http://man7.org/linux/man-pages/man2/preadv.2.html). */
-  int read(buffer &_buf, int64_t _offset = -1) const noexcept
+  int read_start(buffer &_buf, int64_t _offset = -1) const noexcept
   {
     uv_t req_read;
     uv_status(::uv_fs_read(
@@ -161,149 +254,37 @@ public: /*interface*/
     ::uv_fs_req_cleanup(&req_read);
     return uv_status();
   }
-  /*! \brief Write data to the file from the buffers described by `_buf` object.
-      \returns The number of bytes written or relevant [libuv error constant](http://docs.libuv.org/en/v1.x/errors.html#error-constants).
-      \sa libuv API documentation: [`uv_fs_write()`](http://docs.libuv.org/en/v1.x/fs.html#c.uv_fs_write).
-      \sa Linux: [`pwritev()`](http://man7.org/linux/man-pages/man2/pwritev.2.html). */
-  int write(const buffer &_buf, int64_t _offset = -1) noexcept
-  {
-    uv_t req_write;
-    uv_status(::uv_fs_write(
-        nullptr, &req_write,
-        fd(),
-        static_cast< const buffer::uv_t* >(_buf), _buf.count(),
-        _offset,
-        nullptr
-    ));
-    ::uv_fs_req_cleanup(&req_write);
-    return uv_status();
-  }
-
-  /*! \brief Get information about the file.
-      \details The result of the request is stored internally in the libuv request description structure.
-      Use `uv_status()` member function to check the status of the request completion.
-      \sa libuv API documentation: [`uv_fs_t.statbuf`](http://docs.libuv.org/en/v1.x/fs.html#c.uv_fs_t.statbuf),
-                                   [`uv_stat_t`](http://docs.libuv.org/en/v1.x/fs.html#c.uv_stat_t),
-                                   [`uv_fs_fstat()`](http://docs.libuv.org/en/v1.x/fs.html#c.uv_fs_fstat).
-      \sa Linux: [`fstat()`](http://man7.org/linux/man-pages/man2/fstat.2.html). */
-  const ::uv_stat_t& fstat() const noexcept
-  {
-    uv_t* &req_fstat = instance::from(uv_req)->supplemental_data().req_fstat;
-    if (!req_fstat)
-    {
-      req_fstat = new uv_t;
-      std::memset(req_fstat, 0, sizeof(*req_fstat));
-    }
-    else
-      ::uv_fs_req_cleanup(req_fstat);
-
-    uv_status(::uv_fs_fstat(
-        nullptr, req_fstat,
-        fd(),
-        nullptr
-    ));
-    return req_fstat->statbuf;
-  }
-
-  /*! \brief Synchronize all modified file's in-core data with storage.
-      \sa libuv API documentation: [`uv_fs_fsync()`](http://docs.libuv.org/en/v1.x/fs.html#c.uv_fs_fsync).
-      \sa Linux: [`fsync()`](http://man7.org/linux/man-pages/man2/fsync.2.html). */
-  int fsync() noexcept
-  {
-    uv_t req_fsync;
-    uv_status(::uv_fs_fsync(
-        nullptr, &req_fsync,
-        fd(),
-        nullptr
-    ));
-    ::uv_fs_req_cleanup(&req_fsync);
-    return uv_status();
-  }
-  /*! \brief Synchronize modified file's data with storage excluding
-      flushing unnecessary metadata to reduce disk activity.
-      \sa libuv API documentation: [`uv_fs_fdatasync()`](http://docs.libuv.org/en/v1.x/fs.html#c.uv_fs_fdatasync).
-      \sa Linux: [`fdatasync()`](http://man7.org/linux/man-pages/man2/fdatasync.2.html). */
-  int fdatasync() noexcept
-  {
-    uv_t req_fdatasync;
-    uv_status(::uv_fs_fdatasync(
-        nullptr, &req_fdatasync,
-        fd(),
-        nullptr
-    ));
-    ::uv_fs_req_cleanup(&req_fdatasync);
-    return uv_status();
-  }
-
-  /*! \brief Truncate the file to a specified length.
-      \sa libuv API documentation: [`uv_fs_ftruncate()`](http://docs.libuv.org/en/v1.x/fs.html#c.uv_fs_ftruncate).
-      \sa Linux: [`ftruncate()`](http://man7.org/linux/man-pages/man2/ftruncate.2.html). */
-  int ftruncate(int64_t _offset) noexcept
-  {
-    uv_t req_ftruncate;
-    uv_status(::uv_fs_ftruncate(
-        nullptr, &req_ftruncate,
-        fd(),
-        _offset,
-        nullptr
-    ));
-    ::uv_fs_req_cleanup(&req_ftruncate);
-    return uv_status();
-  }
-
-  /*! \brief Change permissions of the file.
-      \sa libuv API documentation: [`uv_fs_fchmod()`](http://docs.libuv.org/en/v1.x/fs.html#c.uv_fs_fchmod).
-      \sa Linux: [`fchmod()`](http://man7.org/linux/man-pages/man2/fchmod.2.html). */
-  int fchmod(int _mode)
-  {
-    uv_t req_fchmod;
-    uv_status(::uv_fs_fchmod(
-        nullptr, &req_fchmod,
-        fd(),
-        _mode,
-        nullptr
-    ));
-    ::uv_fs_req_cleanup(&req_fchmod);
-    return uv_status();
-  }
-  /*! \brief Change ownership of the file.
-      \note Not implemented on Windows.
-      \sa libuv API documentation: [`uv_fs_fchown()`](http://docs.libuv.org/en/v1.x/fs.html#c.uv_fs_fchown).
-      \sa Linux: [`fchown()`](http://man7.org/linux/man-pages/man2/fchown.2.html). */
-  int fchown(::uv_uid_t _uid, ::uv_gid_t _gid)
-  {
-    uv_t req_fchown;
-    uv_status(::uv_fs_fchown(
-        nullptr, &req_fchown,
-        fd(),
-        _uid, _gid,
-        nullptr
-    ));
-    ::uv_fs_req_cleanup(&req_fchown);
-    return uv_status();
-  }
-
-  /*! \brief Change file timestamps.
-      \sa libuv API documentation: [`uv_fs_futime()`](http://docs.libuv.org/en/v1.x/fs.html#c.uv_fs_futime).
-      \sa Linux: [`futimes()`](http://man7.org/linux/man-pages/man3/futimes.3.html). */
-  int futime(double _atime, double _mtime)
-  {
-    uv_t req_futime;
-    uv_status(::uv_fs_futime(
-        nullptr, &req_futime,
-        fd(),
-        _atime, _mtime,
-        nullptr
-    ));
-    ::uv_fs_req_cleanup(&req_futime);
-    return uv_status();
-  }
-
+  int read_stop() const  { return 0; }
+#endif
 public: /*conversion operators*/
-  explicit operator const uv_t*() const noexcept  { return static_cast< const uv_t* >(uv_req); }
-  explicit operator       uv_t*()       noexcept  { return static_cast<       uv_t* >(uv_req); }
+  explicit operator const uv_t*() const noexcept  { return static_cast< const uv_t* >(uv_fs); }
+  explicit operator       uv_t*()       noexcept  { return static_cast<       uv_t* >(uv_fs); }
+
+  explicit operator bool() const noexcept  { return (uv_status() >= 0); }  /*!< \brief Equivalent to `(uv_status() >= 0)`. */
 };
 
+template< typename >
+void fs::file::open_cb(::uv_fs_t *_uv_fs)
+{
+  auto self = instance::from(_uv_fs);
+  self->uv_status() = _uv_fs->result;
+
+  ref_guard< uv::loop::instance > unref_loop(*uv::loop::instance::from(_uv_fs->loop), adopt_ref);
+  ref_guard< instance > unref_req(*self, adopt_ref);
+
+  auto &open_cb = self->on_open();
+  if (open_cb)  open_cb(file(_uv_fs));
+}
+
+
+}
+
+
+namespace std
+{
+
+//! \ingroup doxy_request
+template<> inline void swap(uv::fs::file &_this, uv::fs::file &_that) noexcept  { _this.swap(_that); }
 
 }
 
