@@ -62,7 +62,7 @@ as part of the variable's destructor.
 
 
 
-\addtogroup g__buffer
+\addtogroup doxy_buffer
 \details
 [`uv_buf_t`]: http://docs.libuv.org/en/latest/misc.html#c.uv_buf_t "libuv"
 [`iovec`]: http://man7.org/linux/man-pages/man2/readv.2.html "readv(2)"
@@ -159,7 +159,7 @@ supported for the purposes of the `stream::read_start()` and `udp::recv_start()`
 
 
 
-\addtogroup g__handle
+\addtogroup doxy_handle
 \details
 \note uvcc handle objects have no interface functions corresponding to the following libuv API functions that control
 whether a handle is [referenced by the event loop](http://docs.libuv.org/en/v1.x/handle.html#reference-counting)

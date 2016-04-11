@@ -25,7 +25,7 @@ class udp;
 class udp_send;
 
 
-/*! \defgroup g__buffer Buffer for I/O operations */
+/*! \defgroup doxy_buffer Buffer for I/O operations */
 //! \{
 
 
@@ -239,7 +239,7 @@ using on_buffer_t = std::function< buffer(handle _handle, std::size_t _suggested
 namespace std
 {
 
-//! \ingroup g__buffer
+//! \ingroup doxy_buffer
 template<> inline void swap(uv::buffer &_this, uv::buffer &_that) noexcept  { _this.swap(_that); }
 
 }

@@ -7,7 +7,7 @@
 #include <uv.h>
 #include <cstddef>      // offsetof
 #include <functional>   // function
-#include <type_traits>  // is_standard_layout enable_if_t
+#include <type_traits>  // is_standard_layout
 #include <utility>      // swap() forward()
 #include <memory>       // addressof()
 
@@ -17,11 +17,9 @@ namespace uv
 
 
 class handle;
-class getaddrinfo;
-class getnameinfo;
 
 
-/*! \defgroup g__loop Event loop
+/*! \defgroup doxy_loop Event loop
     \brief The I/O event loop.
     \sa libuv API documentation: [the I/O loop](http://docs.libuv.org/en/v1.x/design.html#the-i-o-loop). */
 //! \{
@@ -40,11 +38,12 @@ class loop
 
 public: /*types*/
   using uv_t = ::uv_loop_t;
-  using on_destroy_t = std::function< void(void *_data) >;  /*!< \brief The function type of the callback called when the loop instance is about to be destroyed. */
+  using on_destroy_t = std::function< void(void *_data) >;
+  /*!< \brief The function type of the callback called when the loop instance is about to be destroyed. */
   using on_walk_t = std::function< void(handle _handle, void *_arg) >;
   /*!< \brief The function type of the callback called by the `walk()` function.
        \sa libuv API documentation: [`uv_walk_cb`](http://docs.libuv.org/en/v1.x/loop.html#c.uv_walk_cb),
-                                [`uv_walk()`](http://docs.libuv.org/en/v1.x/loop.html#c.uv_walk). */
+                                    [`uv_walk()`](http://docs.libuv.org/en/v1.x/loop.html#c.uv_walk). */
 
 private: /*types*/
   class instance
@@ -53,7 +52,7 @@ private: /*types*/
     mutable int uv_error;
     ref_count rc;
     type_storage< on_destroy_t > on_destroy_storage;
-    uv_t uv_loop = {0,};
+    uv_t uv_loop = { 0,};
 
   private: /*constructors*/
     instance()  { uv_error = ::uv_loop_init(&uv_loop); }
@@ -225,7 +224,7 @@ public: /*conversion operators*/
 }
 
 
-#include "uvcc/handle.hpp"
+#include "uvcc/handle-base.hpp"
 
 
 namespace uv
@@ -244,7 +243,7 @@ void loop::walk_cb(::uv_handle_t *_uv_handle, void *_arg)
 namespace std
 {
 
-//! \ingroup g__loop
+//! \ingroup doxy_loop
 template<> inline void swap(uv::loop &_this, uv::loop &_that) noexcept  { _this.swap(_that); }
 
 }
