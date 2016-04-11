@@ -196,11 +196,15 @@ public: /*interface*/
   /*! \brief The current number of existing references to the same buffer as this variable refers to. */
   long nrefs() const noexcept  { return instance::from(uv_buf)->nrefs(); }
 
-  std::size_t count() const noexcept  { return instance::from(uv_buf)->buf_count(); }  /*!< \brief The number of the `uv_buf_t` structures in the array. */
+  /*! \brief The number of the `uv_buf_t` structures in the array. */
+  std::size_t count() const noexcept  { return instance::from(uv_buf)->buf_count(); }
 
-  uv_t& operator [](const std::size_t _i) const noexcept  { return uv_buf[_i]; }  /*!< \brief Access to the `_i`-th `uv_buf_t` buffer structure in the array. */
-  decltype(uv_t::base)& base(const std::size_t _i = 0) const noexcept  { return uv_buf[_i].base; }  /*!< \brief The `.base` field of the `_i`-th buffer structure. */
-  decltype(uv_t::len)& len(const std::size_t _i = 0) const noexcept  { return uv_buf[_i].len; }  /*!< \brief The `.len` field of the `_i`-th buffer structure. */
+  /*! \brief Access to the `_i`-th `uv_buf_t` buffer structure in the array. */
+  uv_t& operator [](const std::size_t _i) const noexcept  { return uv_buf[_i]; }
+  /*! \brief The `.base` field of the `_i`-th buffer structure. */
+  decltype(uv_t::base)& base(const std::size_t _i = 0) const noexcept  { return uv_buf[_i].base; }
+  /*! \brief The `.len` field of the `_i`-th buffer structure. */
+  decltype(uv_t::len)& len(const std::size_t _i = 0) const noexcept  { return uv_buf[_i].len; }
 
 public: /*conversion operators*/
   explicit operator const uv_t*() const noexcept  { return uv_buf; }
