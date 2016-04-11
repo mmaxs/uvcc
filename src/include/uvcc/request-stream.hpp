@@ -91,11 +91,11 @@ template< typename >
 void connect::connect_cb(::uv_connect_t *_uv_req, int _status)
 {
   auto self = instance::from(_uv_req);
+  self->uv_status() = _status;
 
   ref_guard< stream::instance > unref_handle(*stream::instance::from(_uv_req->handle), adopt_ref);
   ref_guard< instance > unref_req(*self, adopt_ref);
 
-  self->uv_status() = _status;
   auto &connect_cb = self->on_request();
   if (connect_cb)  connect_cb(connect(_uv_req));
 }
@@ -207,12 +207,12 @@ template< typename >
 void write::write_cb(::uv_write_t *_uv_req, int _status)
 {
   auto self = instance::from(_uv_req);
+  self->uv_status() = _status;
 
   ref_guard< stream::instance > unref_handle(*stream::instance::from(_uv_req->handle), adopt_ref);
   buffer b(std::move(self->supplemental_data()));
   ref_guard< instance > unref_req(*self, adopt_ref);
 
-  self->uv_status() = _status;
   auto &write_cb = self->on_request();
   if (write_cb)  write_cb(write(_uv_req));
 }
@@ -287,11 +287,11 @@ template< typename >
 void shutdown::shutdown_cb(::uv_shutdown_t *_uv_req, int _status)
 {
   auto self = instance::from(_uv_req);
+  self->uv_status() = _status;
 
   ref_guard< stream::instance > unref_handle(*stream::instance::from(_uv_req->handle), adopt_ref);
   ref_guard< instance > unref_req(*self, adopt_ref);
 
-  self->uv_status() = _status;
   auto &shutdown_cb = self->on_request();
   if (shutdown_cb)  shutdown_cb(shutdown(_uv_req));
 }

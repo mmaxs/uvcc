@@ -120,11 +120,11 @@ template< typename >
 void getaddrinfo::getaddrinfo_cb(::uv_getaddrinfo_t *_uv_req, int _status, ::addrinfo *_result)
 {
   auto self = instance::from(_uv_req);
+  self->uv_status() = _status;
 
   ref_guard< uv::loop::instance > unref_loop(*uv::loop::instance::from(_uv_req->loop), adopt_ref);
   ref_guard< instance > unref_req(*self, adopt_ref);
 
-  self->uv_status() = _status;
   auto &getaddrinfo_cb = self->on_request();
   if (getaddrinfo_cb)  getaddrinfo_cb(getaddrinfo(_uv_req), _result);
 }
@@ -221,11 +221,11 @@ template< typename >
 void getnameinfo::getnameinfo_cb(::uv_getnameinfo_t *_uv_req, int _status, const char* _hostname, const char* _service)
 {
   auto self = instance::from(_uv_req);
+  self->uv_status() = _status;
 
   ref_guard< uv::loop::instance > unref_loop(*uv::loop::instance::from(_uv_req->loop), adopt_ref);
   ref_guard< instance > unref_req(*self, adopt_ref);
 
-  self->uv_status() = _status;
   auto &getnameinfo_cb = self->on_request();
   if (getnameinfo_cb)  getnameinfo_cb(getnameinfo(_uv_req), _hostname, _service);
 }
