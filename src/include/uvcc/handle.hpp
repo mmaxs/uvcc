@@ -3,7 +3,7 @@
 #define UVCC_HANDLE__HPP
 
 #include "uvcc/handle-base.hpp"
-#include "uvcc/handle-streams.hpp"
+#include "uvcc/handle-stream.hpp"
 #include "uvcc/handle-fs.hpp"
 #include "uvcc/handle-udp.hpp"
 #include "uvcc/handle-misc.hpp"

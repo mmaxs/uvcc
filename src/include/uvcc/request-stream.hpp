@@ -1,10 +1,10 @@
 
-#ifndef UVCC_REQUEST_STREAMS__HPP
-#define UVCC_REQUEST_STREAMS__HPP
+#ifndef UVCC_REQUEST_STREAM__HPP
+#define UVCC_REQUEST_STREAM__HPP
 
 #include "uvcc/utility.hpp"
 #include "uvcc/request-base.hpp"
-#include "uvcc/handle-streams.hpp"
+#include "uvcc/handle-stream.hpp"
 #include "uvcc/buffer.hpp"
 
 #include <uv.h>

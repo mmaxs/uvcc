@@ -1,6 +1,6 @@
 
-#ifndef UVCC_HANDLE_STREAMS__HPP
-#define UVCC_HANDLE_STREAMS__HPP
+#ifndef UVCC_HANDLE_STREAM__HPP
+#define UVCC_HANDLE_STREAM__HPP
 
 #include "uvcc/utility.hpp"
 #include "uvcc/handle-base.hpp"
