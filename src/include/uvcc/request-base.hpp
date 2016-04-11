@@ -147,13 +147,14 @@ public: /*interface*/
   void swap(request &_that) noexcept  { std::swap(uv_req, _that.uv_req); }
   /*! \brief The current number of existing references to the same object as this request variable refers to. */
   long nrefs() const noexcept  { return instance< request >::from(uv_req)->nrefs(); }
-  /*! \brief The status value returned by the last executed libuv API function. */
+  /*! \brief The status value returned by the last executed libuv API function on this request. */
   int uv_status() const noexcept  { return instance< request >::from(uv_req)->uv_status(); }
 
   const on_destroy_t& on_destroy() const noexcept  { return instance< request >::from(uv_req)->on_destroy(); }
         on_destroy_t& on_destroy()       noexcept  { return instance< request >::from(uv_req)->on_destroy(); }
 
-  /*! \brief The tag indicating the libuv type of the request. */
+  /*! \brief The tag indicating a libuv type of the request.
+      \sa libuv API documentation: [`uv_req_t.type`](http://docs.libuv.org/en/v1.x/request.html#c.uv_req_t.type). */
   ::uv_req_type type() const noexcept  { return static_cast< uv_t* >(uv_req)->type; }
 
   /*! \brief The pointer to the user-defined arbitrary data. libuv and uvcc does not use this field. */

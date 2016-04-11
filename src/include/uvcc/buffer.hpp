@@ -19,17 +19,11 @@ namespace uv
 
 class handle;
 
-class stream;
-class write;
-class udp;
-class udp_send;
-
 
 /*! \defgroup doxy_buffer Buffer for I/O operations */
-//! \{
 
-
-/*! \brief Encapsulates `uv_buf_t` data type and provides `uv_buf_t[]` functionality. */
+/*! \ingroup doxy_buffer
+    \brief Encapsulates `uv_buf_t` data type and provides `uv_buf_t[]` functionality. */
 class buffer
 {
   //! \cond
@@ -216,7 +210,8 @@ public: /*conversion operators*/
 };
 
 
-/*! \brief The function type of the callback called by `stream::read_start()` and `udp::recv_start()`...
+/*! \ingroup doxy_buffer
+    \brief The function type of the callback called by `stream::read_start()` and `udp::recv_start()`...
     \details ...to equip the input operation with a preallocated buffer. The callback should return a `uv::buffer`
     instance initialized with a `_suggested_size` (the value provided by libuv API is a constant of _65536_ bytes)
     or with whatever size, as long as it’s > 0.
@@ -232,7 +227,6 @@ public: /*conversion operators*/
 using on_buffer_t = std::function< buffer(handle _handle, std::size_t _suggested_size) >;
 
 
-//! \}
 }
 
 

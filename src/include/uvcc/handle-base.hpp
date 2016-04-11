@@ -32,7 +32,7 @@ class handle
 public: /*types*/
   using uv_t = ::uv_handle_t;
   using on_destroy_t = std::function< void(void *_data) >;
-  /*!< \brief The function type of the callback called when the handle is about to be closed and destroyed.
+  /*!< \brief The function type of the callback called when the handle has been closed and about to be destroyed.
        \sa libuv API documentation: [`uv_close_cb`](http://docs.libuv.org/en/v1.x/handle.html#c.uv_close_cb),
                                     [`uv_close()`](http://docs.libuv.org/en/v1.x/handle.html#c.uv_close). */
 
@@ -160,7 +160,7 @@ public: /*interface*/
   void swap(handle &_that) noexcept  { std::swap(uv_handle, _that.uv_handle); }
   /*! \brief The current number of existing references to the same object as this handle variable refers to. */
   long nrefs() const noexcept  { return instance< handle >::from(uv_handle)->nrefs(); }
-  /*! \brief The status value returned by the last executed libuv API function. */
+  /*! \brief The status value returned by the last executed libuv API function on this handle. */
   int uv_status() const noexcept  { return instance< handle >::from(uv_handle)->uv_status(); }
 
   const on_destroy_t& on_destroy() const noexcept  { return instance< handle >::from(uv_handle)->on_destroy(); }
