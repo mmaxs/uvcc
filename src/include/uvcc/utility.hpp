@@ -417,7 +417,7 @@ public: /*interface*/
     constexpr const std::size_t tag = is_convertible_to_one_of< _T_, _Ts_... >::value;
     using type = typename std::decay< typename type_at< tag, _Ts_... >::type >::type;
 
-    if (reinterpret_cast< type* >(&storage) == static_cast< type* >(std::addressof(_value)))  return;  // cast _T_* to type*
+    if (reinterpret_cast< type* >(&storage) == static_cast< const type* >(std::addressof(_value)))  return;  // cast _T_* to type*
 
     destroy();
 
