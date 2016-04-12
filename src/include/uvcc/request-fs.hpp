@@ -90,8 +90,7 @@ private: /*types*/
     mutable int uv_error;
     ref_count rc;
     type_storage< on_destroy_t > on_destroy_storage;
-    type_storage< on_open_t > on_open_storage;
-    type_storage< on_read_t > on_read_storage;
+    union_storage< on_open_t, on_read_t > cb_storage;
     uv_t uv_fs = { 0,};
 
   private: /*constructors*/
@@ -133,8 +132,7 @@ private: /*types*/
     }
 
     on_destroy_t& on_destroy() noexcept  { return on_destroy_storage.value(); }
-    on_open_t& on_open() noexcept  { return on_open_storage.value(); }
-    on_read_t& on_read() noexcept  { return on_read_storage.value(); }
+    decltype(cb_storage)& cb() noexcept  { return cb_storage; }
 
     void ref()  { rc.inc(); }
     void unref() noexcept  { if (rc.dec() == 0)  destroy(); }
@@ -182,7 +180,7 @@ public: /*constructors*/
 
     if (_open_cb)
     {
-      instance::from(uv_fs)->on_open() = _open_cb;
+      instance::from(uv_fs)->cb().reset(_open_cb);
 
       uv::loop::instance::from(_loop.uv_loop)->ref();
       instance::from(uv_fs)->ref();
@@ -272,7 +270,7 @@ void fs::file::open_cb(::uv_fs_t *_uv_fs)
   ref_guard< uv::loop::instance > unref_loop(*uv::loop::instance::from(_uv_fs->loop), adopt_ref);
   ref_guard< instance > unref_req(*self, adopt_ref);
 
-  auto &open_cb = self->on_open();
+  auto &open_cb = self->cb().get< on_open_t >();
   if (open_cb)  open_cb(file(_uv_fs));
 }
 
