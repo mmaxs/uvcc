@@ -3,6 +3,7 @@
 #define UVCC_LOOP__HPP
 
 #include "uvcc/utility.hpp"
+#include "uvcc/thread.hpp"
 
 #include <uv.h>
 #include <cstddef>      // offsetof
@@ -49,7 +50,7 @@ private: /*types*/
   class instance
   {
   private: /*data*/
-    mutable int uv_error;
+    mutable tls_int uv_error;
     ref_count rc;
     type_storage< on_destroy_t > on_destroy_storage;
     uv_t uv_loop = { 0,};
@@ -89,7 +90,7 @@ private: /*types*/
     void unref()  { if (rc.dec() == 0)  destroy(); }
     ref_count::type nrefs() const noexcept  { return rc.value(); }
 
-    int& uv_status() const noexcept  { return uv_error; }
+    tls_int& uv_status() const noexcept  { return uv_error; }
   };
 
   struct walk_cb_pack
@@ -143,10 +144,11 @@ public: /*constructors*/
 private: /*functions*/
   template< typename = void > static void walk_cb(::uv_handle_t*, void*);
 
-protected: /*functions*/
-  //! \cond
-  int uv_status(int _value) const noexcept  { return (instance::from(uv_loop)->uv_status() = _value); }
-  //! \endcond
+  int uv_status(int _value) const noexcept
+  {
+    instance::from(uv_loop)->uv_status() = _value;
+    return _value;
+  }
 
 public: /*interface*/
   /*! \brief Returns the initialized loop that can be used as a global default loop throughout the program. */

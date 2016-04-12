@@ -7,6 +7,7 @@
 #include "uvcc/handle-fs.hpp"
 #include "uvcc/buffer.hpp"
 #include "uvcc/loop.hpp"
+#include "uvcc/thread.hpp"
 
 #include <uv.h>
 #include <cstring>      // memset()
@@ -87,14 +88,14 @@ private: /*types*/
   class instance
   {
   private: /*data*/
-    mutable int uv_error;
+    mutable tls_int uv_error;
     ref_count rc;
     type_storage< on_destroy_t > on_destroy_storage;
     union_storage< on_open_t, on_read_t > cb_storage;
     uv_t uv_fs = { 0,};
 
   private: /*constructors*/
-    instance() : uv_error(0)  { uv_fs.result = -1; }
+    instance()  { uv_fs.result = -1; }
 
   public: /*constructors*/
     ~instance() = default;
@@ -138,7 +139,7 @@ private: /*types*/
     void unref() noexcept  { if (rc.dec() == 0)  destroy(); }
     ref_count::type nrefs() const noexcept  { return rc.value(); }
 
-    int& uv_status() const noexcept  { return uv_error; }
+    tls_int& uv_status() const noexcept  { return uv_error; }
   };
 
 private: /*data*/
@@ -203,7 +204,11 @@ public: /*constructors*/
 private: /*functions*/
   template< typename = void > static void open_cb(::uv_fs_t*);
 
-  int uv_status(int _value) const noexcept  { return (instance::from(uv_fs)->uv_status() = _value); }
+  int uv_status(int _value) const noexcept
+  {
+    instance::from(uv_fs)->uv_status() = _value;
+    return _value;
+  }
 
 public: /*interface*/
   void swap(file &_that) noexcept  { std::swap(uv_fs, _that.uv_fs); }

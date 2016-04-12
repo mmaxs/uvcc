@@ -3,6 +3,7 @@
 #define UVCC_REQUEST_BASE__HPP
 
 #include "uvcc/utility.hpp"
+#include "uvcc/thread.hpp"
 
 #include <uv.h>
 #include <cstddef>      // offsetof
@@ -43,8 +44,8 @@ protected: /*types*/
     using supplemental_data_t = typename _REQUEST_::supplemental_data_t;
 
   private: /*data*/
-    mutable int uv_error;
-    void (*Delete)(void*);  // store a proper delete operator
+    mutable tls_int uv_error;
+    void (*Delete)(void*) = default_delete< instance >::Delete;  // store a proper delete operator
     ref_count rc;
     type_storage< on_destroy_t > on_destroy_storage;
     alignas(32) type_storage< on_request_t > on_request_storage;
@@ -54,7 +55,7 @@ protected: /*types*/
     alignas(32) uv_t uv_req = { 0,};  // must be zeroed!
 
   private: /*constructors*/
-    instance() : uv_error(0), Delete(default_delete< instance >::Delete)  {}
+    instance() = default;
 
   public: /*constructors*/
     ~instance() = default;
@@ -90,7 +91,7 @@ protected: /*types*/
     void unref()  { if (rc.dec() == 0)  destroy(); }
     ref_count::type nrefs() const noexcept  { return rc.value(); }
 
-    int& uv_status() const noexcept  { return uv_error; }
+    tls_int& uv_status() const noexcept  { return uv_error; }
   };
   //! \endcond
 
@@ -140,7 +141,11 @@ public: /*constructors*/
 
 protected: /*functions*/
   //! \cond
-  int uv_status(int _value) const noexcept  { return (instance< request >::from(uv_req)->uv_status() = _value); }
+  int uv_status(int _value) const noexcept
+  {
+    instance< request >::from(uv_req)->uv_status() = _value;
+    return _value;
+  }
   //! \endcond
 
 public: /*interface*/
