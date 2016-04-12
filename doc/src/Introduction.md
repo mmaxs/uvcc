@@ -14,6 +14,7 @@ these uvcc classes are designed with the use of a reference counting technique:
 * `uv::buffer`
 * `uv::handle`
 * `uv::request`
+* `uv::fs::file`
 * `uv::loop`
 
 This means that the variables for one of these types are just pointers to an object instance created on the heap
@@ -56,7 +57,7 @@ returns zero on such handles). Instead, uvcc's destroy callback is called in any
 referencing this handle is destroyed. If the handle is not "active" the destroy callback runs synchronously as part of the
 variable's destructor.
 
-For the other two classes (`uv::request` and `uv::loop`) the callbacks are a uvcc specific feature and they are executed
+For the other two classes (`uv::request` and `uv::loop`) the destroy callbacks are a uvcc specific feature and they are executed
 as part of the variable's destructor.
 
 
