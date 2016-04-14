@@ -45,15 +45,15 @@ int main(int _argc, char *_argv[])
     if (f)
       files.emplace_back(std::move(f));
     else
-      PRINT_UV_ERR(f.path(), f.uv_status());
+      PRINT_UV_ERR(f.path().c_str(), f.uv_status());
 #endif
     uv::fs::file f(
         uv::loop::Default(),
         _argv[i], O_CREAT|O_TRUNC|O_WRONLY, mode,
         [](uv::fs::file _file) -> void
         {
-          fprintf(stderr, "%s:%i\n", _file.path(), _file.fd());  fflush(stderr);
-          if (!_file)  PRINT_UV_ERR(_file.path(), _file.uv_status());
+          fprintf(stderr, "%s:%i\n", _file.path().c_str(), _file.fd());  fflush(stderr);
+          if (!_file)  PRINT_UV_ERR(_file.path().c_str(), _file.uv_status());
         }
     );
   }
@@ -115,7 +115,7 @@ int main(int _argc, char *_argv[])
           for (auto &f : files)
           {
             f.write(_buf);
-            if (!f)  PRINT_UV_ERR(f.path(), f.uv_status());
+            if (!f)  PRINT_UV_ERR(f.path().c_str(), f.uv_status());
           }
 #endif
         };

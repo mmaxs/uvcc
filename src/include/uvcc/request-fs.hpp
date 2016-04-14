@@ -11,12 +11,9 @@
 
 #include <uv.h>
 #include <cstring>      // memset()
+#include <string>       // string
 #include <functional>   // function
-#ifdef _WIN32
-#include <io.h>         // _dup()
-#else
-#include <unistd.h>     // dup()
-#endif
+#include <memory>       // unique_ptr
 
 
 namespace uv
@@ -76,13 +73,11 @@ public: /*conversion operators*/
 class fs::file
 {
 public: /*types*/
-  using uv_t = ::uv_fs_t;
+  using uv_t = ::uv_file;
   using on_destroy_t = std::function< void(void *_data) >;
   /*!< \brief The function type of the callback called when the file handle has been closed and is about to be destroyed. */
   using on_open_t = std::function< void(file) >;
   /*!< \brief The function type of the callback called after the asynchronous open operation has been completed. */
-  using on_read_t = std::function< void(file _file, ssize_t _nread, buffer _buffer) >;
-  /*!< \brief The function type of the callback called by `read_start()` when data was read from the file. */
 
 private: /*types*/
   class instance
@@ -91,11 +86,12 @@ private: /*types*/
     mutable tls_int uv_error;
     ref_count rc;
     type_storage< on_destroy_t > on_destroy_storage;
-    union_storage< on_open_t, on_read_t > cb_storage;
-    uv_t uv_fs = { 0,};
+    void *user_data = nullptr;
+    uv_t uv_file = -1;
+    std::string file_path;
 
   private: /*constructors*/
-    instance()  { uv_fs.result = -1; }
+    instance() = default;
 
   public: /*constructors*/
     ~instance() = default;
@@ -109,31 +105,31 @@ private: /*types*/
   private: /*functions*/
     void destroy()
     {
-      if (uv_fs.result >= 0)  // assuming that uv_fs.result has been initialized with value < 0
+      if (uv_file >= 0)
       {
-        uv_t req_close;
-        ::uv_fs_close(nullptr, &req_close, uv_fs.result, nullptr);
+        ::uv_fs_t req_close;
+        ::uv_fs_close(nullptr, &req_close, uv_file, nullptr);
         ::uv_fs_req_cleanup(&req_close);
       };
 
       auto &destroy_cb = on_destroy_storage.value();
-      if (destroy_cb)  destroy_cb(uv_fs.data);
+      if (destroy_cb)  destroy_cb(user_data);
 
-      ::uv_fs_req_cleanup(&uv_fs);
       delete this;
     }
 
   public: /*interface*/
-    static uv_t* create()  { return std::addressof((new instance())->uv_fs); }
+    static uv_t* create()  { return std::addressof((new instance())->uv_file); }
 
-    constexpr static instance* from(uv_t *_uv_fs) noexcept
+    constexpr static instance* from(uv_t *_uv_file) noexcept
     {
       static_assert(std::is_standard_layout< instance >::value, "not a standard layout type");
-      return reinterpret_cast< instance* >(reinterpret_cast< char* >(_uv_fs) - offsetof(instance, uv_fs));
+      return reinterpret_cast< instance* >(reinterpret_cast< char* >(_uv_file) - offsetof(instance, uv_file));
     }
 
     on_destroy_t& on_destroy() noexcept  { return on_destroy_storage.value(); }
-    decltype(cb_storage)& cb() noexcept  { return cb_storage; }
+    void*& data() noexcept  { return user_data; }
+    std::string& path() noexcept  { return file_path; }
 
     void ref()  { rc.inc(); }
     void unref() noexcept  { if (rc.dec() == 0)  destroy(); }
@@ -142,14 +138,20 @@ private: /*types*/
     tls_int& uv_status() const noexcept  { return uv_error; }
   };
 
+  struct open_cb_pack
+  {
+    const on_open_t open_cb;
+    uv_t* const uv_file;
+  };
+
 private: /*data*/
-  uv_t *uv_fs;
+  uv_t *uv_file;
 
 private: /*constructors*/
-  explicit file(uv_t *_uv_fs)
+  explicit file(uv_t *_uv_file)
   {
-    if (_uv_fs)  instance::from(_uv_fs)->ref();
-    uv_fs = _uv_fs;
+    if (_uv_file)  instance::from(_uv_file)->ref();
+    uv_file = _uv_file;
   }
 
 public: /*constructors*/
@@ -165,118 +167,123 @@ public: /*constructors*/
   /*! \brief Open and possibly create a file _synchronously_. */
   file(const char *_path, int _flags, int _mode)
   {
-    uv_fs = instance::create();
+    uv_file = instance::create();
+    ::uv_fs_t req_open;
     uv_status(::uv_fs_open(
-        nullptr, uv_fs,
+        nullptr, &req_open,
         _path, _flags, _mode,
         nullptr
     ));
+    if (req_open.result >= 0)
+    {
+      *uv_file = req_open.result;
+      instance::from(uv_file)->path().assign(req_open.path);
+    };
+    ::uv_fs_req_cleanup(&req_open);
   }
   /*! \brief Open and possibly create a file.
       \note If the `_open_cb` callback is empty the operation is completed _synchronously_
        (and `_loop` parameter is ignored), otherwise it will be performed _asynchronously_. */
   file(uv::loop _loop, const char *_path, int _flags, int _mode, const on_open_t &_open_cb)
   {
-    uv_fs = instance::create();
-
-    if (_open_cb)
+    if (!_open_cb)
     {
-      instance::from(uv_fs)->cb().reset(_open_cb);
-
-      uv::loop::instance::from(_loop.uv_loop)->ref();
-      instance::from(uv_fs)->ref();
+      new (this) file(_path, _flags, _mode);
+      return;
     };
 
+    uv_file = instance::create();
+    ::uv_fs_t *req_open = new ::uv_fs_t;
+    req_open->data = new open_cb_pack{_open_cb, uv_file};
+
+    uv::loop::instance::from(_loop.uv_loop)->ref();
+    instance::from(uv_file)->ref();
+
     uv_status(::uv_fs_open(
-        static_cast< loop::uv_t* >(_loop), uv_fs,
+        static_cast< loop::uv_t* >(_loop), req_open,
         _path, _flags, _mode,
-        _open_cb ? static_cast< ::uv_fs_cb >(open_cb) : nullptr
+        open_cb
     ));
   }
   //! \}
 
-  file(const file&) = default;
-  file& operator =(const file&) = default;
+  file(const file &_that) : file(_that.uv_file)  {}
+  file& operator =(const file &_that)
+  {
+    if (this != &_that)
+    {
+      if (_that.uv_file)  instance::from(_that.uv_file)->ref();
+      auto t = uv_file;
+      uv_file = _that.uv_file;
+      if (t)  instance::from(t)->unref();
+    };
+    return *this;
+  }
 
-  file(file&&) noexcept = default;
-  file& operator =(file&&) noexcept = default;
+  file(file &&_that) noexcept : uv_file(_that.uv_file)  { _that.uv_file = nullptr; }
+  file& operator =(file &&_that) noexcept
+  {
+    if (this != &_that)
+    {
+      auto t = uv_file;
+      uv_file = _that.uv_file;
+      _that.uv_file = nullptr;
+      if (t)  instance::from(t)->unref();
+    };
+    return *this;
+  }
 
 private: /*functions*/
   template< typename = void > static void open_cb(::uv_fs_t*);
 
   int uv_status(int _value) const noexcept
   {
-    instance::from(uv_fs)->uv_status() = _value;
+    instance::from(uv_file)->uv_status() = _value;
     return _value;
   }
 
 public: /*interface*/
-  void swap(file &_that) noexcept  { std::swap(uv_fs, _that.uv_fs); }
+  void swap(file &_that) noexcept  { std::swap(uv_file, _that.uv_file); }
   /*! \brief The current number of existing references to the same object as this request variable refers to. */
-  long nrefs() const noexcept  { return instance::from(uv_fs)->nrefs(); }
+  long nrefs() const noexcept  { return instance::from(uv_file)->nrefs(); }
   /*! \brief The status value returned by the last executed libuv API function on this handle. */
-  int uv_status() const noexcept  { return instance::from(uv_fs)->uv_status(); }
+  int uv_status() const noexcept  { return instance::from(uv_file)->uv_status(); }
 
-  const on_destroy_t& on_destroy() const noexcept  { return instance::from(uv_fs)->on_destroy(); }
-        on_destroy_t& on_destroy()       noexcept  { return instance::from(uv_fs)->on_destroy(); }
+  const on_destroy_t& on_destroy() const noexcept  { return instance::from(uv_file)->on_destroy(); }
+        on_destroy_t& on_destroy()       noexcept  { return instance::from(uv_file)->on_destroy(); }
 
   /*! \brief The pointer to the user-defined arbitrary data. libuv and uvcc does not use this field. */
-  void* const& data() const noexcept  { return static_cast< uv_t* >(uv_fs)->data; }
-  void*      & data()       noexcept  { return static_cast< uv_t* >(uv_fs)->data; }
+  void* const& data() const noexcept  { return instance::from(uv_file)->data(); }
+  void*      & data()       noexcept  { return instance::from(uv_file)->data(); }
 
   /*! \brief Get the cross platform representation of a file handle (mostly being a POSIX-like file descriptor). */
-  ::uv_file fd() const noexcept  { return static_cast< uv_t* >(uv_fs)->result; }
+  uv_t fd() const noexcept  { return *uv_file; }
   /*! \brief The file path. */
-  const char* path() const noexcept  { return static_cast< uv_t* >(uv_fs)->path; }
+  const std::string& path() const noexcept  { return instance::from(uv_file)->path(); }
 
-  /*! \brief Duplicate this file descriptor. */
-  ::uv_file dup() const noexcept
-  {
-    if (fd() < 0)  return -1;
-#ifdef _WIN32
-    return ::_dup(fd());
-#else
-    return ::dup(fd());
-#endif
-  }
-#if 0
-  /*! \brief Read data from the file into the buffers described by `_buf` object.
-      \returns The number of bytes read or relevant [libuv error constant](http://docs.libuv.org/en/v1.x/errors.html#error-constants).
-      \sa libuv API documentation: [`uv_fs_read()`](http://docs.libuv.org/en/v1.x/fs.html#c.uv_fs_read).
-      \sa Linux: [`preadv()`](http://man7.org/linux/man-pages/man2/preadv.2.html). */
-  int read_start(buffer &_buf, int64_t _offset = -1) const noexcept
-  {
-    uv_t req_read;
-    uv_status(::uv_fs_read(
-        nullptr, &req_read,
-        fd(),
-        static_cast< const buffer::uv_t* >(_buf), _buf.count(),
-        _offset,
-        nullptr
-    ));
-    ::uv_fs_req_cleanup(&req_read);
-    return uv_status();
-  }
-  int read_stop() const  { return 0; }
-#endif
 public: /*conversion operators*/
-  explicit operator const uv_t*() const noexcept  { return static_cast< const uv_t* >(uv_fs); }
-  explicit operator       uv_t*()       noexcept  { return static_cast<       uv_t* >(uv_fs); }
+  explicit operator const uv_t() const noexcept  { return *uv_file; }
 
   explicit operator bool() const noexcept  { return (uv_status() >= 0); }  /*!< \brief Equivalent to `(uv_status() >= 0)`. */
 };
 
 template< typename >
-void fs::file::open_cb(::uv_fs_t *_uv_fs)
+void fs::file::open_cb(::uv_fs_t *_req_open)
 {
-  auto self = instance::from(_uv_fs);
-  self->uv_status() = _uv_fs->result;
+  std::unique_ptr< ::uv_fs_t > r(_req_open);
+  std::unique_ptr< open_cb_pack > t(static_cast< open_cb_pack* >(_req_open->data));
+  auto self = instance::from(t->uv_file);
+  self->uv_status() = r->result;
 
-  ref_guard< uv::loop::instance > unref_loop(*uv::loop::instance::from(_uv_fs->loop), adopt_ref);
+  ref_guard< uv::loop::instance > unref_loop(*uv::loop::instance::from(r->loop), adopt_ref);
   ref_guard< instance > unref_req(*self, adopt_ref);
 
-  auto &open_cb = self->cb().get< on_open_t >();
-  if (open_cb)  open_cb(file(_uv_fs));
+  if (r->result >= 0)
+  {
+    *t->uv_file = r->result;
+    self->path().assign(r->path);
+  };
+  if (t->open_cb)  t->open_cb(file(t->uv_file));
 }
 
 
