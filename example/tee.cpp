@@ -33,10 +33,15 @@ int main(int _argc, char *_argv[])
     return out.uv_status();
   };
 
+#ifdef _WIN32
+  constexpr const int mode = _S_IREAD|_S_IWRITE;
+#else
+  constexpr const int mode = S_IRWXU|S_IRWXG|S_IRWXO;
+#endif
   for (int i = 1; i < _argc; ++i)
   {
 #if 0
-    uv::fs::file f(_argv[i], O_CREAT|O_TRUNC|O_WRONLY, _S_IREAD|_S_IWRITE);
+    uv::fs::file f(_argv[i], O_CREAT|O_TRUNC|O_WRONLY, mode);
     if (f)
       files.emplace_back(std::move(f));
     else
@@ -44,8 +49,8 @@ int main(int _argc, char *_argv[])
 #endif
     uv::fs::file f(
         uv::loop::Default(),
-        _argv[i], O_CREAT|O_TRUNC|O_WRONLY, _S_IREAD|_S_IWRITE,
-        [&files](uv::fs::file _file) -> void
+        _argv[i], O_CREAT|O_TRUNC|O_WRONLY, mode,
+        [](uv::fs::file _file) -> void
         {
           fprintf(stderr, "%s:%i\n", _file.path(), _file.fd());  fflush(stderr);
           if (!_file)  PRINT_UV_ERR(_file.path(), _file.uv_status());
