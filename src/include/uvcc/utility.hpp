@@ -524,6 +524,8 @@ public: /*intreface*/
   template< typename _T_ = void >
         typename std::decay< _T_ >::type* get()       noexcept  { return static_cast<       typename std::decay< _T_ >::type* >(ptr); }
 
+  const std::type_info* tag() const noexcept  { return type_tag; }
+
 public: /*conversion operators*/
   explicit operator bool() const noexcept  { return (ptr != nullptr); }  /*!< \brief Equivalent to `(get() != nullptr)`. */
 };
