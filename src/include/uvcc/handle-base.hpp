@@ -213,17 +213,17 @@ public: /*interface*/
       \sa libuv API documentation: [`uv_recv_buffer_size()`](http://docs.libuv.org/en/v1.x/handle.html#c.uv_recv_buffer_size). */
   void recv_buffer_size(const unsigned int _value) noexcept  { uv_status(::uv_recv_buffer_size(static_cast< uv_t* >(uv_handle), (int*)&_value)); }
 
-  /*! \details Get the platform dependent file descriptor.
+  /*! \details Get the platform dependent handle/file descriptor.
       \sa libuv API documentation: [`uv_fileno()`](http://docs.libuv.org/en/v1.x/handle.html#c.uv_fileno). */
   ::uv_os_fd_t fileno() const noexcept
   {
 #ifdef _WIN32
-    ::uv_os_fd_t fd = INVALID_HANDLE_VALUE;
+    ::uv_os_fd_t h = INVALID_HANDLE_VALUE;
 #else
-    ::uv_os_fd_t fd = -1;
+    ::uv_os_fd_t h = -1;
 #endif
-    uv_status(::uv_fileno(static_cast< uv_t* >(uv_handle), &fd));
-    return fd;
+    uv_status(::uv_fileno(static_cast< uv_t* >(uv_handle), &h));
+    return h;
   }
 
 public: /*conversion operators*/
