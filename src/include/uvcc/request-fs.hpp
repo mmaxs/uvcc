@@ -27,14 +27,36 @@ namespace uv
     \sa libuv API documentation: [Filesystem operations](http://docs.libuv.org/en/v1.x/fs.html#filesystem-operations). */
 class fs : public request
 {
-  //! \cond
   friend class request::instance< fs >;
-  //! \endcond
 
 public: /*types*/
   using uv_t = ::uv_fs_t;
 
   class file;
+
+  class read;
+  class write;
+  class sync;
+  class datasync;
+  class truncate;
+  class sendfile;
+
+  class stat;
+  class chmod;
+  class chown;
+  class utime;
+
+  class unlink;
+  class mkdir;
+  class mkdtemp;
+  class rmdir;
+  class scandir;
+  class rename;
+  class access;
+  class link;
+  class symlink;
+  class readlink;
+  class realpath;
 
 private: /*types*/
   using instance = request::instance< fs >;
@@ -71,9 +93,12 @@ public: /*conversion operators*/
 };
 
 
+
 /*! \brief The open file handle. */
 class fs::file
 {
+  friend class fs;
+
 public: /*types*/
   using uv_t = ::uv_file;
   using on_destroy_t = std::function< void(void *_data) >;
@@ -202,11 +227,10 @@ public: /*constructors*/
     uv_file = instance::create();
     auto t = new open_cb_pack{uv_file, {_open_cb}, { 0,}};
 
-    uv::loop::instance::from(_loop.uv_loop)->ref();
     instance::from(uv_file)->ref();
 
     uv_status(::uv_fs_open(
-        static_cast< loop::uv_t* >(_loop), std::addressof(t->req_open),
+        static_cast< uv::loop::uv_t* >(_loop), std::addressof(t->req_open),
         _path, _flags, _mode,
         open_cb
     ));
@@ -281,7 +305,6 @@ void fs::file::open_cb(::uv_fs_t *_req_open)
   auto self = instance::from(t->uv_file);
   self->uv_status() = _req_open->result;
 
-  ref_guard< uv::loop::instance > unref_loop(*uv::loop::instance::from(_req_open->loop), adopt_ref);
   ref_guard< instance > unref_req(*self, adopt_ref);
 
   if (_req_open->result >= 0)  *t->uv_file = _req_open->result;
@@ -290,6 +313,111 @@ void fs::file::open_cb(::uv_fs_t *_req_open)
   auto &open_cb = t->on_open_storage.value();
   if (open_cb)  open_cb(file(t->uv_file));
 }
+
+
+
+class fs::read : public fs
+{
+  friend class request::instance< read >;
+
+public: /*types*/
+  using on_request_t = std::function< void(file _file, ssize_t _nread, buffer _buffer, int64_t _offset) >;
+  /*!< \brief The function type of the callback called when data was read from the file. */
+
+protected: /*types*/
+  //! \cond
+  struct supplemental_data_t
+  {
+    fs::file::uv_t *uv_file;
+    buffer::uv_t *uv_buf;
+    int64_t offset;
+  };
+  //! \endcond
+
+private: /*types*/
+  using instance = request::instance< read >;
+
+private: /*constructors*/
+  explicit read(uv_t *_uv_req)
+  {
+    if (_uv_req)  instance::from(_uv_req)->ref();
+    uv_req = _uv_req;
+  }
+
+public: /*constructors*/
+  ~read() = default;
+  read()  { uv_req = instance::create(); }
+
+  read(const read&) = default;
+  read& operator =(const read&) = default;
+
+  read(read&&) noexcept = default;
+  read& operator =(read&&) noexcept = default;
+
+private: /*functions*/
+  template< typename = void > static void read_cb(::uv_fs_t*);
+
+public: /*interface*/
+  const on_request_t& on_request() const noexcept  { return instance::from(uv_req)->on_request(); }
+        on_request_t& on_request()       noexcept  { return instance::from(uv_req)->on_request(); }
+
+  /*! \brief Run the request.
+      \sa libuv API documentation: [`uv_fs_read()`](http://docs.libuv.org/en/v1.x/fs.html#c.uv_fs_read).
+      \note If the request callback is empty (has not been set), the request runs **synchronously**
+      (and `_loop` parameter is ignored). */
+  int run(uv::loop _loop, fs::file _file, buffer &_buf, int64_t _offset = -1)
+  {
+    auto self = instance::from(uv_req);
+
+    auto &request_cb = self->on_request();
+    if (request_cb)
+    {
+      fs::file::instance::from(_file.uv_file)->ref();
+      buffer::instance::from(_buf.uv_buf)->ref();
+      self->ref();
+      self->supplemental_data() = {_file.uv_file, _buf.uv_buf, _offset};
+    };
+
+    return uv_status(::uv_fs_read(
+        static_cast< uv::loop::uv_t* >(_loop), static_cast< uv_t* >(uv_req),
+        static_cast< fs::file::uv_t >(_file),
+        static_cast< const buffer::uv_t* >(_buf), _buf.count(),
+        _offset,
+        request_cb ? static_cast< ::uv_fs_cb >(read_cb) : nullptr
+    ));
+  }
+
+public: /*conversion operators*/
+  explicit operator const uv_t*() const noexcept  { return static_cast< const uv_t* >(uv_req); }
+  explicit operator       uv_t*()       noexcept  { return static_cast<       uv_t* >(uv_req); }
+};
+
+template< typename >
+void fs::read::read_cb(::uv_fs_t *_uv_req)
+{
+  auto self = instance::from(_uv_req);
+  self->uv_status() = _uv_req->result;
+
+  ref_guard< fs::file::instance > unref_file(*fs::file::instance::from(self->supplemental_data().uv_file), adopt_ref);
+  ref_guard< instance > unref_req(*self, adopt_ref);
+
+  auto &read_cb = self->on_request();
+  if (read_cb)
+    read_cb(
+        file(self->supplemental_data().uv_file),
+        _uv_req->result,
+        buffer(self->supplemental_data().uv_buf, adopt_ref),
+        self->supplemental_data().offset
+    );
+  else
+    buffer::instance::from(self->supplemental_data().uv_buf)->unref();
+}
+
+
+
+class fs::write : public fs
+{
+};
 
 
 }

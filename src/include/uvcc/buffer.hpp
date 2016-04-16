@@ -30,6 +30,7 @@ class buffer
   friend class write;
   friend class udp;
   friend class udp_send;
+  friend class fs;
 
 public: /*types*/
   using uv_t = ::uv_buf_t;
