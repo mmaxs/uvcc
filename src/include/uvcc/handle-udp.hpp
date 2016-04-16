@@ -17,9 +17,7 @@ namespace uv
     \sa libuv API documentation: [`uv_udp_t`](http://docs.libuv.org/en/v1.x/udp.html#uv-udp-t-udp-handle). */
 class udp : public handle
 {
-  //! \cond
   friend class handle::instance< udp >;
-  //! \endcond
 
 public: /*types*/
   using uv_t = ::uv_udp_t;

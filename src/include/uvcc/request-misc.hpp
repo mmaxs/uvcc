@@ -18,9 +18,7 @@ namespace uv
     \sa libuv API documentation: [Thread pool work scheduling](http://docs.libuv.org/en/v1.x/threadpool.html#thread-pool-work-scheduling). */
 class work : public request
 {
-  //! \cond
   friend class request::instance< work >;
-  //! \endcond
 
 public: /*types*/
   using uv_t = ::uv_work_t;

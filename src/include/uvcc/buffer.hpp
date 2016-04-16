@@ -26,12 +26,10 @@ class handle;
     \brief Encapsulates `uv_buf_t` data type and provides `uv_buf_t[]` functionality. */
 class buffer
 {
-  //! \cond
   friend class stream;
   friend class write;
   friend class udp;
   friend class udp_send;
-  //! \endcond
 
 public: /*types*/
   using uv_t = ::uv_buf_t;
