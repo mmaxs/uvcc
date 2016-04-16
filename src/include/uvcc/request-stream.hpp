@@ -64,12 +64,19 @@ public: /*interface*/
 
   /*! \brief Run the request for `uv::tcp` stream.
       \sa libuv API documentation: [`uv_tcp_connect()`](http://docs.libuv.org/en/v1.x/tcp.html#c.uv_tcp_connect). */
-  template< typename _T_, typename = std::enable_if_t< is_one_of< _T_, ::sockaddr, ::sockaddr_in, ::sockaddr_in6, ::sockaddr_storage >::value > >
+  template<
+      typename _T_,
+      typename = std::enable_if_t< is_one_of< _T_, ::sockaddr, ::sockaddr_in, ::sockaddr_in6, ::sockaddr_storage >::value >
+  >
   int run(tcp _tcp, const _T_ &_sockaddr)
   {
     tcp::instance::from(_tcp.uv_handle)->ref();
     instance::from(uv_req)->ref();
-    return uv_status(::uv_tcp_connect(static_cast< uv_t* >(uv_req), static_cast< tcp::uv_t* >(_tcp), reinterpret_cast< const ::sockaddr* >(&_sockaddr), connect_cb));
+    return uv_status(::uv_tcp_connect(
+        static_cast< uv_t* >(uv_req), static_cast< tcp::uv_t* >(_tcp),
+        reinterpret_cast< const ::sockaddr* >(&_sockaddr),
+        connect_cb
+    ));
   }
   /*! \brief Run the request for `uv::pipe` stream.
       \sa libuv API documentation: [`uv_pipe_connect()`](http://docs.libuv.org/en/v1.x/pipe.html#c.uv_pipe_connect). */
@@ -109,13 +116,13 @@ class write : public request
 
 public: /*types*/
   using uv_t = ::uv_write_t;
-  using on_request_t = std::function< void(write) >;
+  using on_request_t = std::function< void(write, buffer) >;
   /*!< \brief The function type of the callback called after data was written on a stream.
        \sa libuv API documentation: [`uv_write_cb`](http://docs.libuv.org/en/v1.x/stream.html#c.uv_write_cb). */
 
 protected: /*types*/
   //! \cond
-  using supplemental_data_t = buffer;
+  using supplemental_data_t = buffer::uv_t*;
   //! \endcond
 
 private: /*types*/
@@ -153,34 +160,36 @@ public: /*interface*/
 
   /*! \brief Run the request.
       \sa libuv API documentation: [`uv_write()`](http://docs.libuv.org/en/v1.x/stream.html#c.uv_write). */
-  int run(stream _stream, const buffer _buf)
+  int run(stream _stream, const buffer &_buf)
   {
     auto self = instance::from(uv_req);
 
     stream::instance::from(_stream.uv_handle)->ref();
-    buffer &b = (self->supplemental_data() = std::move(_buf));
+    buffer::instance::from(_buf.uv_buf)->ref();
     self->ref();
+    self->supplemental_data() = _buf.uv_buf;
 
     return uv_status(::uv_write(
         static_cast< uv_t* >(uv_req), static_cast< stream::uv_t* >(_stream),
-        static_cast< const buffer::uv_t* >(b), b.count(),
+        static_cast< const buffer::uv_t* >(_buf), _buf.count(),
         write_cb
     ));
   }
   /*! \brief The overload for sending handles over a pipe.
       \sa libuv API documentation: [`uv_write2()`](http://docs.libuv.org/en/v1.x/stream.html#c.uv_write2). */
-  int run(pipe _pipe, const buffer _buf, stream _send_handle)
+  int run(pipe _pipe, const buffer &_buf, stream _send_handle)
   {
     auto self = instance::from(uv_req);
 
     pipe::instance::from(_pipe.uv_handle)->ref();
-    buffer &b = (self->supplemental_data() = std::move(_buf));
+    buffer::instance::from(_buf.uv_buf)->ref();
     stream::instance::from(_send_handle.uv_handle)->ref();
     self->ref();
+    self->supplemental_data() = _buf.uv_buf;
 
     return uv_status(::uv_write2(
         static_cast< uv_t* >(uv_req), static_cast< stream::uv_t* >(_pipe),
-        static_cast< const buffer::uv_t* >(b), b.count(),
+        static_cast< const buffer::uv_t* >(_buf), _buf.count(),
         static_cast< stream::uv_t* >(_send_handle),
         write2_cb
     ));
@@ -206,11 +215,13 @@ void write::write_cb(::uv_write_t *_uv_req, int _status)
   self->uv_status() = _status;
 
   ref_guard< stream::instance > unref_handle(*stream::instance::from(_uv_req->handle), adopt_ref);
-  buffer b(std::move(self->supplemental_data()));
   ref_guard< instance > unref_req(*self, adopt_ref);
 
   auto &write_cb = self->on_request();
-  if (write_cb)  write_cb(write(_uv_req));
+  if (write_cb)
+    write_cb(write(_uv_req), buffer(self->supplemental_data(), adopt_ref));
+  else
+    buffer::instance::from(self->supplemental_data())->unref();
 }
 template< typename >
 void write::write2_cb(::uv_write_t *_uv_req, int _status)
