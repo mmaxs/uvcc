@@ -56,7 +56,7 @@ int main(int _argc, char *_argv[])
       buf.len() = std::strlen(buf.base());
 
       uv::write wr;
-      wr.on_request() = [](uv::write _wr)  { if (!_wr)  PRINT_UV_ERR("write", _wr.uv_status()); };
+      wr.on_request() = [](uv::write _wr, uv::buffer)  { if (!_wr)  PRINT_UV_ERR("write", _wr.uv_status()); };
       wr.run(tcp_handle, buf);
     };
 

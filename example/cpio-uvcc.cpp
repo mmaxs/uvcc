@@ -41,7 +41,7 @@ int main(int _argc, char *_argv[])
         else if (_nread > 0)
         {
           uv::write wr;
-          wr.on_request() = [](uv::write _wr) -> void  // write_cb
+          wr.on_request() = [](uv::write _wr, uv::buffer) -> void  // write_cb
           {
             if (!_wr)
             {

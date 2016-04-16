@@ -94,7 +94,7 @@ int main(int _argc, char *_argv[])
             for (auto &wr : wr_pool)  if (wr.nrefs() == 1)  return wr;
 
             wr_pool.emplace_back();
-            wr_pool.back().on_request() = [](uv::write _wr) -> void  // write_cb
+            wr_pool.back().on_request() = [](uv::write _wr, uv::buffer) -> void  // write_cb
             {
               if (!_wr)
               {
