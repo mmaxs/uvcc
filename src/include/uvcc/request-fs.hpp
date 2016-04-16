@@ -236,6 +236,14 @@ public: /*constructors*/
     );
     if (!o)  uv_status(o);
   }
+  /*! \brief Create a file object from an existing file descriptor.
+      \details Optionally the name of the file the descriptor is associated with can be specified. */
+  file(::uv_file _fd, const char *_name = nullptr)
+  {
+    uv_file = instance::create();
+    *uv_file = _fd;
+    if (_name)  instance::from(uv_file)->path().assign(_name);
+  }
   //! \}
 
   file(const file &_that) : file(_that.uv_file)  {}
@@ -317,6 +325,7 @@ void fs::file::open_cb(::uv_fs_t *_req_open)
 
 
 
+/*! \brief Read data from a file. */
 class fs::read : public fs
 {
   friend class request::instance< read >;
@@ -362,10 +371,12 @@ public: /*interface*/
   const on_request_t& on_request() const noexcept  { return instance::from(uv_req)->on_request(); }
         on_request_t& on_request()       noexcept  { return instance::from(uv_req)->on_request(); }
 
-  /*! \brief Run the request.
+  /*! \brief Run the request. Read data from the `_file` into the buffers described by `_buf` object.
       \sa libuv API documentation: [`uv_fs_read()`](http://docs.libuv.org/en/v1.x/fs.html#c.uv_fs_read).
+      \sa Linux: [`preadv()`](http://man7.org/linux/man-pages/man2/preadv.2.html).
       \note If the request callback is empty (has not been set), the request runs **synchronously**
-      (and `_loop` parameter is ignored). */
+      (and `_loop` parameter is ignored). And the function returns the number of bytes read or relevant
+      [libuv error constant](http://docs.libuv.org/en/v1.x/errors.html#error-constants).*/
   int run(uv::loop _loop, fs::file _file, buffer &_buf, int64_t _offset = -1)
   {
     auto self = instance::from(uv_req);
