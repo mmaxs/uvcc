@@ -3,7 +3,6 @@
 #define UVCC_LOOP__HPP
 
 #include "uvcc/utility.hpp"
-#include "uvcc/thread.hpp"
 
 #include <uv.h>
 #include <cstddef>      // offsetof
@@ -48,7 +47,7 @@ private: /*types*/
   class instance
   {
   private: /*data*/
-    mutable tls_int uv_error;
+    mutable int uv_error;
     ref_count rc;
     type_storage< on_destroy_t > on_destroy_storage;
     uv_t uv_loop = { 0,};
@@ -88,7 +87,7 @@ private: /*types*/
     void unref()  { if (rc.dec() == 0)  destroy(); }
     ref_count::type nrefs() const noexcept  { return rc.value(); }
 
-    tls_int& uv_status() const noexcept  { return uv_error; }
+    decltype(uv_error)& uv_status() const noexcept  { return uv_error; }
   };
 
   struct walk_cb_pack

@@ -101,7 +101,11 @@ public: /*interface*/
 
     cb.on_buffer = _alloc_cb;
     if (_read_cb)  cb.on_read = _read_cb;
-    return uv_status(::uv_read_start(static_cast< uv_t* >(uv_handle), alloc_cb, read_cb));
+
+    uv_status(0);
+    int o = ::uv_read_start(static_cast< uv_t* >(uv_handle), alloc_cb, read_cb);
+    if (!o)  uv_status(o);
+    return o;
   }
   /*! \brief Stop reading data from the stream.
       \sa libuv API documentation: [`uv_read_stop()`](http://docs.libuv.org/en/v1.x/stream.html#c.uv_read_stop). */
@@ -125,7 +129,10 @@ public: /*interface*/
   int listen(int _backlog, const on_connection_t &_connection_cb) const
   {
     instance::from(uv_handle)->supplemental_data().on_connection = _connection_cb;
-    return uv_status(::uv_listen(static_cast< uv_t* >(uv_handle), _backlog, connection_cb));
+    uv_status(0);
+    int o = ::uv_listen(static_cast< uv_t* >(uv_handle), _backlog, connection_cb);
+    if (!o)  uv_status(o);
+    return o;
   }
   /*! \brief Accept incoming connections.
       \details There are specializations of this function for every `stream` subtype.

@@ -7,7 +7,6 @@
 #include "uvcc/handle-fs.hpp"
 #include "uvcc/buffer.hpp"
 #include "uvcc/loop.hpp"
-#include "uvcc/thread.hpp"
 
 #include <uv.h>
 #include <cstddef>      // offsetof
@@ -110,7 +109,7 @@ private: /*types*/
   class instance
   {
   private: /*data*/
-    mutable tls_int uv_error;
+    mutable int uv_error;
     ref_count rc;
     type_storage< on_destroy_t > on_destroy_storage;
     void *user_data = nullptr;
@@ -162,7 +161,7 @@ private: /*types*/
     void unref() noexcept  { if (rc.dec() == 0)  destroy(); }
     ref_count::type nrefs() const noexcept  { return rc.value(); }
 
-    tls_int& uv_status() const noexcept  { return uv_error; }
+    decltype(uv_error)& uv_status() const noexcept  { return uv_error; }
   };
 
   struct open_cb_pack
@@ -229,11 +228,13 @@ public: /*constructors*/
 
     instance::from(uv_file)->ref();
 
-    uv_status(::uv_fs_open(
+    uv_status(0);
+    int o = ::uv_fs_open(
         static_cast< uv::loop::uv_t* >(_loop), std::addressof(t->req_open),
         _path, _flags, _mode,
         open_cb
-    ));
+    );
+    if (!o)  uv_status(o);
   }
   //! \}
 
@@ -378,13 +379,16 @@ public: /*interface*/
       self->supplemental_data() = {_file.uv_file, _buf.uv_buf, _offset};
     };
 
-    return uv_status(::uv_fs_read(
+    uv_status(0);
+    int o = ::uv_fs_read(
         static_cast< uv::loop::uv_t* >(_loop), static_cast< uv_t* >(uv_req),
         static_cast< fs::file::uv_t >(_file),
         static_cast< const buffer::uv_t* >(_buf), _buf.count(),
         _offset,
         request_cb ? static_cast< ::uv_fs_cb >(read_cb) : nullptr
-    ));
+    );
+    if (!o)  uv_status(o);
+    return o;
   }
 
 public: /*conversion operators*/

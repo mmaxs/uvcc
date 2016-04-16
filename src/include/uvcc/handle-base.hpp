@@ -4,7 +4,6 @@
 
 #include "uvcc/utility.hpp"
 #include "uvcc/loop.hpp"
-#include "uvcc/thread.hpp"
 
 #include <uv.h>
 #include <cstddef>      // offsetof
@@ -48,7 +47,7 @@ protected: /*types*/
     using supplemental_data_t = typename _HANDLE_::supplemental_data_t;
 
   private: /*data*/
-    mutable tls_int uv_error;
+    mutable int uv_error;
     void (*Delete)(void*) = default_delete< instance >::Delete;  // store a proper delete operator
     ref_count rc;
     type_storage< on_destroy_t > on_destroy_storage;
@@ -102,7 +101,7 @@ protected: /*types*/
     void unref() noexcept  { if (rc.dec() == 0)  destroy(); }
     ref_count::type nrefs() const noexcept  { return rc.value(); }
 
-    tls_int& uv_status() const noexcept  { return uv_error; }
+    decltype(uv_error)& uv_status() const noexcept  { return uv_error; }
   };
   //! \endcond
 

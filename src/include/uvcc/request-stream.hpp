@@ -72,11 +72,14 @@ public: /*interface*/
   {
     tcp::instance::from(_tcp.uv_handle)->ref();
     instance::from(uv_req)->ref();
-    return uv_status(::uv_tcp_connect(
+    uv_status(0);
+    int o = ::uv_tcp_connect(
         static_cast< uv_t* >(uv_req), static_cast< tcp::uv_t* >(_tcp),
         reinterpret_cast< const ::sockaddr* >(&_sockaddr),
         connect_cb
-    ));
+    );
+    if (!o)  uv_status(o);
+    return o;
   }
   /*! \brief Run the request for `uv::pipe` stream.
       \sa libuv API documentation: [`uv_pipe_connect()`](http://docs.libuv.org/en/v1.x/pipe.html#c.uv_pipe_connect). */
@@ -169,11 +172,14 @@ public: /*interface*/
     self->ref();
     self->supplemental_data() = _buf.uv_buf;
 
-    return uv_status(::uv_write(
+    uv_status(0);
+    int o = ::uv_write(
         static_cast< uv_t* >(uv_req), static_cast< stream::uv_t* >(_stream),
         static_cast< const buffer::uv_t* >(_buf), _buf.count(),
         write_cb
-    ));
+    );
+    if (!o)  uv_status(o);
+    return o;
   }
   /*! \brief The overload for sending handles over a pipe.
       \sa libuv API documentation: [`uv_write2()`](http://docs.libuv.org/en/v1.x/stream.html#c.uv_write2). */
@@ -187,12 +193,15 @@ public: /*interface*/
     self->ref();
     self->supplemental_data() = _buf.uv_buf;
 
-    return uv_status(::uv_write2(
+    uv_status(0);
+    int o = ::uv_write2(
         static_cast< uv_t* >(uv_req), static_cast< stream::uv_t* >(_pipe),
         static_cast< const buffer::uv_t* >(_buf), _buf.count(),
         static_cast< stream::uv_t* >(_send_handle),
         write2_cb
-    ));
+    );
+    if (!o)  uv_status(o);
+    return o;
   }
 
   /*! \details The wrapper for corresponding libuv function.
@@ -200,7 +209,9 @@ public: /*interface*/
       \sa libuv API documentation: [`uv_try_write()`](http://docs.libuv.org/en/v1.x/stream.html#c.uv_try_write). */
   int try_write(stream _stream, const buffer _buf)
   {
-    return uv_status(::uv_try_write(static_cast< stream::uv_t* >(_stream), static_cast< const buffer::uv_t* >(_buf), _buf.count()));
+    return uv_status(
+        ::uv_try_write(static_cast< stream::uv_t* >(_stream), static_cast< const buffer::uv_t* >(_buf), _buf.count())
+    );
   }
 
 public: /*conversion operators*/
@@ -280,7 +291,10 @@ public: /*interface*/
   {
     stream::instance::from(_stream.uv_handle)->ref();
     instance::from(uv_req)->ref();
-    return uv_status(::uv_shutdown(static_cast< uv_t* >(uv_req), static_cast< stream::uv_t* >(_stream), shutdown_cb));
+    uv_status(0);
+    int o = ::uv_shutdown(static_cast< uv_t* >(uv_req), static_cast< stream::uv_t* >(_stream), shutdown_cb);
+    if (!o)  uv_status(o);
+    return o;
   }
 
 public: /*conversion operators*/
