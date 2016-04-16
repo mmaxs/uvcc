@@ -67,17 +67,15 @@ private: /*functions*/
 
   int run(uv::loop _loop, const char *_hostname, const char *_service, const ::addrinfo *_hints)
   {
-    auto &request_cb = on_request();
-    if (request_cb)
-    {
-      uv::loop::instance::from(_loop.uv_loop)->ref();
-      instance::from(uv_req)->ref();
-    };
+    auto self = instance::from(uv_req);
+
+    auto &request_cb = self->on_request();
+    if (request_cb)  self->ref();
 
     ::uv_freeaddrinfo(static_cast< uv_t* >(uv_req)->addrinfo);  // assuming that *uv_req has initially been zeroed
 
     return uv_status(::uv_getaddrinfo(
-        static_cast< loop::uv_t* >(_loop), static_cast< uv_t* >(uv_req),
+        static_cast< uv::loop::uv_t* >(_loop), static_cast< uv_t* >(uv_req),
         request_cb ? static_cast< ::uv_getaddrinfo_cb >(getaddrinfo_cb) : nullptr,
         _hostname, _service, _hints
     ));
@@ -120,7 +118,6 @@ void getaddrinfo::getaddrinfo_cb(::uv_getaddrinfo_t *_uv_req, int _status, ::add
   auto self = instance::from(_uv_req);
   self->uv_status() = _status;
 
-  ref_guard< uv::loop::instance > unref_loop(*uv::loop::instance::from(_uv_req->loop), adopt_ref);
   ref_guard< instance > unref_req(*self, adopt_ref);
 
   auto &getaddrinfo_cb = self->on_request();
@@ -194,15 +191,13 @@ public: /*interface*/
   template< typename _T_, typename = std::enable_if_t< is_one_of< _T_, ::sockaddr, ::sockaddr_in, ::sockaddr_in6, ::sockaddr_storage >::value > >
   int run(uv::loop _loop, const _T_ &_sa, int _NI_FLAGS = 0)
   {
-    auto &request_cb = on_request();
-    if (request_cb)
-    {
-      uv::loop::instance::from(_loop.uv_loop)->ref();
-      instance::from(uv_req)->ref();
-    };
+    auto self = instance::from(uv_req);
+
+    auto &request_cb = self->on_request();
+    if (request_cb)  self->ref();
 
     return uv_status(::uv_getnameinfo(
-        static_cast< loop::uv_t* >(_loop), static_cast< uv_t* >(uv_req),
+        static_cast< uv::loop::uv_t* >(_loop), static_cast< uv_t* >(uv_req),
         request_cb ? static_cast< ::uv_getnameinfo_cb >(getnameinfo_cb) : nullptr,
         reinterpret_cast< const ::sockaddr* >(&_sa), _NI_FLAGS
     ));
@@ -219,7 +214,6 @@ void getnameinfo::getnameinfo_cb(::uv_getnameinfo_t *_uv_req, int _status, const
   auto self = instance::from(_uv_req);
   self->uv_status() = _status;
 
-  ref_guard< uv::loop::instance > unref_loop(*uv::loop::instance::from(_uv_req->loop), adopt_ref);
   ref_guard< instance > unref_req(*self, adopt_ref);
 
   auto &getnameinfo_cb = self->on_request();
