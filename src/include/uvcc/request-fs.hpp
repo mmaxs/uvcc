@@ -10,10 +10,12 @@
 #include "uvcc/thread.hpp"
 
 #include <uv.h>
+#include <cstddef>      // offsetof
 #include <cstring>      // memset()
 #include <string>       // string
 #include <functional>   // function
-#include <memory>       // unique_ptr
+#include <memory>       // addressof() unique_ptr
+#include <utility>      // forward()
 
 
 namespace uv
@@ -87,8 +89,8 @@ private: /*types*/
     ref_count rc;
     type_storage< on_destroy_t > on_destroy_storage;
     void *user_data = nullptr;
-    uv_t uv_file = -1;
     std::string file_path;
+    uv_t uv_file = -1;
 
   private: /*constructors*/
     instance() = default;
@@ -140,8 +142,15 @@ private: /*types*/
 
   struct open_cb_pack
   {
-    const on_open_t open_cb;
     uv_t* const uv_file;
+    const type_storage< on_open_t > on_open_storage;
+    ::uv_fs_t req_open;
+
+    constexpr static open_cb_pack* from(::uv_fs_t *_req_open) noexcept
+    {
+      static_assert(std::is_standard_layout< open_cb_pack >::value, "not a standard layout type");
+      return reinterpret_cast< open_cb_pack* >(reinterpret_cast< char* >(_req_open) - offsetof(open_cb_pack, req_open));
+    }
   };
 
 private: /*data*/
@@ -174,11 +183,9 @@ public: /*constructors*/
         _path, _flags, _mode,
         nullptr
     ));
-    if (req_open.result >= 0)
-    {
-      *uv_file = req_open.result;
-      instance::from(uv_file)->path().assign(req_open.path);
-    };
+    if (req_open.result >= 0)  *uv_file = req_open.result;
+    instance::from(uv_file)->path().assign(req_open.path);
+
     ::uv_fs_req_cleanup(&req_open);
   }
   /*! \brief Open and possibly create a file.
@@ -193,14 +200,13 @@ public: /*constructors*/
     };
 
     uv_file = instance::create();
-    ::uv_fs_t *req_open = new ::uv_fs_t;
-    req_open->data = new open_cb_pack{_open_cb, uv_file};
+    auto t = new open_cb_pack{uv_file, {_open_cb}, { 0,}};
 
     uv::loop::instance::from(_loop.uv_loop)->ref();
     instance::from(uv_file)->ref();
 
     uv_status(::uv_fs_open(
-        static_cast< loop::uv_t* >(_loop), req_open,
+        static_cast< loop::uv_t* >(_loop), std::addressof(t->req_open),
         _path, _flags, _mode,
         open_cb
     ));
@@ -270,20 +276,19 @@ public: /*conversion operators*/
 template< typename >
 void fs::file::open_cb(::uv_fs_t *_req_open)
 {
-  std::unique_ptr< ::uv_fs_t > r(_req_open);
-  std::unique_ptr< open_cb_pack > t(static_cast< open_cb_pack* >(_req_open->data));
-  auto self = instance::from(t->uv_file);
-  self->uv_status() = r->result;
+  std::unique_ptr< open_cb_pack > t(open_cb_pack::from(_req_open));
 
-  ref_guard< uv::loop::instance > unref_loop(*uv::loop::instance::from(r->loop), adopt_ref);
+  auto self = instance::from(t->uv_file);
+  self->uv_status() = _req_open->result;
+
+  ref_guard< uv::loop::instance > unref_loop(*uv::loop::instance::from(_req_open->loop), adopt_ref);
   ref_guard< instance > unref_req(*self, adopt_ref);
 
-  if (r->result >= 0)
-  {
-    *t->uv_file = r->result;
-    self->path().assign(r->path);
-  };
-  if (t->open_cb)  t->open_cb(file(t->uv_file));
+  if (_req_open->result >= 0)  *t->uv_file = _req_open->result;
+  self->path().assign(_req_open->path);
+
+  auto &open_cb = t->on_open_storage.value();
+  if (open_cb)  open_cb(file(t->uv_file));
 }
 
 
