@@ -26,7 +26,9 @@ namespace uv
     \sa libuv API documentation: [Filesystem operations](http://docs.libuv.org/en/v1.x/fs.html#filesystem-operations). */
 class fs : public request
 {
+  //! \cond
   friend class request::instance< fs >;
+  //! \endcond
 
 public: /*types*/
   using uv_t = ::uv_fs_t;
@@ -96,7 +98,9 @@ public: /*conversion operators*/
 /*! \brief The open file handle. */
 class fs::file
 {
+  //! \cond
   friend class fs;
+  //! \endcond
 
 public: /*types*/
   using uv_t = ::uv_file;
@@ -328,7 +332,9 @@ void fs::file::open_cb(::uv_fs_t *_req_open)
 /*! \brief Read data from a file. */
 class fs::read : public fs
 {
+  //! \cond
   friend class request::instance< read >;
+  //! \endcond
 
 public: /*types*/
   using on_request_t = std::function< void(file _file, ssize_t _nread, buffer _buffer, int64_t _offset) >;
