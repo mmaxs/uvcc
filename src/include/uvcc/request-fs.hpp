@@ -375,7 +375,8 @@ public: /*interface*/
       \sa libuv API documentation: [`uv_fs_read()`](http://docs.libuv.org/en/v1.x/fs.html#c.uv_fs_read).
       \sa Linux: [`preadv()`](http://man7.org/linux/man-pages/man2/preadv.2.html).
       \note If the request callback is empty (has not been set), the request runs **synchronously**
-      (and `_loop` parameter is ignored). And the function returns the number of bytes read or relevant
+      (and `_loop` parameter is ignored).
+      In this case the function returns the number of bytes read or the relevant
       [libuv error constant](http://docs.libuv.org/en/v1.x/errors.html#error-constants).*/
   int run(uv::loop _loop, fs::file _file, buffer &_buf, int64_t _offset = -1)
   {
