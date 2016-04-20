@@ -9,7 +9,7 @@
 #include <cstddef>      // offsetof
 #include <functional>   // function
 #include <type_traits>  // is_standard_layout
-#include <utility>      // swap()
+#include <utility>      // forward() swap()
 #include <memory>       // addressof()
 
 
@@ -30,7 +30,7 @@ class handle
   //! \endcond
 
 public: /*types*/
-  using uv_t = ::uv_handle_t;
+  using uv_t = null_t;
   using on_destroy_t = std::function< void(void *_data) >;
   /*!< \brief The function type of the callback called when the handle has been closed and about to be destroyed.
        \sa libuv API documentation: [`uv_close_cb`](http://docs.libuv.org/en/v1.x/handle.html#c.uv_close_cb),
@@ -38,115 +38,95 @@ public: /*types*/
 
 protected: /*types*/
   //! \cond
-  using supplemental_data_t = empty_t;
-
-  template< class _HANDLE_ > class instance
+  struct uv_property
   {
-  public: /*types*/
+  /*data*/
+    void *ptr = nullptr;
+
+  /*constructors*/
+    virtual ~uv_property() = default;
+
+  /*interface*/
+    virtual void destroy_instance() noexcept = 0;
+    virtual ::uv_handle_type type() const noexcept = 0;
+    virtual void*& data() const noexcept = 0;
+  };
+  struct uv_handle_property;
+
+  template< class _HANDLE_ > struct instance
+  {
+  /*types*/
     using uv_t = typename _HANDLE_::uv_t;
+    using property_t = typename _HANDLE_::uv_property;
 
-  private: /*types*/
-    using supplemental_data_t = typename _HANDLE_::supplemental_data_t;
-
-  private: /*data*/
+  /*data*/
     mutable int uv_error = 0;
-    void (*Delete)(void*) = default_delete< instance >::Delete;  // store a proper delete operator
-    ref_count rc;
-    type_storage< on_destroy_t > on_destroy_storage;
-    mutable any_ptr supplemental_data_ptr;
-    alignas(::uv_any_handle) uv_t uv_handle = { 0,};
+    ref_count refs;
+    type_storage< on_destroy_t > on_destroy;
+    property_t *property = nullptr;
+    alignas(greatest(alignof(::uv_any_handle), alignof(::uv_fs_t))) uv_t uv_handle = { 0,};
 
-  private: /*constructors*/
-    instance() = default;
+  /*constructors*/
+    ~instance()  { delete property; }
 
-  public: /*constructors*/
-    ~instance() = default;
-
-    instance(const instance&) = delete;
-    instance& operator =(const instance&) = delete;
-
-    instance(instance&&) = delete;
-    instance& operator =(instance&&) = delete;
-
-  private: /*functions*/
-    static void close_cb(::uv_handle_t*);
-
-    void destroy()
+    template< typename... _Args_ > instance(_Args_&&... _args)
     {
-      auto t = reinterpret_cast< ::uv_handle_t* >(&uv_handle);
-      if (::uv_is_active(t))
-        ::uv_close(t, close_cb);
-      else
-      {
-        ::uv_close(t, nullptr);
-        close_cb(t);
-      }
+      property = new property_t(std::forward< _Args_ >(_args));
+      property->ptr = this;
     }
 
-  public: /*interface*/
-    static void* create()  { return std::addressof((new instance())->uv_handle); }
-
+  /*interface*/
     constexpr static instance* from(void *_uv_handle) noexcept
     {
       static_assert(std::is_standard_layout< instance >::value, "not a standard layout type");
       return reinterpret_cast< instance* >(static_cast< char* >(_uv_handle) - offsetof(instance, uv_handle));
     }
 
-    on_destroy_t& on_destroy() noexcept  { return on_destroy_storage.value(); }
-    supplemental_data_t& supplemental_data() const noexcept
-    {
-      if (!supplemental_data_ptr)  supplemental_data_ptr.reset(new supplemental_data_t);
-      return *supplemental_data_ptr.get< supplemental_data_t >();
-    }
-
-    void ref()  { rc.inc(); }
-    void unref() noexcept  { if (rc.dec() == 0)  destroy(); }
-    ref_count::type nrefs() const noexcept  { return rc.value(); }
-
-    decltype(uv_error)& uv_status() const noexcept  { return uv_error; }
+    void ref()  { refs.inc(); }
+    void unref() noexcept  { if (refs.dec() == 0)  property->destroy_instance(); }
   };
   //! \endcond
 
 protected: /*data*/
   //! \cond
-  void *uv_handle;
+  void *ptr;
   //! \endcond
 
 private: /*constructors*/
-  explicit handle(uv_t *_uv_handle)
+  explicit handle(void *_ptr)
   {
-    if (_uv_handle)  instance< handle >::from(_uv_handle)->ref();
-    uv_handle = _uv_handle;
+    if (_ptr)  static_cast< instance< handle >* >(_ptr)->ref();
+    ptr = _ptr;
   }
 
 protected: /*constructors*/
-  handle() noexcept : uv_handle(nullptr)  {}
+  handle() noexcept : ptr(nullptr)  {}
 
 public: /*constructors*/
-  ~handle()  { if (uv_handle)  instance< handle >::from(uv_handle)->unref(); }
+  ~handle()  { if (ptr)  static_cast< instance< handle >* >(ptr)->unref(); }
 
-  handle(const handle &_that) : handle(static_cast< uv_t* >(_that.uv_handle))  {}
+  handle(const handle &_that) : handle(_that.ptr)  {}
   handle& operator =(const handle &_that)
   {
     if (this != &_that)
     {
-      if (_that.uv_handle)  instance< handle >::from(_that.uv_handle)->ref();
-      auto t = uv_handle;
-      uv_handle = _that.uv_handle;
-      if (t)  instance< handle >::from(t)->unref();
+      if (_that.ptr)  static_cast< instance< handle >* >(_that.ptr)->ref();
+      auto t = ptr;
+      ptr = _that.ptr;
+      if (t)  static_cast< instance< handle >* >(t)->unref();
     };
     return *this;
   }
 
-  handle(handle &&_that) noexcept : uv_handle(_that.uv_handle)  { _that.uv_handle = nullptr; }
+  handle(handle &&_that) noexcept : ptr(_that.ptr)  { _that.ptr = nullptr; }
   handle& operator =(handle &&_that) noexcept
   {
     if (this != &_that)
     {
-      auto t = uv_handle;
-      uv_handle = _that.uv_handle;
-      _that.uv_handle = nullptr;
-      if (t)  instance< handle >::from(t)->unref();
+      auto t = ptr;
+      ptr = _that.ptr;
+      _that.ptr = nullptr;
+      if (t)  static_cast< instance< handle >* >(t)->unref();
     };
     return *this;
   }
@@ -155,94 +135,71 @@ protected: /*functions*/
   //! \cond
   int uv_status(int _value) const noexcept
   {
-    instance< handle >::from(uv_handle)->uv_status() = _value;
+    static_cast< instance< handle >* >(ptr)->uv_error = _value;
     return _value;
   }
   //! \endcond
 
 public: /*interface*/
-  void swap(handle &_that) noexcept  { std::swap(uv_handle, _that.uv_handle); }
+  void swap(handle &_that) noexcept  { std::swap(ptr, _that.ptr); }
   /*! \brief The current number of existing references to the same object as this handle variable refers to. */
-  long nrefs() const noexcept  { return instance< handle >::from(uv_handle)->nrefs(); }
+  long nrefs() const noexcept  { return static_cast< instance< handle >* >(ptr)->refs.value(); }
   /*! \brief The status value returned by the last executed libuv API function on this handle. */
-  int uv_status() const noexcept  { return instance< handle >::from(uv_handle)->uv_status(); }
+  int uv_status() const noexcept  { return static_cast< instance< handle >* >(ptr)->uv_error; }
 
-  const on_destroy_t& on_destroy() const noexcept  { return instance< handle >::from(uv_handle)->on_destroy(); }
-        on_destroy_t& on_destroy()       noexcept  { return instance< handle >::from(uv_handle)->on_destroy(); }
+  const on_destroy_t& on_destroy() const noexcept  { return static_cast< instance< handle >* >(ptr)->on_destroy.value(); }
+        on_destroy_t& on_destroy()       noexcept  { return static_cast< instance< handle >* >(ptr)->on_destroy.value(); }
 
   /*! \brief The tag indicating the libuv type of the handle. */
-  ::uv_handle_type type() const noexcept  { return static_cast< uv_t* >(uv_handle)->type; }
+  ::uv_handle_type type() const noexcept  { return static_cast< instance< handle >* >(ptr)->property->type(); }
   /*! \brief The libuv loop where the handle is running on.
       \details It is guaranteed that it will be a valid instance at least within the callback of the requests
       running with the handle. */
-  uv::loop loop() const noexcept  { return uv::loop(static_cast< uv_t* >(uv_handle)->loop); }
+  uv::loop loop() const noexcept  { return uv::loop(static_cast< instance< handle >* >(ptr)->uv_handle.loop); }
 
   /*! \brief The pointer to the user-defined arbitrary data. libuv and uvcc does not use this field. */
-  void* const& data() const noexcept  { return static_cast< uv_t* >(uv_handle)->data; }
-  void*      & data()       noexcept  { return static_cast< uv_t* >(uv_handle)->data; }
-
-  /*! \details Check if the handle is active.
-      \sa libuv API documentation: [`uv_is_active()`](http://docs.libuv.org/en/v1.x/handle.html#c.uv_is_active). */
-  int is_active() const noexcept  { return uv_status(::uv_is_active(static_cast< uv_t* >(uv_handle))); }
-  /*! \details Check if the handle is closing or closed.
-      \sa libuv API documentation: [`uv_is_closing()`](http://docs.libuv.org/en/v1.x/handle.html#c.uv_is_closing). */
-  int is_closing() const noexcept { return uv_status(::uv_is_closing(static_cast< uv_t* >(uv_handle))); }
-
-  /*! \details _Get_ the size of the send buffer that the operating system uses for the socket.
-      \sa libuv API documentation: [`uv_send_buffer_size()`](http://docs.libuv.org/en/v1.x/handle.html#c.uv_send_buffer_size). */
-  unsigned int send_buffer_size() const noexcept
-  {
-    unsigned int v = 0;
-    uv_status(::uv_send_buffer_size(static_cast< uv_t* >(uv_handle), (int*)&v));
-    return v;
-  }
-  /*! \details _Set_ the size of the send buffer that the operating system uses for the socket.
-      \sa libuv API documentation: [`uv_send_buffer_size()`](http://docs.libuv.org/en/v1.x/handle.html#c.uv_send_buffer_size). */
-  void send_buffer_size(const unsigned int _value) noexcept  { uv_status(::uv_send_buffer_size(static_cast< uv_t* >(uv_handle), (int*)&_value)); }
-
-  /*! \details _Get_ the size of the receive buffer that the operating system uses for the socket.
-      \sa libuv API documentation: [`uv_recv_buffer_size()`](http://docs.libuv.org/en/v1.x/handle.html#c.uv_recv_buffer_size). */
-  unsigned int recv_buffer_size() const noexcept
-  {
-    unsigned int v = 0;
-    uv_status(::uv_recv_buffer_size(static_cast< uv_t* >(uv_handle), (int*)&v));
-    return v;
-  }
-  /*! \details _Set_ the size of the receive buffer that the operating system uses for the socket.
-      \sa libuv API documentation: [`uv_recv_buffer_size()`](http://docs.libuv.org/en/v1.x/handle.html#c.uv_recv_buffer_size). */
-  void recv_buffer_size(const unsigned int _value) noexcept  { uv_status(::uv_recv_buffer_size(static_cast< uv_t* >(uv_handle), (int*)&_value)); }
-
-  /*! \details Get the platform dependent handle/file descriptor.
-      \sa libuv API documentation: [`uv_fileno()`](http://docs.libuv.org/en/v1.x/handle.html#c.uv_fileno). */
-  ::uv_os_fd_t fileno() const noexcept
-  {
-#ifdef _WIN32
-    ::uv_os_fd_t h = INVALID_HANDLE_VALUE;
-#else
-    ::uv_os_fd_t h = -1;
-#endif
-    uv_status(::uv_fileno(static_cast< uv_t* >(uv_handle), &h));
-    return h;
-  }
+  void* const& data() const noexcept  { return static_cast< instance< handle >* >(ptr)->property->data(); }
+  void*      & data()       noexcept  { return static_cast< instance< handle >* >(ptr)->property->data(); }
 
 public: /*conversion operators*/
-  explicit operator const uv_t*() const noexcept  { return static_cast< const uv_t* >(uv_handle); }
-  explicit operator       uv_t*()       noexcept  { return static_cast<       uv_t* >(uv_handle); }
-
   explicit operator bool() const noexcept  { return (uv_status() >= 0); }  /*!< \brief Equivalent to `(uv_status() >= 0)`. */
 };
 
 
-//! \cond
-template< class _HANDLE_ >
-void handle::instance< _HANDLE_ >::close_cb(::uv_handle_t *_uv_handle)
+
+struct handle::uv_handle_property : virtual uv_property
 {
-  auto self = from(_uv_handle);
-  auto &destroy_cb = self->on_destroy();
+  using instance = handle::instance< handle >;
+
+  template< typename = void > static void close_cb(::uv_handle_t*);
+
+  void destroy_instance() noexcept override
+  {
+    auto t = std::addressof(static_cast< instance* >(ptr)->uv_handle);
+    if (::uv_is_active(t))
+      ::uv_close(t, close_cb);
+    else
+    {
+      ::uv_close(t, nullptr);
+      close_cb(t);
+    }
+  }
+
+  ::uv_handle_type type() const noexcept override  { return static_cast< instance* >(ptr)->uv_handle.type; }
+  void*& data() const noexcept override  { return static_cast< instance* >(ptr)->uv_handle.data; }
+
+  int is_active() const noexcept  { return ::uv_is_active(std::addressof(static_cast< instance* >(ptr)->uv_handle));  }
+  int is_closing() const noexcept { return ::uv_is_closing(std::addressof(static_cast< instance* >(ptr)->uv_handle)); }
+};
+
+template< typename >
+void handle::uv_handle_property::close_cb(::uv_handle_t *_uv_handle);
+{
+  auto ptr = instance::from(_uv_handle);
+  auto &destroy_cb = ptr->on_destroy.value();
   if (destroy_cb)  destroy_cb(_uv_handle->data);
-  self->Delete(self);
+  delete ptr;
 }
-//! \endcond
 
 
 }
