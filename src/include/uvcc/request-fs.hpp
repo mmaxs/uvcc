@@ -113,7 +113,7 @@ private: /*types*/
   class instance
   {
   private: /*data*/
-    mutable int uv_error;
+    mutable int uv_error = 0;
     ref_count rc;
     type_storage< on_destroy_t > on_destroy_storage;
     void *user_data = nullptr;

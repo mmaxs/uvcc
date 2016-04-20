@@ -49,7 +49,7 @@ protected: /*types*/
     using supplemental_data_t = typename _HANDLE_::supplemental_data_t;
 
   private: /*data*/
-    mutable int uv_error;
+    mutable int uv_error = 0;
     void (*Delete)(void*) = default_delete< instance >::Delete;  // store a proper delete operator
     ref_count rc;
     type_storage< on_destroy_t > on_destroy_storage;
