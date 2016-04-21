@@ -18,7 +18,8 @@ namespace uv
 
 
 /*! \ingroup doxy_handle
-    \brief The base class for handles representing I/O endpoints. Encapsulates common I/O functions and properties. */
+    \brief The base class for handles representing I/O endpoints (file, TCP/UDP socket, pipe, TTY).
+    It encapsulates common I/O functions and properties. */
 class io : public handle
 {
   //! \cond
@@ -36,10 +37,12 @@ public: /*types*/
 
 protected: /*types*/
   //! \cond
-  struct uv_property : virtual handle::uv_property
+  struct property : virtual handle::property
   {
     on_buffer_t on_buffer;
     on_read_t on_read;
+    virtual int read_start() const noexcept = 0;
+    virtual int read_stop() const noexcept = 0;
   };
   //! \endcond
 
@@ -66,13 +69,15 @@ public: /*constructors*/
   io& operator =(io&&) noexcept = default;
 
 private: /*functions*/
+#if 0
   template< typename = void > static void alloc_cb(::uv_handle_t*, std::size_t, ::uv_buf_t*);
   template< typename = void > static void file_read_cb(::uv_fs_t*);
   template< typename = void > static void stream_read_cb(::uv_stream_t*, ssize_t, const ::uv_buf_t*);
   template< typename = void > static void udp_recv_cb(::uv_udp_t*, ssize_t, const ::uv_buf_t*, const ::sockaddr*, unsigned);
+#endif
 
 public: /*interface*/
-  /*! \brief Start reading incoming data from the stream.
+  /*! \brief Start reading incoming data from the I/O endpoint.
       \details The handle is tried to be set for reading if only nonempty `_alloc_cb` and `_read_cb` functions
       are  provided, or else `UV_EINVAL` is returned with no involving any libuv API or uvcc function.
       Repeated call to this function results in the automatic call to `read_stop()` firstly,
@@ -83,69 +88,37 @@ public: /*interface*/
   {
     if (!_read_cb)  return uv_status(UV_EINVAL);
 
-    auto p = static_cast< instance* >(ptr);
+    auto p = static_cast< instance* >(ptr)->property;
 
     if (!_alloc_cb and !p->on_read)  return uv_status(UV_EINVAL);
 
-    p->ref();  // first, make sure it would exist for the future _read_cb() calls until read_stop()
+    static_cast< instance* >(ptr)->ref();  // first, make sure it would exist for the future _read_cb() calls until read_stop()
     if (p->on_read)  read_stop();
 
-    p->on_buffer = _alloc_cb;
-    if (_read_cb)  p->on_read = _read_cb;
+    if (_alloc_cb)  p->on_buffer = _alloc_cb;
+    p->on_read = _read_cb;
 
     uv_status(0);
-    int o = ::uv_read_start(static_cast< uv_t* >(uv_handle), alloc_cb, read_cb);
+    int o = p->read_start();
     if (!o)  uv_status(o);
     return o;
   }
-  /*! \brief Stop reading data from the stream. */
+  /*! \brief Stop reading data from the I/O endpoint. */
   int read_stop() const
   {
-    uv_status(::uv_read_stop(static_cast< uv_t* >(uv_handle)));
+    auto p = static_cast< instance* >(ptr)->property;
 
-    auto self = instance::from(uv_handle);
-    auto &read_cb = self->supplemental_data().on_read;
-    if (read_cb)
+    uv_status(p->read_stop());
+
+    if (p->on_read)
     {
-      read_cb = on_read_t();
-      self->unref();  // release the excess reference from read_start()
+      p->on_read = on_read_t();
+      static_cast< instance* >(ptr)->unref();  // release the excess reference from read_start()
     };
 
     return uv_status();
   }
 };
-
-template< typename >
-void stream::alloc_cb(::uv_handle_t *_uv_handle, std::size_t _suggested_size, ::uv_buf_t *_uv_buf)
-{
-  auto &alloc_cb = instance::from(_uv_handle)->supplemental_data().on_buffer;
-  buffer &&b = alloc_cb(stream(reinterpret_cast< uv_t* >(_uv_handle)), _suggested_size);
-  buffer::instance::from(b.uv_buf)->ref();  // add the reference for the future moving the buffer instance into read_cb() parameter
-  *_uv_buf = b[0];
-}
-template< typename >
-void stream::read_cb(::uv_stream_t *_uv_stream, ssize_t _nread, const ::uv_buf_t *_uv_buf)
-{
-  auto self = instance::from(_uv_stream);
-  self->uv_status() = _nread;
-
-  auto &read_cb = self->supplemental_data().on_read;
-  if (_uv_buf->base)
-    read_cb(stream(_uv_stream), _nread, buffer(buffer::instance::from_base(_uv_buf->base), adopt_ref));
-    // don't forget to specify adopt_ref flag when using ref_guard to unref the object
-    // don't use ref_guard unless it really needs to hold on the object until the scope end
-    // use move/transfer semantics instead if you need just pass the object to another function for further processing
-  else
-    read_cb(stream(_uv_stream), _nread, buffer());
-}
-template< typename >
-void stream::connection_cb(::uv_stream_t *_uv_stream, int _status)
-{
-  auto self = instance::from(_uv_stream);
-  self->uv_status() = _status;
-  auto &connection_cb = self->supplemental_data().on_connection;
-  if (connection_cb)  connection_cb(stream(_uv_stream));
-}
 
 
 }

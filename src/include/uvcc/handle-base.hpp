@@ -30,7 +30,7 @@ class handle
   //! \endcond
 
 public: /*types*/
-  using uv_t = null_t;
+  using uv_t = unknown_t;
   using on_destroy_t = std::function< void(void *_data) >;
   /*!< \brief The function type of the callback called when the handle has been closed and about to be destroyed.
        \sa libuv API documentation: [`uv_close_cb`](http://docs.libuv.org/en/v1.x/handle.html#c.uv_close_cb),
@@ -38,17 +38,18 @@ public: /*types*/
 
 protected: /*types*/
   //! \cond
-  struct uv_property
+  struct property  /*!< \brief Basic properties for all uvcc handles. */
   {
   /*data*/
     void *ptr = nullptr;
 
   /*constructors*/
-    virtual ~uv_property() = default;
+    virtual ~property() = default;
 
   /*interface*/
     virtual void destroy_instance() noexcept = 0;
     virtual ::uv_handle_type type() const noexcept = 0;
+    virtual ::uv_loop_t* loop() const noexcept = 0;
     virtual void*& data() const noexcept = 0;
   };
   struct uv_handle_property;
@@ -57,14 +58,14 @@ protected: /*types*/
   {
   /*types*/
     using uv_t = typename _HANDLE_::uv_t;
-    using property_t = typename _HANDLE_::uv_property;
+    using property_t = typename _HANDLE_::property;
 
   /*data*/
     mutable int uv_error = 0;
     ref_count refs;
     type_storage< on_destroy_t > on_destroy;
     property_t *property = nullptr;
-    alignas(greatest(alignof(::uv_any_handle), alignof(::uv_fs_t))) uv_t uv_handle = { 0,};
+    alignas(greatest(alignof(::uv_any_handle), alignof(::uv_fs_t))) uv_t uv_handle = { 0,};  // this handle property is brought here for instance address reconstruction
 
   /*constructors*/
     ~instance()  { delete property; }
@@ -155,7 +156,7 @@ public: /*interface*/
   /*! \brief The libuv loop where the handle is running on.
       \details It is guaranteed that it will be a valid instance at least within the callback of the requests
       running with the handle. */
-  uv::loop loop() const noexcept  { return uv::loop(static_cast< instance< handle >* >(ptr)->uv_handle.loop); }
+  uv::loop loop() const noexcept  { return uv::loop(static_cast< instance< handle >* >(ptr)->property->loop()); }
 
   /*! \brief The pointer to the user-defined arbitrary data. libuv and uvcc does not use this field. */
   void* const& data() const noexcept  { return static_cast< instance< handle >* >(ptr)->property->data(); }
@@ -167,9 +168,10 @@ public: /*conversion operators*/
 
 
 
-struct handle::uv_handle_property : virtual uv_property
+template< class _HANDLE_ >
+struct handle::uv_handle_property< _HANDLE_ > : virtual property
 {
-  using instance = handle::instance< handle >;
+  using instance = handle::instance< _HANDLE_ >;
 
   template< typename = void > static void close_cb(::uv_handle_t*);
 
@@ -186,6 +188,7 @@ struct handle::uv_handle_property : virtual uv_property
   }
 
   ::uv_handle_type type() const noexcept override  { return static_cast< instance* >(ptr)->uv_handle.type; }
+  ::uv_loop_t* loop() const noexcept override  { return static_cast< instance* >(ptr)->uv_handle.loop; }
   void*& data() const noexcept override  { return static_cast< instance* >(ptr)->uv_handle.data; }
 
   int is_active() const noexcept  { return ::uv_is_active(std::addressof(static_cast< instance* >(ptr)->uv_handle));  }
