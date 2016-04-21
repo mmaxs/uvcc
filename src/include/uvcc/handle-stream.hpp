@@ -82,7 +82,7 @@ private: /*functions*/
 
 public: /*interface*/
   /*! \brief Start reading incoming data from the stream.
-      \details The stream is tried to be set for reading only if nonempty `_alloc_cb` and `_read_cb` functions
+      \details The stream is tried to be set for reading if only nonempty `_alloc_cb` and `_read_cb` functions
       are  provided, or else `UV_EINVAL` is returned with no involving any libuv API or uvcc function.
       Repeated call to this function results in the automatic call to `read_stop()` firstly,
       and `_alloc_cb` function can be empty in this case, which means that it doesn't change from the previous call.
@@ -101,8 +101,8 @@ public: /*interface*/
     self->ref();  // first, make sure it would exist for the future _read_cb() calls until read_stop()
     if (cb.on_read)  read_stop();
 
-    cb.on_buffer = _alloc_cb;
-    if (_read_cb)  cb.on_read = _read_cb;
+    if (_alloc_cb)  cb.on_buffer = _alloc_cb;
+    cb.on_read = _read_cb;
 
     uv_status(0);
     int o = ::uv_read_start(static_cast< uv_t* >(uv_handle), alloc_cb, read_cb);
