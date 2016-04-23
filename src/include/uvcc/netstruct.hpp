@@ -17,8 +17,8 @@
 
 namespace uv
 {
-/*! \defgroup g__netstruct Network-related structures initialization
-    \ingroup g__utility
+/*! \defgroup doxy_netstruct Network-related structures initialization
+    \ingroup doxy_utility
     \sa Linux: [ip(7):`sockaddr_in`](http://man7.org/linux/man-pages/man7/ip.7.html),
                [ipv6(7):`sockaddr_in6`](http://man7.org/linux/man-pages/man7/ipv6.7.html),
                [socket(7):`sockaddr_storage`](http://man7.org/linux/man-pages/man7/socket.7.html).

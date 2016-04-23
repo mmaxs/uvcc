@@ -13,8 +13,8 @@
 
 namespace uv
 {
-/*! \defgroup g__endian Byte order conversion
-    \ingroup g__utility
+/*! \defgroup doxy_endian Byte order conversion
+    \ingroup doxy_utility
     \details Templates of cross-platform (*nix/windows) functions for byte order conversion between host and network byte encoding.
     \sa For fairly complete version of C functions see e.g.: \n
     https://gist.github.com/panzi/6856583 \n

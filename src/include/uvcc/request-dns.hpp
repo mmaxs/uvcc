@@ -98,7 +98,7 @@ public: /*interface*/
   const ::addrinfo* addrinfo() const noexcept  { return static_cast< uv_t* >(uv_req)->addrinfo; }
 
   /*! \brief Run the request.
-      \details For supplying `_hints` argument the appropriate helper function for \ref g__netstruct can be utilized.
+      \details For supplying `_hints` argument the appropriate helper function for \ref doxy_netstruct can be utilized.
       \sa libuv API documentation: [`uv_getaddrinfo()`](http://docs.libuv.org/en/v1.x/dns.html#c.uv_getaddrinfo).
       \note If the request callback is empty (has not been set), the request runs **synchronously**
       (and `_loop` parameter is ignored). */
