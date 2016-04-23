@@ -10,7 +10,11 @@
 #include <functional>   // function
 #include <type_traits>  // is_standard_layout
 #include <utility>      // forward() swap()
+#include <string>       // string
 #include <memory>       // addressof()
+#ifdef _WIN32
+#include <io.h>         // _get_osfhandle()
+#endif
 
 
 namespace uv
@@ -41,7 +45,7 @@ protected: /*types*/
   struct property  /*!< \brief Basic properties for all uvcc handles. */
   {
   /*data*/
-    void *ptr = nullptr;
+    void *uv_handle = nullptr;
 
   /*constructors*/
     virtual ~property() = default;
@@ -51,8 +55,10 @@ protected: /*types*/
     virtual ::uv_handle_type type() const noexcept = 0;
     virtual ::uv_loop_t* loop() const noexcept = 0;
     virtual void*& data() const noexcept = 0;
+    virtual int fileno(::uv_os_fd_t&) const noexcept = 0;
   };
-  struct uv_handle_property;
+  struct uv_handle_t__property;  /*!< \brief Common properties for uvcc handles based on `uv_handle_t` libuv type. */
+  struct uv_fs_t__property;  /*!< \brief Common properties for uvcc handles based on `uv_fs_t` libuv type. */
 
   template< class _HANDLE_ > struct instance
   {
@@ -73,7 +79,7 @@ protected: /*types*/
     template< typename... _Args_ > instance(_Args_&&... _args)
     {
       property = new property_t(std::forward< _Args_ >(_args));
-      property->ptr = this;
+      property->uv_handle = std::addessof(uv_handle);
     }
 
   /*interface*/
@@ -162,22 +168,28 @@ public: /*interface*/
   void* const& data() const noexcept  { return static_cast< instance< handle >* >(ptr)->property->data(); }
   void*      & data()       noexcept  { return static_cast< instance< handle >* >(ptr)->property->data(); }
 
+  /*! \details Get the platform dependent handle/file descriptor.
+      \sa libuv API documentation: [`uv_fileno()`](http://docs.libuv.org/en/v1.x/handle.html#c.uv_fileno). */
+  ::uv_os_fd_t fileno() const noexcept
+  {
+    ::uv_os_fd_t h;
+    uv_status(static_cast< instance< handle >* >(ptr)->property->fileno(h));
+    return h;
+  }
+
 public: /*conversion operators*/
   explicit operator bool() const noexcept  { return (uv_status() >= 0); }  /*!< \brief Equivalent to `(uv_status() >= 0)`. */
 };
 
 
 
-template< class _HANDLE_ >
-struct handle::uv_handle_property< _HANDLE_ > : virtual property
+struct handle::uv_handle_t__property : virtual property
 {
-  using instance = handle::instance< _HANDLE_ >;
-
   template< typename = void > static void close_cb(::uv_handle_t*);
 
   void destroy_instance() noexcept override
   {
-    auto t = std::addressof(static_cast< instance* >(ptr)->uv_handle);
+    auto t = static_cast< ::uv_handle_t* >(uv_handle);
     if (::uv_is_active(t))
       ::uv_close(t, close_cb);
     else
@@ -187,22 +199,71 @@ struct handle::uv_handle_property< _HANDLE_ > : virtual property
     }
   }
 
-  ::uv_handle_type type() const noexcept override  { return static_cast< instance* >(ptr)->uv_handle.type; }
-  ::uv_loop_t* loop() const noexcept override  { return static_cast< instance* >(ptr)->uv_handle.loop; }
-  void*& data() const noexcept override  { return static_cast< instance* >(ptr)->uv_handle.data; }
+  ::uv_handle_type type() const noexcept override  { return static_cast< ::uv_handle_t* >(uv_handle)->type; }
+  ::uv_loop_t* loop() const noexcept override  { return static_cast< ::uv_handle_t* >(uv_handle)->loop; }
+  void*& data() const noexcept override  { return static_cast< ::uv_handle_t* >(uv_handle)->data; }
+  int fileno(::uv_os_fd_t &_h) const noexcept override
+  {
+#ifdef _WIN32
+    _h = INVALID_HANDLE_VALUE;
+#else
+    _h = -1;
+#endif
+    return ::uv_fileno(static_cast< ::uv_handle_t* >(uv_handle), &_h);
+  }
 
-  int is_active() const noexcept  { return ::uv_is_active(std::addressof(static_cast< instance* >(ptr)->uv_handle));  }
-  int is_closing() const noexcept { return ::uv_is_closing(std::addressof(static_cast< instance* >(ptr)->uv_handle)); }
+/*
+  int is_active() const noexcept  { return ::uv_is_active(static_cast< ::uv_handle_t* >(uv_handle));  }
+  int is_closing() const noexcept { return ::uv_is_closing(static_cast< ::uv_handle_t* >(uv_handle)); }
+*/
 };
 
 template< typename >
-void handle::uv_handle_property::close_cb(::uv_handle_t *_uv_handle);
+void handle::uv_handle_t__property::close_cb(::uv_handle_t *_uv_handle);
 {
-  auto ptr = instance::from(_uv_handle);
+  auto ptr = handle::instance::from(_uv_handle);
   auto &destroy_cb = ptr->on_destroy.value();
   if (destroy_cb)  destroy_cb(_uv_handle->data);
   delete ptr;
 }
+
+
+
+struct handle::uv_fs_t__property : virtual property
+{
+  void *user_data = nullptr;
+  std::string file_path;
+  ::uv_file fd = -1;
+
+  void destroy_instance() noexcept override
+  {
+    if (fd >= 0)
+    {
+      ::uv_fs_t req_close;
+      ::uv_fs_close(nullptr, &req_close, fd, nullptr);
+      ::uv_fs_req_cleanup(&req_close);
+    };
+
+    auto &destroy_cb = ptr->on_destroy.value();
+    if (destroy_cb)  destroy_cb(user_data);
+    delete ptr;
+  }
+
+  ::uv_handle_type type() const override  { return UV_FILE; }
+  ::uv_loop_t* loop() const noexcept override  { return static_cast< ::uv_fs_t* >(uv_handle)->loop; }
+  void*& data() const noexcept override  { return user_data; }
+  int fileno(::uv_os_fd_t &_h) const noexcept override
+  {
+#ifdef _WIN32
+    /*! \sa Windows: [`_get_osfhandle()`](https://msdn.microsoft.com/en-us/library/ks2530z6.aspx) */
+    _h = fd >= 0 ? ::_get_osfhandle(fd) : INVALID_HANDLE_VALUE;
+    return _h == INVALID_HANDLE_VALUE ? UV_EBADF : 0;
+#else
+    _h = static_cast< ::uv_os_fd_t >(fd);
+    return _h == -1 ? UV_EBADF : 0;
+#endif
+  }
+};
 
 
 }
