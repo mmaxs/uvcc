@@ -13,7 +13,7 @@
 
 namespace uv
 {
-/*! \defgroup g__utility Utility structures and definitions
+/*! \defgroup doxy_utility Utility structures and definitions
     \brief The utility definitions being used throughout the library. */
 //! \{
 
@@ -81,7 +81,7 @@ template< typename _T_ > struct default_destroy
 
 
 
-/*! \defgroup g__variadic Dealing with type lists and parameter packs */
+/*! \defgroup doxy_variadic Dealing with type lists and parameter packs */
 //! \{
 #define BUGGY_DOXYGEN
 #undef BUGGY_DOXYGEN
@@ -529,6 +529,11 @@ public: /*intreface*/
 public: /*conversion operators*/
   explicit operator bool() const noexcept  { return (ptr != nullptr); }  /*!< \brief Equivalent to `(get() != nullptr)`. */
 };
+
+
+
+/*! \brief The type for rough designation of polimorphic data structure. */
+struct polymorphic_data_t  { constexpr polymorphic_data_t() = default; };
 
 
 //! \}
