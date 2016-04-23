@@ -18,8 +18,8 @@ namespace uv
 
 
 /*! \ingroup doxy_handle
-    \brief The base class for handles representing I/O endpoints (file, TCP/UDP socket, pipe, TTY).
-    It encapsulates common I/O functions and properties. */
+    \brief The base class for handles representing I/O endpoints: a file, TCP/UDP socket, pipe, TTY.
+    Encapsulates common I/O functions and properties. */
 class io : public handle
 {
   //! \cond
@@ -27,7 +27,6 @@ class io : public handle
   //! \endcond
 
 public: /*types*/
-  using uv_t = null_t;
   using on_read_t = std::function< void(io _handle, ssize_t _nread, buffer _buffer) >;
   /*!< \brief The function type of the callback called by `read_start()` when data was read from an I/O endpoint.
        \note The libuv API calls user provided read callback functions with a _null-initialized_ `uv_buf_t`

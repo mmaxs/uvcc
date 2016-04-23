@@ -34,7 +34,7 @@ class handle
   //! \endcond
 
 public: /*types*/
-  using uv_t = unknown_t;
+  using uv_t = polymorphic_data_t;
   using on_destroy_t = std::function< void(void *_data) >;
   /*!< \brief The function type of the callback called when the handle has been closed and about to be destroyed.
        \sa libuv API documentation: [`uv_close_cb`](http://docs.libuv.org/en/v1.x/handle.html#c.uv_close_cb),
@@ -182,7 +182,7 @@ public: /*conversion operators*/
 };
 
 
-
+//! \cond
 struct handle::uv_handle_t__property : virtual property
 {
   template< typename = void > static void close_cb(::uv_handle_t*);
@@ -212,10 +212,8 @@ struct handle::uv_handle_t__property : virtual property
     return ::uv_fileno(static_cast< ::uv_handle_t* >(uv_handle), &_h);
   }
 
-/*
   int is_active() const noexcept  { return ::uv_is_active(static_cast< ::uv_handle_t* >(uv_handle));  }
   int is_closing() const noexcept { return ::uv_is_closing(static_cast< ::uv_handle_t* >(uv_handle)); }
-*/
 };
 
 template< typename >
@@ -226,9 +224,11 @@ void handle::uv_handle_t__property::close_cb(::uv_handle_t *_uv_handle);
   if (destroy_cb)  destroy_cb(_uv_handle->data);
   delete ptr;
 }
+//! \endcond
 
 
 
+//! \cond
 struct handle::uv_fs_t__property : virtual property
 {
   void *user_data = nullptr;
@@ -264,6 +264,7 @@ struct handle::uv_fs_t__property : virtual property
 #endif
   }
 };
+//! \endcond
 
 
 }
