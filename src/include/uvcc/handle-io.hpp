@@ -38,8 +38,9 @@ protected: /*types*/
   //! \cond
   struct property : virtual handle::property
   {
-    on_buffer_t on_buffer;
-    on_read_t on_read;
+    bool read_flag = false;
+    on_buffer_t alloc_cb;
+    on_read_t read_cb;
     virtual int read_start() const noexcept = 0;
     virtual int read_stop() const noexcept = 0;
   };
