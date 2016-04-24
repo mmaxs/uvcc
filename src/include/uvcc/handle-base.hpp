@@ -46,6 +46,7 @@ protected: /*types*/
   {
   /*data*/
     void *uv_handle = nullptr;
+    on_destroy_t destroy_cb;
 
   /*constructors*/
     virtual ~property() = default;
@@ -69,7 +70,6 @@ protected: /*types*/
   /*data*/
     mutable int uv_error = 0;
     ref_count refs;
-    type_storage< on_destroy_t > on_destroy;
     property_t *property = nullptr;
     alignas(greatest(alignof(::uv_any_handle), alignof(::uv_fs_t))) uv_t uv_handle = { 0,};  // this handle property is brought here for instance address reconstruction
 
@@ -154,8 +154,8 @@ public: /*interface*/
   /*! \brief The status value returned by the last executed libuv API function on this handle. */
   int uv_status() const noexcept  { return static_cast< instance< handle >* >(ptr)->uv_error; }
 
-  const on_destroy_t& on_destroy() const noexcept  { return static_cast< instance< handle >* >(ptr)->on_destroy.value(); }
-        on_destroy_t& on_destroy()       noexcept  { return static_cast< instance< handle >* >(ptr)->on_destroy.value(); }
+  const on_destroy_t& on_destroy() const noexcept  { return static_cast< instance< handle >* >(ptr)->property->destroy_cb; }
+        on_destroy_t& on_destroy()       noexcept  { return static_cast< instance< handle >* >(ptr)->property->destroy_cb; }
 
   /*! \brief The tag indicating the libuv type of the handle. */
   ::uv_handle_type type() const noexcept  { return static_cast< instance< handle >* >(ptr)->property->type(); }
@@ -219,8 +219,8 @@ struct handle::uv_handle_t__property : virtual property
 template< typename >
 void handle::uv_handle_t__property::close_cb(::uv_handle_t *_uv_handle);
 {
-  auto ptr = handle::instance::from(_uv_handle);
-  auto &destroy_cb = ptr->on_destroy.value();
+  auto ptr = handle::instance< handle >::from(_uv_handle);
+  auto &destroy_cb = ptr->property->destroy_cb;
   if (destroy_cb)  destroy_cb(_uv_handle->data);
   delete ptr;
 }
@@ -244,9 +244,8 @@ struct handle::uv_fs_t__property : virtual property
       ::uv_fs_req_cleanup(&req_close);
     };
 
-    auto &destroy_cb = ptr->on_destroy.value();
     if (destroy_cb)  destroy_cb(user_data);
-    delete ptr;
+    delete handle::instance< handle >::from(uv_handle);
   }
 
   ::uv_handle_type type() const override  { return UV_FILE; }
