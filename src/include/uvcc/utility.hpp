@@ -4,7 +4,7 @@
 
 #include <cstddef>      // nullptr_t
 #include <type_traits>  // is_void is_convertible enable_if_t decay common_type aligned_storage
-#include <atomic>       // atomic memory_order_*
+#include <atomic>       // atomic memory_order_* atomic_flag ATOMIC_FLAG_INIT
 #include <utility>      // forward() move()
 #include <memory>       // addressof()
 #include <stdexcept>    // runtime_error
@@ -254,6 +254,9 @@ class ref_guard
 public: /*types*/
   using target_type = _T_;
 
+private: /*data*/
+  target_type &t;
+
 public: /*constructors*/
   ~ref_guard()  { t.unref(); }
 
@@ -265,9 +268,36 @@ public: /*constructors*/
 
   ref_guard(ref_guard&&) = delete;
   ref_guard& operator =(ref_guard&&) = delete;
+};
 
+
+
+/*! \brief A simple spinlock mutex built around `std::atomic_flag`. */
+class spinlock
+{
 private: /*data*/
-  target_type &t;
+  std::atomic_flag flag;
+
+public: /*constructors*/
+  ~spinlock() = default;
+  spinlock() : flag(ATOMIC_FLAG_INIT)  {}
+
+  spinlock(const spinlock&) = delete;
+  spinlock& operator =(const spinlock&) = delete;
+
+  spinlock(spinlock&&) = delete;
+  spinlock& operator =(spinlock&&) = delete;
+
+public: /*interface*/
+  void lock(std::memory_order _o = std::memory_order_acquire) noexcept
+  {
+    while (flag.test_and_set(_o));
+  }
+
+  void unlock(std::memory_order _o = std::memory_order_release) noexcept
+  {
+    flag.clear(_o);
+  }
 };
 
 
@@ -532,7 +562,7 @@ public: /*conversion operators*/
 
 
 
-/*! \brief The type for rough designation of polimorphic data structure. */
+/*! \brief The type for rough designation of polymorphic data structure. */
 struct polymorphic_data_t  { constexpr polymorphic_data_t() = default; };
 
 
