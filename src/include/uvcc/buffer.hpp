@@ -229,7 +229,7 @@ public: /*conversion operators*/
     }
     ```
     */
-using on_buffer_t = std::function< buffer(handle _handle, std::size_t _suggested_size) >;
+using on_alloc_t = std::function< buffer(handle _handle, std::size_t _suggested_size) >;
 
 
 }

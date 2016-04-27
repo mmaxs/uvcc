@@ -47,7 +47,7 @@ protected: /*types*/
   //! \cond
   struct supplemental_data_t
   {
-    on_buffer_t on_buffer;
+    on_alloc_t on_buffer;
     on_read_t on_read;
     on_connection_t on_connection;
   };
@@ -89,7 +89,7 @@ public: /*interface*/
       \sa libuv API documentation: [`uv_read_start()`](http://docs.libuv.org/en/v1.x/stream.html#c.uv_read_start).
       \note This function adds an extra reference to the stream instance, which is released when the counterpart
       function `read_stop()` is called. */
-  int read_start(const on_buffer_t &_alloc_cb, const on_read_t &_read_cb) const
+  int read_start(const on_alloc_t &_alloc_cb, const on_read_t &_read_cb) const
   {
     if (!_read_cb)  return uv_status(UV_EINVAL);
 

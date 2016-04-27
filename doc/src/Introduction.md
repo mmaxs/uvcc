@@ -149,12 +149,12 @@ buf.len() = len;
 \sa libuv documentation: [`uv_buf_init()`](http://docs.libuv.org/en/v1.x/misc.html#c.uv_buf_init).
 
 \warning Do not return such a manually initialized `buffer` objects from the buffer allocation callbacks (of
-`uv::on_buffer_t` function type) that should be passed to `stream::read_start()` and `udp::recv_start()` functions.
+`uv::on_alloc_t` function type) that should be passed to `stream::read_start()` and `udp::recv_start()` functions.
 Only a copy of `uv_buf_t` structure held in a `buffer` object is passed to libuv API functions and there is no way to
 reconstruct the `buffer` object's address (which is needed for the uvcc reference counting mechanism to work properly)
 from the `uv_buf_t.base` pointer referencing the manually allocated external memory.
 \warning Also, the `buffer` objects that contain an array of `uv_buf_t` structures are not supported as a valid result
-of the `uv::on_buffer_t` callback functions. Only a single `uv_buf_t` structure in a `buffer` object is currently
+of the `uv::on_alloc_t` callback functions. Only a single `uv_buf_t` structure in a `buffer` object is currently
 supported for the purposes of the `stream::read_start()` and `udp::recv_start()` functions.
 
 
