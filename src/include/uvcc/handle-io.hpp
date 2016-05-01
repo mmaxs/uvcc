@@ -10,7 +10,6 @@
 #include <uv.h>
 #include <cstddef>      // size_t
 #include <functional>   // function
-#include <string>       // string
 #include <mutex>        // lock_guard
 
 
@@ -44,21 +43,18 @@ protected: /*types*/
   {
     spinlock rdstate_switch;
     bool rdstate_flag = false;
-    on_alloc_t alloc_cb;
-    on_read_t read_cb;
+    on_alloc_t on_alloc;
+    on_read_t on_read;
     virtual int read_start() const noexcept = 0;
     virtual int read_stop() const noexcept = 0;
   };
   //! \endcond
 
-private: /*types*/
-  using instance = handle::instance< io >;
-
 private: /*constructors*/
-  explicit io(void *_ptr)
+  explicit io(void *_inst_ptr)
   {
-    if (_ptr)  instance::from(_ptr)->ref();
-    ptr = _ptr;
+    if (_inst_ptr)  static_cast< handle::instance< io >* >(_inst_ptr)->ref();
+    inst_ptr = _inst_ptr;
   }
 
 protected: /*constructors*/
@@ -82,8 +78,8 @@ private: /*functions*/
 #endif
 
 public: /*interface*/
-  on_alloc_t& on_alloc() const noexcept  { return static_cast< instance* >(ptr)->property->alloc_cb; }
-  on_read_t& on_read() const noexcept  { return static_cast< instance* >(ptr)->property->read_cb; }
+  on_alloc_t& on_alloc() const noexcept  { return inst< io >()->prop()->on_alloc; }
+  on_read_t& on_read() const noexcept  { return inst< io >()->prop()->on_read; }
 
   /*! \brief Start reading incoming data from the I/O endpoint.
       \details The handle is tried to be set for reading if only nonempty `_alloc_cb` and `_read_cb` functions
@@ -95,24 +91,24 @@ public: /*interface*/
       counterpart function `read_stop()` is called. */
   int read_start(const on_alloc_t &_alloc_cb, const on_read_t &_read_cb) const
   {
-    auto p = static_cast< instance* >(ptr)->property;
+    auto p = inst< io >()->prop();
 
     std::lock_guard< decltype(p->rdstate_switch) > lk(p->rdstate_switch);
 
-    if (!_alloc_cb and !p->alloc_cb)  return uv_status(UV_EINVAL);
-    if (!_read_cb and !p->read_cb)  return uv_status(UV_EINVAL);
+    if (!_alloc_cb and !p->on_alloc)  return uv_status(UV_EINVAL);
+    if (!_read_cb and !p->on_read)  return uv_status(UV_EINVAL);
 
-    static_cast< instance* >(ptr)->ref();  // first, make sure it would exist for the future _read_cb() calls until read_stop()
+    inst< io >()->ref();  // first, make sure it would exist for the future _read_cb() calls until read_stop()
 
     if (p->rdstate_flag)
     {
       uv_status(p->read_stop());
-      static_cast< instance* >(ptr)->unref();  // release the excess reference from the repeated read_start()
+      inst< io >()->unref();  // release the excess reference from the repeated read_start()
     }
     else p->rdstate_flag = true;
 
-    if (_alloc_cb)  p->alloc_cb = _alloc_cb;
-    if (_read_cb)  p->read_cb = _read_cb;
+    if (_alloc_cb)  p->on_alloc = _alloc_cb;
+    if (_read_cb)  p->on_read = _read_cb;
 
     uv_status(0);
     int o = p->read_start();
@@ -120,24 +116,24 @@ public: /*interface*/
     return o;
   }
   /*! \brief Restart reading incoming data from the I/O endpoint using `_alloc_cb` and `_read_cb`
-      functions provided with the previous `read_start()` call.
+      functions having been explicitly set before or provided with the previous `read_start()` call.
       Repeated call to this function results in the automatic call to `read_stop()` firstly.
       \note This function adds an extra reference to the handle instance, which is released when the
       counterpart function `read_stop()` is called. */
   int read_start() const
   {
-    auto p = static_cast< instance* >(ptr)->property;
+    auto p = inst< io >()->prop();
 
     std::lock_guard< decltype(p->rdstate_switch) > lk(p->rdstate_switch);
 
-    if (!p->alloc_cb or !p->read_cb)  return uv_status(UV_EINVAL);
+    if (!p->on_alloc or !p->on_read)  return uv_status(UV_EINVAL);
 
-    static_cast< instance* >(ptr)->ref();
+    inst< io >()->ref();
 
     if (p->rdstate_flag)
     {
       uv_status(p->read_stop());
-      static_cast< instance* >(ptr)->unref();
+      inst< io >()->unref();
     }
     else p->rdstate_flag = true;
 
@@ -150,7 +146,7 @@ public: /*interface*/
   /*! \brief Stop reading data from the I/O endpoint. */
   int read_stop() const
   {
-    auto p = static_cast< instance* >(ptr)->property;
+    auto p = inst< io >()->prop();
 
     std::lock_guard< decltype(p->rdstate_switch) > lk(p->rdstate_switch);
 
@@ -159,7 +155,7 @@ public: /*interface*/
     if (p->rdstate_flag)
     {
       p->rdstate_flag = false;
-      static_cast< instance* >(ptr)->unref();  // release the excess reference from read_start()
+      inst< io >()->unref();  // release the excess reference from read_start()
     };
 
     return uv_status();

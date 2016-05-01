@@ -45,7 +45,7 @@ protected: /*types*/
   struct property  /*!< \brief Basic properties for all uvcc handles. */
   {
   /*data*/
-    void *uv_handle = nullptr;
+    void *uv_ptr = nullptr;
     on_destroy_t destroy_cb;
 
   /*constructors*/
@@ -55,7 +55,7 @@ protected: /*types*/
     virtual void destroy_instance() noexcept = 0;
     virtual ::uv_handle_type type() const noexcept = 0;
     virtual ::uv_loop_t* loop() const noexcept = 0;
-    virtual void*& data() const noexcept = 0;
+    virtual void*& data() noexcept = 0;
     virtual int fileno(::uv_os_fd_t&) const noexcept = 0;
   };
   struct uv_handle_t__property;  /*!< \brief Common properties for uvcc handles based on `uv_handle_t` libuv type. */
@@ -65,21 +65,28 @@ protected: /*types*/
   {
   /*types*/
     using uv_t = typename _HANDLE_::uv_t;
-    using property_t = typename _HANDLE_::property;
+    using property = typename _HANDLE_::property;
 
   /*data*/
     mutable int uv_error = 0;
     ref_count refs;
-    property_t *property = nullptr;
-    alignas(greatest(alignof(::uv_any_handle), alignof(::uv_fs_t))) uv_t uv_handle = { 0,};  // this handle property is brought here for instance address reconstruction
+    handle::property *prop_ptr = nullptr;
+    alignas(static_cast< const int >(
+        greatest(alignof(::uv_any_handle), alignof(::uv_fs_t))
+    )) uv_t uv_handle = { 0,};  // this handle property is brought here for instance address reconstruction
 
   /*constructors*/
-    ~instance()  { delete property; }
+    ~instance()  { delete prop_ptr; }
+    instance()
+    {
+      prop_ptr = new property;
+      prop_ptr->uv_ptr = std::addressof(uv_handle);
+    }
 
     template< typename... _Args_ > instance(_Args_&&... _args)
     {
-      property = new property_t(std::forward< _Args_ >(_args));
-      property->uv_handle = std::addessof(uv_handle);
+      prop_ptr = new property(std::forward< _Args_ >(_args)...);
+      prop_ptr->uv_ptr = std::addressof(uv_handle);
     }
 
   /*interface*/
@@ -89,50 +96,52 @@ protected: /*types*/
       return reinterpret_cast< instance* >(static_cast< char* >(_uv_handle) - offsetof(instance, uv_handle));
     }
 
+    property* prop() const noexcept  { return dynamic_cast< property* >(prop_ptr); }
+
     void ref()  { refs.inc(); }
-    void unref() noexcept  { if (refs.dec() == 0)  property->destroy_instance(); }
+    void unref() noexcept  { if (refs.dec() == 0)  prop_ptr->destroy_instance(); }
   };
   //! \endcond
 
 protected: /*data*/
   //! \cond
-  void *ptr;
+  void *inst_ptr;
   //! \endcond
 
 private: /*constructors*/
-  explicit handle(void *_ptr)
+  explicit handle(void *_inst_ptr)
   {
-    if (_ptr)  static_cast< instance< handle >* >(_ptr)->ref();
-    ptr = _ptr;
+    if (_inst_ptr)  static_cast< instance< handle >* >(_inst_ptr)->ref();
+    inst_ptr = _inst_ptr;
   }
 
 protected: /*constructors*/
-  handle() noexcept : ptr(nullptr)  {}
+  handle() noexcept : inst_ptr(nullptr)  {}
 
 public: /*constructors*/
-  ~handle()  { if (ptr)  static_cast< instance< handle >* >(ptr)->unref(); }
+  ~handle()  { if (inst_ptr)  static_cast< instance< handle >* >(inst_ptr)->unref(); }
 
-  handle(const handle &_that) : handle(_that.ptr)  {}
+  handle(const handle &_that) : handle(_that.inst_ptr)  {}
   handle& operator =(const handle &_that)
   {
     if (this != &_that)
     {
-      if (_that.ptr)  static_cast< instance< handle >* >(_that.ptr)->ref();
-      auto t = ptr;
-      ptr = _that.ptr;
+      if (_that.inst_ptr)  static_cast< instance< handle >* >(_that.inst_ptr)->ref();
+      auto t = inst_ptr;
+      inst_ptr = _that.inst_ptr;
       if (t)  static_cast< instance< handle >* >(t)->unref();
     };
     return *this;
   }
 
-  handle(handle &&_that) noexcept : ptr(_that.ptr)  { _that.ptr = nullptr; }
+  handle(handle &&_that) noexcept : inst_ptr(_that.inst_ptr)  { _that.inst_ptr = nullptr; }
   handle& operator =(handle &&_that) noexcept
   {
     if (this != &_that)
     {
-      auto t = ptr;
-      ptr = _that.ptr;
-      _that.ptr = nullptr;
+      auto t = inst_ptr;
+      inst_ptr = _that.inst_ptr;
+      _that.inst_ptr = nullptr;
       if (t)  static_cast< instance< handle >* >(t)->unref();
     };
     return *this;
@@ -142,38 +151,41 @@ protected: /*functions*/
   //! \cond
   int uv_status(int _value) const noexcept
   {
-    static_cast< instance< handle >* >(ptr)->uv_error = _value;
+    static_cast< instance< handle >* >(inst_ptr)->uv_error = _value;
     return _value;
   }
+
+  template< class _HANDLE_ >
+  instance< _HANDLE_ >* inst() const noexcept  { return static_cast< instance< _HANDLE_ >* >(inst_ptr); }
   //! \endcond
 
 public: /*interface*/
-  void swap(handle &_that) noexcept  { std::swap(ptr, _that.ptr); }
+  void swap(handle &_that) noexcept  { std::swap(inst_ptr, _that.inst_ptr); }
   /*! \brief The current number of existing references to the same object as this handle variable refers to. */
-  long nrefs() const noexcept  { return static_cast< instance< handle >* >(ptr)->refs.value(); }
+  long nrefs() const noexcept  { return inst< handle >()->refs.value(); }
   /*! \brief The status value returned by the last executed libuv API function on this handle. */
-  int uv_status() const noexcept  { return static_cast< instance< handle >* >(ptr)->uv_error; }
+  int uv_status() const noexcept  { return inst< handle >()->uv_error; }
 
-  const on_destroy_t& on_destroy() const noexcept  { return static_cast< instance< handle >* >(ptr)->property->destroy_cb; }
-        on_destroy_t& on_destroy()       noexcept  { return static_cast< instance< handle >* >(ptr)->property->destroy_cb; }
+  const on_destroy_t& on_destroy() const noexcept  { return inst< handle >()->prop()->destroy_cb; }
+        on_destroy_t& on_destroy()       noexcept  { return inst< handle >()->prop()->destroy_cb; }
 
   /*! \brief The tag indicating the libuv type of the handle. */
-  ::uv_handle_type type() const noexcept  { return static_cast< instance< handle >* >(ptr)->property->type(); }
+  ::uv_handle_type type() const noexcept  { return inst< handle >()->prop()->type(); }
   /*! \brief The libuv loop where the handle is running on.
       \details It is guaranteed that it will be a valid instance at least within the callback of the requests
       running with the handle. */
-  uv::loop loop() const noexcept  { return uv::loop(static_cast< instance< handle >* >(ptr)->property->loop()); }
+  uv::loop loop() const noexcept  { return uv::loop(inst< handle >()->prop()->loop()); }
 
   /*! \brief The pointer to the user-defined arbitrary data. libuv and uvcc does not use this field. */
-  void* const& data() const noexcept  { return static_cast< instance< handle >* >(ptr)->property->data(); }
-  void*      & data()       noexcept  { return static_cast< instance< handle >* >(ptr)->property->data(); }
+  void* const& data() const noexcept  { return inst< handle >()->prop()->data(); }
+  void*      & data()       noexcept  { return inst< handle >()->prop()->data(); }
 
   /*! \details Get the platform dependent handle/file descriptor.
       \sa libuv API documentation: [`uv_fileno()`](http://docs.libuv.org/en/v1.x/handle.html#c.uv_fileno). */
   ::uv_os_fd_t fileno() const noexcept
   {
     ::uv_os_fd_t h;
-    uv_status(static_cast< instance< handle >* >(ptr)->property->fileno(h));
+    uv_status(inst< handle >()->prop()->fileno(h));
     return h;
   }
 
@@ -189,7 +201,7 @@ struct handle::uv_handle_t__property : virtual property
 
   void destroy_instance() noexcept override
   {
-    auto t = static_cast< ::uv_handle_t* >(uv_handle);
+    auto t = static_cast< ::uv_handle_t* >(uv_ptr);
     if (::uv_is_active(t))
       ::uv_close(t, close_cb);
     else
@@ -199,9 +211,9 @@ struct handle::uv_handle_t__property : virtual property
     }
   }
 
-  ::uv_handle_type type() const noexcept override  { return static_cast< ::uv_handle_t* >(uv_handle)->type; }
-  ::uv_loop_t* loop() const noexcept override  { return static_cast< ::uv_handle_t* >(uv_handle)->loop; }
-  void*& data() const noexcept override  { return static_cast< ::uv_handle_t* >(uv_handle)->data; }
+  ::uv_handle_type type() const noexcept override  { return static_cast< ::uv_handle_t* >(uv_ptr)->type; }
+  ::uv_loop_t* loop() const noexcept override  { return static_cast< ::uv_handle_t* >(uv_ptr)->loop; }
+  void*& data() noexcept override  { return static_cast< ::uv_handle_t* >(uv_ptr)->data; }
   int fileno(::uv_os_fd_t &_h) const noexcept override
   {
 #ifdef _WIN32
@@ -209,20 +221,20 @@ struct handle::uv_handle_t__property : virtual property
 #else
     _h = -1;
 #endif
-    return ::uv_fileno(static_cast< ::uv_handle_t* >(uv_handle), &_h);
+    return ::uv_fileno(static_cast< ::uv_handle_t* >(uv_ptr), &_h);
   }
 
-  int is_active() const noexcept  { return ::uv_is_active(static_cast< ::uv_handle_t* >(uv_handle));  }
-  int is_closing() const noexcept { return ::uv_is_closing(static_cast< ::uv_handle_t* >(uv_handle)); }
+  int is_active() const noexcept  { return ::uv_is_active(static_cast< ::uv_handle_t* >(uv_ptr));  }
+  int is_closing() const noexcept { return ::uv_is_closing(static_cast< ::uv_handle_t* >(uv_ptr)); }
 };
 
 template< typename >
-void handle::uv_handle_t__property::close_cb(::uv_handle_t *_uv_handle);
+void handle::uv_handle_t__property::close_cb(::uv_handle_t *_uv_handle)
 {
-  auto ptr = handle::instance< handle >::from(_uv_handle);
-  auto &destroy_cb = ptr->property->destroy_cb;
+  auto inst = handle::instance< handle >::from(_uv_handle);
+  auto &destroy_cb = inst->prop()->destroy_cb;
   if (destroy_cb)  destroy_cb(_uv_handle->data);
-  delete ptr;
+  delete inst;
 }
 //! \endcond
 
@@ -245,17 +257,17 @@ struct handle::uv_fs_t__property : virtual property
     };
 
     if (destroy_cb)  destroy_cb(user_data);
-    delete handle::instance< handle >::from(uv_handle);
+    delete handle::instance< handle >::from(uv_ptr);
   }
 
-  ::uv_handle_type type() const override  { return UV_FILE; }
-  ::uv_loop_t* loop() const noexcept override  { return static_cast< ::uv_fs_t* >(uv_handle)->loop; }
-  void*& data() const noexcept override  { return user_data; }
+  ::uv_handle_type type() const noexcept override  { return UV_FILE; }
+  ::uv_loop_t* loop() const noexcept override  { return static_cast< ::uv_fs_t* >(uv_ptr)->loop; }
+  void*& data() noexcept override  { return user_data; }
   int fileno(::uv_os_fd_t &_h) const noexcept override
   {
 #ifdef _WIN32
     /*! \sa Windows: [`_get_osfhandle()`](https://msdn.microsoft.com/en-us/library/ks2530z6.aspx) */
-    _h = fd >= 0 ? ::_get_osfhandle(fd) : INVALID_HANDLE_VALUE;
+    _h = fd >= 0 ? (HANDLE)::_get_osfhandle(fd) : INVALID_HANDLE_VALUE;
     return _h == INVALID_HANDLE_VALUE ? UV_EBADF : 0;
 #else
     _h = static_cast< ::uv_os_fd_t >(fd);

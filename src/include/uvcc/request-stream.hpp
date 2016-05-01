@@ -62,7 +62,7 @@ public: /*interface*/
         on_request_t& on_request()       noexcept  { return instance::from(uv_req)->on_request(); }
 
   /*! \brief The stream which this connect request is running on. */
-  stream handle() const noexcept  { return stream(static_cast< uv_t* >(uv_req)->handle); }
+  stream handle() const noexcept  { return stream(handle::instance< stream >::from(static_cast< uv_t* >(uv_req)->handle)); }
 
   /*! \brief Run the request for `uv::tcp` stream.
       \sa libuv API documentation: [`uv_tcp_connect()`](http://docs.libuv.org/en/v1.x/tcp.html#c.uv_tcp_connect). */
@@ -72,7 +72,7 @@ public: /*interface*/
   >
   int run(tcp _tcp, const _T_ &_sockaddr)
   {
-    tcp::instance::from(_tcp.uv_handle)->ref();
+    static_cast< handle::instance< tcp >* >(_tcp.inst_ptr)->ref();
     instance::from(uv_req)->ref();
     uv_status(0);
     int o = ::uv_tcp_connect(
@@ -87,7 +87,7 @@ public: /*interface*/
       \sa libuv API documentation: [`uv_pipe_connect()`](http://docs.libuv.org/en/v1.x/pipe.html#c.uv_pipe_connect). */
   void run(pipe _pipe, const char *_name)
   {
-    pipe::instance::from(_pipe.uv_handle)->ref();
+    static_cast< handle::instance< pipe >* >(_pipe.inst_ptr)->ref();
     instance::from(uv_req)->ref();
     ::uv_pipe_connect(static_cast< uv_t* >(uv_req), static_cast< pipe::uv_t* >(_pipe), _name, connect_cb);
   }
@@ -103,7 +103,7 @@ void connect::connect_cb(::uv_connect_t *_uv_req, int _status)
   auto self = instance::from(_uv_req);
   self->uv_status() = _status;
 
-  ref_guard< stream::instance > unref_handle(*stream::instance::from(_uv_req->handle), adopt_ref);
+  ref_guard< handle::instance< stream > > unref_handle(*handle::instance< stream >::from(_uv_req->handle), adopt_ref);
   ref_guard< instance > unref_req(*self, adopt_ref);
 
   auto &connect_cb = self->on_request();
@@ -171,7 +171,7 @@ public: /*interface*/
   {
     auto self = instance::from(uv_req);
 
-    stream::instance::from(_stream.uv_handle)->ref();
+    static_cast< handle::instance< stream >* >(_stream.inst_ptr)->ref();
     buffer::instance::from(_buf.uv_buf)->ref();
     self->ref();
     self->supplemental_data() = _buf.uv_buf;
@@ -191,9 +191,9 @@ public: /*interface*/
   {
     auto self = instance::from(uv_req);
 
-    pipe::instance::from(_pipe.uv_handle)->ref();
+    static_cast< handle::instance< pipe >* >(_pipe.inst_ptr)->ref();
     buffer::instance::from(_buf.uv_buf)->ref();
-    stream::instance::from(_send_handle.uv_handle)->ref();
+    static_cast< handle::instance< stream >* >(_send_handle.inst_ptr)->ref();
     self->ref();
     self->supplemental_data() = _buf.uv_buf;
 
@@ -229,7 +229,7 @@ void write::write_cb(::uv_write_t *_uv_req, int _status)
   auto self = instance::from(_uv_req);
   self->uv_status() = _status;
 
-  ref_guard< stream::instance > unref_handle(*stream::instance::from(_uv_req->handle), adopt_ref);
+  ref_guard< handle::instance< stream > > unref_handle(*handle::instance< stream >::from(_uv_req->handle), adopt_ref);
   ref_guard< instance > unref_req(*self, adopt_ref);
 
   auto &write_cb = self->on_request();
@@ -241,7 +241,7 @@ void write::write_cb(::uv_write_t *_uv_req, int _status)
 template< typename >
 void write::write2_cb(::uv_write_t *_uv_req, int _status)
 {
-  ref_guard< stream::instance > unref_send_handle(*stream::instance::from(_uv_req->send_handle), adopt_ref);
+  ref_guard< handle::instance< stream > > unref_send_handle(*handle::instance< stream >::from(_uv_req->send_handle), adopt_ref);
   write_cb(_uv_req, _status);
 }
 
@@ -295,7 +295,7 @@ public: /*interface*/
   /*! \brief Run the request. */
   int run(stream _stream)
   {
-    stream::instance::from(_stream.uv_handle)->ref();
+    static_cast< handle::instance< stream >* >(_stream.inst_ptr)->ref();
     instance::from(uv_req)->ref();
     uv_status(0);
     int o = ::uv_shutdown(static_cast< uv_t* >(uv_req), static_cast< stream::uv_t* >(_stream), shutdown_cb);
@@ -314,7 +314,7 @@ void shutdown::shutdown_cb(::uv_shutdown_t *_uv_req, int _status)
   auto self = instance::from(_uv_req);
   self->uv_status() = _status;
 
-  ref_guard< stream::instance > unref_handle(*stream::instance::from(_uv_req->handle), adopt_ref);
+  ref_guard< handle::instance< stream > > unref_handle(*handle::instance< stream >::from(_uv_req->handle), adopt_ref);
   ref_guard< instance > unref_req(*self, adopt_ref);
 
   auto &shutdown_cb = self->on_request();
