@@ -31,11 +31,11 @@ int main(int _argc, char *_argv[])
       uv::tcp tcp_handle = static_cast< uv::tcp&& >(_connect_req.handle());
       tcp_handle.read_start(
           [](uv::handle, std::size_t _suggested_size)  { return uv::buffer{_suggested_size}; },
-          [](uv::stream _stream, ssize_t _nread, uv::buffer _buf)
+          [](uv::io _io, ssize_t _nread, uv::buffer _buf)
           {
             if (_nread < 0)
             {
-              _stream.read_stop();
+              _io.read_stop();
               if (_nread != UV_EOF)  PRINT_UV_ERR("read", _nread);
             }
             else if (_nread > 0)
