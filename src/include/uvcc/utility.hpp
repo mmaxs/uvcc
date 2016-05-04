@@ -13,7 +13,7 @@
 
 namespace uv
 {
-/*! \defgroup g__utility Utility structures and definitions
+/*! \defgroup doxy_group_utility Utility structures and definitions
     \brief The utility definitions being used throughout the library. */
 //! \{
 
@@ -81,10 +81,9 @@ template< typename _T_ > struct default_destroy
 
 
 
-/*! \defgroup g__variadic Dealing with type lists and parameter packs */
+/*! \defgroup doxy_group_variadic Dealing with type lists and parameter packs */
+//! \addtogroup doxy_group_variadic
 //! \{
-#define BUGGY_DOXYGEN
-#undef BUGGY_DOXYGEN
 
 /*! \brief The type of an absent entity. Cannot be instantiated.
     \details Used to substitute nonexistent and `void` types in various template metaprogramming expressions.
@@ -302,6 +301,132 @@ public: /*interface*/
 
 
 
+/*! \brief A wrapper around `std::aligned_storage< _LEN_, _ALIGN_ >::type` that simplifies
+    initializing the provided storage space, getting from it, setting it to, and automatic destroying it from
+    objects of any type fitting to the given size and alignment requirements.
+    \note All the member functions creating a new value in the storage from their arguments
+    use the _curly brace initialization_. */
+template< std::size_t _LEN_, std::size_t _ALIGN_ >
+class aligned_storage
+{
+private: /*data*/
+  const std::type_info *type_tag = nullptr;
+  void (*Destroy)(void*) = nullptr;
+  typename std::aligned_storage< _LEN_, _ALIGN_ >::type storage;
+
+public: /*constructors*/
+  ~aligned_storage()  { destroy(); }
+  aligned_storage() = default;  /*!< \brief Create an uninitialized storage. */
+
+  aligned_storage(const aligned_storage&) = delete;
+  aligned_storage& operator =(const aligned_storage&) = delete;
+
+  aligned_storage(aligned_storage&&) = delete;
+  aligned_storage& operator =(aligned_storage&&) = delete;
+
+  /*! \brief Create a storage space with a copy-initialized value from the specified one. */
+  template< typename _T_ > aligned_storage(const _T_ &_value)
+  {
+    using type = typename std::decay< _T_ >::type;
+
+    new(static_cast< void* >(&storage)) type{_value};
+    Destroy = default_destroy< type >::Destroy;
+    type_tag = &typeid(type);
+  }
+  /*! \brief Create a storage space with a move-initialized value from the specified value. */
+  template< typename _T_ > aligned_storage(_T_ &&_value)
+  {
+    using type = typename std::decay< _T_ >::type;
+
+    new(static_cast< void* >(&storage)) type{std::move(_value)};
+    Destroy = default_destroy< type >::Destroy;
+    type_tag = &typeid(type);
+  }
+
+private: /*functions*/
+  void destroy() noexcept
+  {
+    if (Destroy)  Destroy(&storage);
+    Destroy = nullptr;
+    type_tag = nullptr;
+  }
+
+public: /*interface*/
+  /*! \name Functions to reinitialize the storage space:
+      \note The previously stored value is destroyed. */
+  //! \{
+  /*! \brief Reinitialize the storage space with a default value of the specified type. */
+  template< typename _T_ > void reset()
+  {
+    using type = typename std::decay< _T_ >::type;
+
+    destroy();
+
+    new(static_cast< void* >(&storage)) type{};
+    Destroy = default_destroy< type >::Destroy;
+    type_tag = &typeid(type);
+  }
+  /*! \brief Ditto but the value is created from the arguments forwarded to the type constructor. */
+  template< typename _T_, typename... _Args_ > void reset(_Args_&&... _args)
+  {
+    using type = typename std::decay< _T_ >::type;
+
+    destroy();
+
+    new(static_cast< void* >(&storage)) type{std::forward< _Args_ >(_args)...};
+    Destroy = default_destroy< type >::Destroy;
+    type_tag = &typeid(type);
+  }
+  /*! \brief Ditto but the value is copy-created from the specified argument. */
+  template< typename _T_ > void reset(const _T_ &_value)
+  {
+    using type = typename std::decay< _T_ >::type;
+
+    if (reinterpret_cast< type* >(&storage) == std::addressof(static_cast< const type& >(_value)))  return;  // cast _T_& to type&
+
+    destroy();
+
+    new(static_cast< void* >(&storage)) type{_value};
+    Destroy = default_destroy< type >::Destroy;
+    type_tag = &typeid(type);
+  }
+  /*! \brief Ditto but the value is move-created from the specified argument. */
+  template< typename _T_ > void reset(_T_ &&_value)
+  {
+    using type = typename std::decay< _T_ >::type;
+
+    if (reinterpret_cast< type* >(&storage) == std::addressof(static_cast< type& >(_value)))  return;  // cast _T_& to type&
+
+    destroy();
+
+    new(static_cast< void* >(&storage)) type{std::move(_value)};
+    Destroy = default_destroy< type >::Destroy;
+    type_tag = &typeid(type);
+  }
+  //! \}
+
+  /*! \name Functions to get the value that this storage space is holding: */
+  //! \{
+  template< typename _T_ >
+  const typename std::decay< _T_ >::type& get() const noexcept
+  { return *reinterpret_cast< const typename std::decay< _T_ >::type* >(&storage); }
+  template< typename _T_ >
+        typename std::decay< _T_ >::type& get()       noexcept
+  { return *reinterpret_cast<       typename std::decay< _T_ >::type* >(&storage); }
+  //! \}
+
+  /*! \brief The type tag of the stored value.
+      \details It's just a pointer referring to the static global constant object returned by the
+      `typeid()` operator for the type of the value currently stored in this variable.
+      `nullptr` is returned if the storage space is not initialized and is not holding any value. */
+  const std::type_info* tag() const noexcept  { return type_tag; }
+
+public: /*conversion operators*/
+  explicit operator bool() const noexcept  { return (tag() != nullptr); }  /*!< \brief Equivalent to `(tag() != nullptr)`. */
+};
+
+
+
 /*! \brief A wrapper providing the feature of being a _standard layout type_ for the given type `_T_`.
     \note All the member functions creating a new value in the storage from their arguments
     use the _curly brace initialization_. */
@@ -358,7 +483,7 @@ using aligned_union = std::aligned_storage< greatest(sizeof(_Ts_)...), greatest(
     \note All the member functions creating a new value in the union from their arguments
     use the _curly brace initialization_. */
 template< typename... _Ts_ >
-class union_storage   
+class union_storage
 {
 public: /*types*/
   using storage_type = typename aligned_union< _Ts_... >::type;
@@ -413,7 +538,7 @@ public: /*interface*/
   /*! \name Functions to reinitialize the union storage:
       \note The previously stored value is destroyed. */
   //! \{
-  /*! \brief Reinitialize the union storage with a default created value of the one of the type from `_Ts_` list
+  /*! \brief Reinitialize the union storage with a default value of the one of the type from `_Ts_` list
       that the specified type `_T_` is convertible to. */
   template< typename _T_ >
   typename std::enable_if< is_convertible_to_one_of< _T_, _Ts_... >::value >::type reset()
@@ -447,7 +572,7 @@ public: /*interface*/
     constexpr const std::size_t tag = is_convertible_to_one_of< _T_, _Ts_... >::value;
     using type = typename std::decay< typename type_at< tag, _Ts_... >::type >::type;
 
-    if (reinterpret_cast< type* >(&storage) == static_cast< const type* >(std::addressof(_value)))  return;  // cast _T_* to type*
+    if (reinterpret_cast< type* >(&storage) == std::addressof(static_cast< const type& >(_value)))  return;  // cast _T_& to type&
 
     destroy();
 
@@ -462,7 +587,7 @@ public: /*interface*/
     constexpr const std::size_t tag = is_convertible_to_one_of< _T_, _Ts_... >::value;
     using type = typename std::decay< typename type_at< tag, _Ts_... >::type >::type;
 
-    if (reinterpret_cast< type* >(&storage) == static_cast< type* >(std::addressof(_value)))  return;  // cast _T_* to type*
+    if (reinterpret_cast< type* >(&storage) == std::addressof(static_cast< type& >(_value)))  return;  // cast _T_& to type&
 
     destroy();
 
@@ -472,18 +597,24 @@ public: /*interface*/
   }
   //! \}
 
-  /*! \brief The type tag of the stored value.
-      \details It's just a pointer referring to the static global constant object returned by the
-      `typeid()` operator for the type of the value currently stored in this `union_storage` variable. */
-  const std::type_info* tag() const noexcept  { return type_tag; }
-
   /*! \name Functions to get the value stored in the union: */
   //! \{
   template< typename _T_, typename = std::enable_if_t< is_one_of< _T_, _Ts_... >::value > >
-  const typename std::decay< _T_ >::type& get() const noexcept  { return *reinterpret_cast< const typename std::decay< _T_ >::type* >(&storage); }
+  const typename std::decay< _T_ >::type& get() const noexcept
+  { return *reinterpret_cast< const typename std::decay< _T_ >::type* >(&storage); }
   template< typename _T_, typename = std::enable_if_t< is_one_of< _T_, _Ts_... >::value > >
-        typename std::decay< _T_ >::type& get()       noexcept  { return *reinterpret_cast<       typename std::decay< _T_ >::type* >(&storage); }
+        typename std::decay< _T_ >::type& get()       noexcept
+  { return *reinterpret_cast<       typename std::decay< _T_ >::type* >(&storage); }
   //! \}
+
+  /*! \brief The type tag of the stored value.
+      \details It's just a pointer referring to the static global constant object returned by the
+      `typeid()` operator for the type of the value currently stored in this `union_storage` variable.
+      `nullptr` is returned if the union is not initialized and is not storing any value. */
+  const std::type_info* tag() const noexcept  { return type_tag; }
+
+public: /*conversion operators*/
+  explicit operator bool() const noexcept  { return (tag() != nullptr); }  /*!< \brief Equivalent to `(tag() != nullptr)`. */
 };
 
 
@@ -550,9 +681,11 @@ public: /*intreface*/
   }
 
   template< typename _T_ = void >
-  const typename std::decay< _T_ >::type* get() const noexcept  { return static_cast< const typename std::decay< _T_ >::type* >(ptr); }
+  const typename std::decay< _T_ >::type* get() const noexcept
+  { return static_cast< const typename std::decay< _T_ >::type* >(ptr); }
   template< typename _T_ = void >
-        typename std::decay< _T_ >::type* get()       noexcept  { return static_cast<       typename std::decay< _T_ >::type* >(ptr); }
+        typename std::decay< _T_ >::type* get()       noexcept
+  { return static_cast<       typename std::decay< _T_ >::type* >(ptr); }
 
   const std::type_info* tag() const noexcept  { return type_tag; }
 
