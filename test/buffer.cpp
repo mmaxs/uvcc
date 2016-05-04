@@ -5,7 +5,7 @@
 #include "uvcc.hpp"
 
 
-#define __pf(...) { fprintf(stderr, "%s\n", __PRETTY_FUNCTION__); __VA_ARGS__;  fflush(stderr); fflush(stdout); }
+#define __pf { fprintf(stderr, "%s\n", __PRETTY_FUNCTION__); fflush(stderr); fflush(stdout); }
 
 #define __t  { fprintf(stderr, "@%u: ", __LINE__); fflush(stderr); }
 
