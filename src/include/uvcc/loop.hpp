@@ -9,7 +9,6 @@
 #include <functional>   // function
 #include <type_traits>  // is_standard_layout
 #include <utility>      // swap() forward()
-#include <memory>       // addressof()
 
 
 namespace uv
@@ -48,17 +47,17 @@ public: /*types*/
 private: /*types*/
   class instance
   {
-  private: /*data*/
+  public: /*data*/
     mutable int uv_error = 0;
-    ref_count rc;
-    type_storage< on_destroy_t > on_destroy_storage;
-    uv_t uv_loop = { 0,};
+    ref_count refs;
+    type_storage< on_destroy_t > destroy_cb_storage;
+    uv_t uv_loop_struct = { 0,};
 
   private: /*constructors*/
-    instance()  { uv_error = ::uv_loop_init(&uv_loop); }
+    instance()  { uv_error = ::uv_loop_init(&uv_loop_struct); }
 
   public: /*constructors*/
-    ~instance()  { uv_error = ::uv_loop_close(&uv_loop); }
+    ~instance()  { uv_error = ::uv_loop_close(&uv_loop_struct); }
 
     instance(const instance&) = delete;
     instance& operator =(const instance&) = delete;
@@ -69,32 +68,27 @@ private: /*types*/
   private: /*functions*/
     void destroy()
     {
-      auto &destroy_cb = on_destroy_storage.value();
-      if (destroy_cb)  destroy_cb(uv_loop.data);
+      auto &destroy_cb = destroy_cb_storage.value();
+      if (destroy_cb)  destroy_cb(uv_loop_struct.data);
       delete this;
     }
 
   public: /*interface*/
-    static uv_t* create()  { return std::addressof((new instance())->uv_loop); }
+    static uv_t* create()  { return &(new instance())->uv_loop_struct; }
 
     constexpr static instance* from(uv_t *_uv_loop) noexcept
     {
       static_assert(std::is_standard_layout< instance >::value, "not a standard layout type");
-      return reinterpret_cast< instance* >(reinterpret_cast< char* >(_uv_loop) - offsetof(instance, uv_loop));
+      return reinterpret_cast< instance* >(reinterpret_cast< char* >(_uv_loop) - offsetof(instance, uv_loop_struct));
     }
 
-    on_destroy_t& on_destroy() noexcept  { return on_destroy_storage.value(); }
-
-    void ref()  { rc.inc(); }
-    void unref()  { if (rc.dec() == 0)  destroy(); }
-    ref_count::type nrefs() const noexcept  { return rc.value(); }
-
-    decltype(uv_error)& uv_status() const noexcept  { return uv_error; }
+    void ref()  { refs.inc(); }
+    void unref()  { if (refs.dec() == 0)  destroy(); }
   };
 
   struct walk_cb_pack
   {
-    const on_walk_t &on_walk;
+    const on_walk_t &walk_cb;
     void *arg;
   };
 
@@ -145,7 +139,7 @@ private: /*functions*/
 
   int uv_status(int _value) const noexcept
   {
-    instance::from(uv_loop)->uv_status() = _value;
+    instance::from(uv_loop)->uv_error = _value;
     return _value;
   }
 
@@ -163,12 +157,12 @@ public: /*interface*/
 
   void swap(loop &_that) noexcept  { std::swap(uv_loop, _that.uv_loop); }
   /*! \brief The current number of existing references to the same loop as this variable refers to. */
-  long nrefs() const noexcept  { return instance::from(uv_loop)->nrefs(); }
+  long nrefs() const noexcept  { return instance::from(uv_loop)->refs.value(); }
   /*! \brief The status value returned by the last executed libuv API function. */
-  int uv_status() const noexcept  { return instance::from(uv_loop)->uv_status(); }
+  int uv_status() const noexcept  { return instance::from(uv_loop)->uv_error; }
 
-  const on_destroy_t& on_destroy() const noexcept  { return instance::from(uv_loop)->on_destroy(); }
-        on_destroy_t& on_destroy()       noexcept  { return instance::from(uv_loop)->on_destroy(); }
+  const on_destroy_t& on_destroy() const noexcept  { return instance::from(uv_loop)->destroy_cb_storage.value(); }
+        on_destroy_t& on_destroy()       noexcept  { return instance::from(uv_loop)->destroy_cb_storage.value(); }
 
   /*! \details The pointer to the user-defined arbitrary data.
       \sa libuv API documentation: [`uv_loop_t.data`](http://docs.libuv.org/en/v1.x/loop.html#c.uv_loop_t.data). */
@@ -234,7 +228,7 @@ template< typename >
 void loop::walk_cb(::uv_handle_t *_uv_handle, void *_arg)
 {
   auto t = static_cast< walk_cb_pack* >(_arg);
-  t->on_walk(handle(_uv_handle), t->arg);
+  t->walk_cb(handle(_uv_handle), t->arg);
 }
 
 }
