@@ -6,7 +6,7 @@
 #include "uvcc/loop.hpp"
 
 #include <uv.h>
-#include <cstddef>      // offsetof
+#include <cstddef>      // size_t offsetof
 #include <functional>   // function
 #include <type_traits>  // is_standard_layout
 #include <utility>      // forward() swap()
@@ -41,6 +41,8 @@ public: /*types*/
 protected: /*types*/
   //! \cond
   using properties = empty_t;
+  constexpr static const std::size_t MAX_PROPERTY_SIZE = 104;
+  constexpr static const std::size_t MAX_PROPERTY_ALIGN = 8;
 
   struct uv_interface
   {
@@ -68,7 +70,7 @@ protected: /*types*/
     mutable int uv_error = 0;
     ref_count refs;
     type_storage< on_destroy_t > destroy_cb_storage;
-    aligned_storage< 64, 2 > property_storage;
+    aligned_storage< MAX_PROPERTY_SIZE, MAX_PROPERTY_ALIGN > property_storage;
     handle::uv_interface *uv_interface_ptr = nullptr;
     alignas(static_cast< const int >(
         greatest(alignof(::uv_any_handle), alignof(::uv_fs_t))
@@ -108,15 +110,15 @@ protected: /*types*/
       return reinterpret_cast< instance* >(static_cast< char* >(_uv_handle) - offsetof(instance, uv_handle_struct));
     }
 
-    typename _HANDLE_::properties& properties() const noexcept
+    typename _HANDLE_::properties& properties() noexcept
     { return property_storage.get< typename _HANDLE_::properties >(); }
     typename _HANDLE_::uv_interface* uv_interface() const noexcept
-    { return static_cast< typename _HANDLE_::uv_interface* >(uv_interface_ptr); }
+    { return dynamic_cast/* from virtual base */< typename _HANDLE_::uv_interface* >(uv_interface_ptr); }
 
     void ref()  { refs.inc(); }
     void unref() noexcept
     {
-      if (refs.dec() == 0)  static_cast< typename _HANDLE_::uv_interface* >(uv_interface_ptr)->destroy_instance(&uv_handle_struct);
+      if (refs.dec() == 0)  uv_interface_ptr->destroy_instance(&uv_handle_struct);
     }
   };
   //! \endcond
@@ -185,15 +187,15 @@ public: /*interface*/
         on_destroy_t& on_destroy()       noexcept  { return instance< handle >::from(uv_handle)->destroy_cb_storage.value(); }
 
   /*! \brief The tag indicating the libuv type of the handle. */
-  ::uv_handle_type type() const noexcept  { return static_cast< uv_interface* >(instance< handle >::from(uv_handle)->uv_interface_ptr)->type(uv_handle); }
+  ::uv_handle_type type() const noexcept  { return instance< handle >::from(uv_handle)->uv_interface()->type(uv_handle); }
   /*! \brief The libuv loop where the handle is running on.
       \details It is guaranteed that it will be a valid instance at least within the callback of the requests
       running with the handle. */
-  uv::loop loop() const noexcept  { return uv::loop(static_cast< uv_interface* >(instance< handle >::from(uv_handle)->uv_interface_ptr)->loop(uv_handle)); }
+  uv::loop loop() const noexcept  { return uv::loop(instance< handle >::from(uv_handle)->uv_interface()->loop(uv_handle)); }
 
   /*! \brief The pointer to the user-defined arbitrary data. libuv and uvcc does not use this field. */
-  void* const& data() const noexcept  { return static_cast< uv_interface* >(instance< handle >::from(uv_handle)->uv_interface_ptr)->data(uv_handle); }
-  void*      & data()       noexcept  { return static_cast< uv_interface* >(instance< handle >::from(uv_handle)->uv_interface_ptr)->data(uv_handle); }
+  void* const& data() const noexcept  { return instance< handle >::from(uv_handle)->uv_interface()->data(uv_handle); }
+  void*      & data()       noexcept  { return instance< handle >::from(uv_handle)->uv_interface()->data(uv_handle); }
 #if 0
   /*! \details Check if the handle is active.
       \sa libuv API documentation: [`uv_is_active()`](http://docs.libuv.org/en/v1.x/handle.html#c.uv_is_active). */
@@ -231,17 +233,20 @@ public: /*interface*/
   ::uv_os_fd_t fileno() const noexcept
   {
     ::uv_os_fd_t h;
-    uv_status(static_cast< uv_interface* >(instance< handle >::from(uv_handle)->uv_interface_ptr)->fileno(uv_handle, h));
+    uv_status(instance< handle >::from(uv_handle)->uv_interface()->fileno(uv_handle, h));
     return h;
   }
 
 public: /*conversion operators*/
+  explicit operator const uv_t*() const noexcept  { return instance< handle >::from(uv_handle)->uv_interface()->type(uv_handle) == UV_FILE ? nullptr : static_cast< const uv_t* >(uv_handle); }
+  explicit operator       uv_t*()       noexcept  { return instance< handle >::from(uv_handle)->uv_interface()->type(uv_handle) == UV_FILE ? nullptr : static_cast<       uv_t* >(uv_handle); }
+
   explicit operator bool() const noexcept  { return (uv_status() >= 0); }  /*!< \brief Equivalent to `(uv_status() >= 0)`. */
 };
 
 
 //! \cond
-struct handle::uv_handle_interface : uv_interface
+struct handle::uv_handle_interface : virtual uv_interface
 {
   template< typename = void > static void close_cb(::uv_handle_t*);
 
@@ -284,7 +289,7 @@ void handle::uv_handle_interface::close_cb(::uv_handle_t *_uv_handle)
 
 
 //! \cond
-struct handle::uv_fs_interface : uv_interface
+struct handle::uv_fs_interface : virtual uv_interface
 {
   void destroy_instance(void *_uv_fs) noexcept override
   {

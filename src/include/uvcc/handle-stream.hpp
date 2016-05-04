@@ -11,18 +11,17 @@
 #include <cstddef>      // size_t
 #include <functional>   // function
 #include <string>       // string
-#include <mutex>        // lock_guard
 
 
 namespace uv
 {
 
 
-/*! \ingroup doxy_handle
+/*! \ingroup doxy_group_handle
     \brief Stream handle type.
     \sa libuv API documentation: [`uv_stream_t`](http://docs.libuv.org/en/v1.x/stream.html#uv-stream-t-stream-handle).
     \note `read_start()` and `read_stop()` functions are mutually exclusive and thread-safe. */
-class stream : public handle
+class stream : public io
 {
   //! \cond
   friend class handle::instance< stream >;
@@ -33,15 +32,6 @@ class stream : public handle
 
 public: /*types*/
   using uv_t = ::uv_stream_t;
-  using on_read_t = std::function< void(stream _stream, ssize_t _nread, buffer _buffer) >;
-  /*!< \brief The function type of the callback called by `read_start()` when data was read from the stream.
-       \sa libuv API documentation: [`uv_read_cb`](http://docs.libuv.org/en/v1.x/stream.html#c.uv_read_cb).
-       \note On error and EOF state the libuv API calls the user provided
-       [`uv_read_cb`](http://docs.libuv.org/en/v1.x/stream.html#c.uv_read_cb) function with
-       a _null-initialized_ [`uv_buf_t`](http://docs.libuv.org/en/v1.x/misc.html#c.uv_buf_t) buffer structure
-       (where `buf->base = nullptr` and `buf->len = 0`) and does not try to retrieve something from the
-       [`uv_alloc_cb`](http://docs.libuv.org/en/v1.x/handle.html#c.uv_alloc_cb) callback in such a cases.
-       So the uvcc `io::on_read_t` callback is supplied with a dummy _null-initialized_ `_buffer`. */
   using on_connection_t = std::function< void(stream _server) >;
   /*!< \brief The function type of the callback called when a stream server has received an incoming connection.
        \details The user can accept the connection by calling accept().
@@ -49,13 +39,18 @@ public: /*types*/
 
 protected: /*types*/
   //! \cond
-  struct supplemental_data_t
+  struct properties : io::properties
   {
-    spinlock rdstate_switch;
-    bool rdstate_flag = false;
-    on_buffer_t on_buffer;
-    on_read_t on_read;
-    on_connection_t on_connection;
+    on_connection_t connection_cb;
+  };
+
+  struct uv_interface : uv_handle_interface, io::uv_interface
+  {
+    int read_start(void *_uv_handle) const noexcept override
+    { return ::uv_read_start(static_cast< ::uv_stream_t* >(_uv_handle), alloc_cb, read_cb); }
+
+    int read_stop(void *_uv_handle) const noexcept override
+    { return ::uv_read_stop(static_cast< ::uv_stream_t* >(_uv_handle)); }
   };
   //! \endcond
 
@@ -87,104 +82,19 @@ private: /*functions*/
   template< typename = void > static void connection_cb(::uv_stream_t*, int);
 
 public: /*interface*/
-  on_buffer_t& on_buffer() const noexcept  { return instance::from(uv_handle)->supplemental_data().on_buffer; }
-  on_read_t& on_read() const noexcept  { return instance::from(uv_handle)->supplemental_data().on_read; }
-
-  /*! \brief Start reading incoming data from the stream.
-      \details The stream is tried to be set for reading if only nonempty `_alloc_cb` and `_read_cb` functions
-      are provided, or else `UV_EINVAL` is returned with no involving any libuv API or uvcc function.
-      Repeated call to this function results in the automatic call to `read_stop()` firstly.
-      In the repeated calls `_alloc_cb` and/or `_read_cb` functions can be empty values, which means that
-      they aren't changed from the previous call.
-      \sa libuv API documentation: [`uv_read_start()`](http://docs.libuv.org/en/v1.x/stream.html#c.uv_read_start).
-      \note This function adds an extra reference to the stream instance, which is released when the counterpart
-      function `read_stop()` is called. */
-  int read_start(const on_buffer_t &_alloc_cb, const on_read_t &_read_cb) const
-  {
-    auto self = instance::from(uv_handle);
-    auto &t = self->supplemental_data();
-
-    std::lock_guard< decltype(t.rdstate_switch) > lk(t.rdstate_switch);
-
-    if (!_alloc_cb and !t.on_buffer)  return uv_status(UV_EINVAL);
-    if (!_read_cb and !t.on_read)  return uv_status(UV_EINVAL);
-
-    self->ref();  // first, make sure it would exist for the future _read_cb() calls until read_stop()
-
-    if (t.rdstate_flag)
-    {
-      uv_status(::uv_read_stop(static_cast< uv_t* >(uv_handle)));
-      self->unref();  // release the excess reference from the repeated read_start()
-    }
-    else t.rdstate_flag = true;
-
-    if (_alloc_cb)  t.on_buffer = _alloc_cb;
-    if (_read_cb)  t.on_read = _read_cb;
-
-    uv_status(0);
-    int o = ::uv_read_start(static_cast< uv_t* >(uv_handle), alloc_cb, read_cb);
-    if (!o)  uv_status(o);
-    return o;
-  }
-  /*! \brief Restart reading incoming data from the stream using `_alloc_cb` and `_read_cb`
-      functions having been explicitly set before or provided with the previous `read_start()` call.
-      \details Repeated call to this function results in the automatic call to `read_stop()` firstly.
-      \note This function adds an extra reference to the handle instance, which is released when the
-      counterpart function `read_stop()` is called. */
-  int read_start() const
-  {
-    auto self = instance::from(uv_handle);
-    auto &t = self->supplemental_data();
-
-    std::lock_guard< decltype(t.rdstate_switch) > lk(t.rdstate_switch);
-
-    if (!t.on_buffer or !t.on_read)  return uv_status(UV_EINVAL);
-
-    self->ref();
-
-    if (t.rdstate_flag)
-    {
-      uv_status(::uv_read_stop(static_cast< uv_t* >(uv_handle)));
-      self->unref();
-    }
-    else t.rdstate_flag = true;
-
-    uv_status(0);
-    int o = ::uv_read_start(static_cast< uv_t* >(uv_handle), alloc_cb, read_cb);
-    if (!o)  uv_status(o);
-    return o;
-  }
-
-  /*! \brief Stop reading data from the stream.
-      \sa libuv API documentation: [`uv_read_stop()`](http://docs.libuv.org/en/v1.x/stream.html#c.uv_read_stop). */
-  int read_stop() const
-  {
-    auto self = instance::from(uv_handle);
-    auto &t = self->supplemental_data();
-
-    std::lock_guard< decltype(t.rdstate_switch) > lk(t.rdstate_switch);
-
-    uv_status(::uv_read_stop(static_cast< uv_t* >(uv_handle)));
-
-    if (t.rdstate_flag)
-    {
-      t.rdstate_flag = false;
-      self->unref();  // release the excess reference from read_start()
-    };
-
-    return uv_status();
-  }
+  on_connection_t& on_connection() const noexcept  { return instance::from(uv_handle)->properties().connection_cb; }
 
   /*! \brief Start listening for incoming connections.
       \sa libuv API documentation: [`uv_listen()`](http://docs.libuv.org/en/v1.x/stream.html#c.uv_listen).*/
   int listen(int _backlog, const on_connection_t &_connection_cb) const
   {
-    instance::from(uv_handle)->supplemental_data().on_connection = _connection_cb;
+    instance::from(uv_handle)->properties().connection_cb = _connection_cb;
     uv_status(0);
     int o = ::uv_listen(static_cast< uv_t* >(uv_handle), _backlog, connection_cb);
     if (!o)  uv_status(o);
     return o;
   }
+#if 0
   /*! \brief Accept incoming connections.
       \details There are specializations of this function for every `stream` subtype.
       ```
@@ -194,6 +104,7 @@ public: /*interface*/
       ```
       \sa libuv API documentation: [`uv_accept()`](http://docs.libuv.org/en/v1.x/stream.html#c.uv_accept). */
   template< class _STREAM_ > _STREAM_ accept() const;
+#endif
 
   /*! \brief The amount of queued bytes waiting to be sent. */
   std::size_t write_queue_size() const noexcept  { return static_cast< uv_t* >(uv_handle)->write_queue_size; }
@@ -213,7 +124,7 @@ public: /*conversion operators*/
 template< typename >
 void stream::alloc_cb(::uv_handle_t *_uv_handle, std::size_t _suggested_size, ::uv_buf_t *_uv_buf)
 {
-  auto &alloc_cb = instance::from(_uv_handle)->supplemental_data().on_buffer;
+  auto &alloc_cb = instance::from(_uv_handle)->properties().alloc_cb;
   buffer &&b = alloc_cb(stream(reinterpret_cast< uv_t* >(_uv_handle)), _suggested_size);
   buffer::instance::from(b.uv_buf)->ref();  // add the reference for the future moving the buffer instance into read_cb() parameter
   *_uv_buf = b[0];
@@ -221,10 +132,10 @@ void stream::alloc_cb(::uv_handle_t *_uv_handle, std::size_t _suggested_size, ::
 template< typename >
 void stream::read_cb(::uv_stream_t *_uv_stream, ssize_t _nread, const ::uv_buf_t *_uv_buf)
 {
-  auto self = instance::from(_uv_stream);
-  self->uv_status() = _nread;
+  auto instance = instance::from(_uv_stream);
+  instance->uv_error = _nread;
 
-  auto &read_cb = self->supplemental_data().on_read;
+  auto &read_cb = instance->properties().read_cb;
   if (_uv_buf->base)
     read_cb(stream(_uv_stream), _nread, buffer(buffer::instance::from_base(_uv_buf->base), adopt_ref));
     // don't forget to specify adopt_ref flag when using ref_guard to unref the object
@@ -236,15 +147,15 @@ void stream::read_cb(::uv_stream_t *_uv_stream, ssize_t _nread, const ::uv_buf_t
 template< typename >
 void stream::connection_cb(::uv_stream_t *_uv_stream, int _status)
 {
-  auto self = instance::from(_uv_stream);
-  self->uv_status() = _status;
-  auto &connection_cb = self->supplemental_data().on_connection;
+  auto instance = instance::from(_uv_stream);
+  instance->uv_error = _status;
+  auto &connection_cb = instance->properties().connection_cb;
   if (connection_cb)  connection_cb(stream(_uv_stream));
 }
 
 
 
-/*! \ingroup doxy_handle
+/*! \ingroup doxy_group_handle
     \brief TCP handle type.
     \sa libuv API documentation: [`uv_tcp_t`](http://docs.libuv.org/en/v1.x/tcp.html#uv-tcp-t-tcp-handle). */
 class tcp : public stream
@@ -340,7 +251,7 @@ public: /*conversion operators*/
 };
 
 
-
+#if 0
 //! \cond
 template<> tcp stream::accept< tcp >() const
 {
@@ -363,10 +274,10 @@ template<> tcp stream::accept< tcp >() const
   return static_cast< tcp& >(client);
 }
 //! \endcond
+#endif
 
 
-
-/*! \ingroup doxy_handle
+/*! \ingroup doxy_group_handle
     \brief Pipe handle type.
     \sa libuv API documentation: [`uv_pipe_t`](http://docs.libuv.org/en/v1.x/pipe.html#uv-pipe-t-pipe-handle). */
 class pipe : public stream
@@ -463,7 +374,7 @@ public: /*conversion operators*/
 };
 
 
-
+#if 0
 //! \cond
 template<> pipe stream::accept< pipe >() const
 {
@@ -487,7 +398,7 @@ template<> pipe stream::accept< pipe >() const
   return static_cast< pipe& >(client);
 }
 //! \endcond
-
+#endif
 
 }
 

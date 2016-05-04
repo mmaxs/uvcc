@@ -18,7 +18,8 @@ namespace uv
 
 /*! \ingroup doxy_group_handle
     \brief The base class for handles representing I/O endpoints: a file, TCP/UDP socket, pipe, TTY.
-    Encapsulates common I/O functions and properties. */
+    \details Encapsulates common I/O functions and properties.
+    \note `read_start()` and `read_stop()` functions are mutually exclusive and thread-safe. */
 class io : public handle
 {
   //! \cond
@@ -47,11 +48,11 @@ protected: /*types*/
     on_read_t read_cb;
   };
 
-  struct uv_interface : handle::uv_interface
+  struct uv_interface : virtual handle::uv_interface
   {
-    virtual int read_start() const noexcept = 0;
-    virtual int read_stop() const noexcept = 0;
-  }
+    virtual int read_start(void*) const noexcept = 0;
+    virtual int read_stop(void*) const noexcept = 0;
+  };
   //! \endcond
 
 private: /*types*/
@@ -95,11 +96,12 @@ public: /*interface*/
       In the repeated calls `_alloc_cb` and/or `_read_cb` functions can be empty values, which means that
       they aren't changed from the previous call.
       \note This function adds an extra reference to the handle instance, which is released when the
-      counterpart function `read_stop()` is called. */
-  int read_start(const on_alloc_t &_alloc_cb, const on_read_t &_read_cb) const
+      counterpart function `read_stop()` is called.
+      \sa libuv API documentation: [`uv_read_start()`](http://docs.libuv.org/en/v1.x/stream.html#c.uv_read_start). */
+  int read_start(const on_buffer_alloc_t &_alloc_cb, const on_read_t &_read_cb) const
   {
     auto instance = instance::from(uv_handle);
-    auto properties = instance->properties();
+    auto &properties = instance->properties();
 
     std::lock_guard< decltype(properties.rdstate_switch) > lk(properties.rdstate_switch);
 
@@ -108,18 +110,18 @@ public: /*interface*/
 
     instance->ref();  // first, make sure it would exist for the future _read_cb() calls until read_stop()
 
-    if (properies.rdstate_flag)
+    if (properties.rdstate_flag)
     {
-      uv_status(instance->uv_interface()->read_stop());
+      uv_status(instance->uv_interface()->read_stop(uv_handle));
       instance->unref();  // release the excess reference from the repeated read_start()
     }
-    else properties->rdstate_flag = true;
+    else properties.rdstate_flag = true;
 
-    if (_alloc_cb)  properties->alloc_cb = _alloc_cb;
-    if (_read_cb)  properties->read_cb = _read_cb;
+    if (_alloc_cb)  properties.alloc_cb = _alloc_cb;
+    if (_read_cb)  properties.read_cb = _read_cb;
 
     uv_status(0);
-    int o = instance->uv_interface()->read_start();
+    int o = instance->uv_interface()->read_start(uv_handle);
     if (!o)  uv_status(o);
     return o;
   }
@@ -130,40 +132,43 @@ public: /*interface*/
       counterpart function `read_stop()` is called. */
   int read_start() const
   {
-    auto p = inst< io >()->prop();
+    auto instance = instance::from(uv_handle);
+    auto &properties = instance->properties();
 
-    std::lock_guard< decltype(p->rdstate_switch) > lk(p->rdstate_switch);
+    std::lock_guard< decltype(properties.rdstate_switch) > lk(properties.rdstate_switch);
 
-    if (!p->on_alloc or !p->on_read)  return uv_status(UV_EINVAL);
+    if (!properties.alloc_cb or !properties.read_cb)  return uv_status(UV_EINVAL);
 
-    inst< io >()->ref();
+    instance->ref();
 
-    if (p->rdstate_flag)
+    if (properties.rdstate_flag)
     {
-      uv_status(p->read_stop());
-      inst< io >()->unref();
+      uv_status(instance->uv_interface()->read_stop(uv_handle));
+      instance->unref();
     }
-    else p->rdstate_flag = true;
+    else properties.rdstate_flag = true;
 
     uv_status(0);
-    int o = p->read_start();
+    int o = instance->uv_interface()->read_start(uv_handle);
     if (!o)  uv_status(o);
     return o;
   }
 
-  /*! \brief Stop reading data from the I/O endpoint. */
+  /*! \brief Stop reading data from the I/O endpoint.
+      \sa libuv API documentation: [`uv_read_stop()`](http://docs.libuv.org/en/v1.x/stream.html#c.uv_read_stop). */
   int read_stop() const
   {
-    auto p = inst< io >()->prop();
+    auto instance = instance::from(uv_handle);
+    auto &properties = instance->properties();
 
-    std::lock_guard< decltype(p->rdstate_switch) > lk(p->rdstate_switch);
+    std::lock_guard< decltype(properties.rdstate_switch) > lk(properties.rdstate_switch);
 
-    uv_status(p->read_stop());
+    uv_status(instance->uv_interface()->read_stop(uv_handle));
 
-    if (p->rdstate_flag)
+    if (properties.rdstate_flag)
     {
-      p->rdstate_flag = false;
-      inst< io >()->unref();  // release the excess reference from read_start()
+      properties.rdstate_flag = false;
+      instance->unref();  // release the excess reference from read_start()
     };
 
     return uv_status();
