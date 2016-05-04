@@ -8,7 +8,6 @@
 #include <cstddef>           // size_t offsetof max_align_t
 #include <type_traits>       // is_standard_layout
 #include <utility>           // swap()
-#include <memory>            // addressof()
 #include <initializer_list>  // initializer_list
 #include <functional>        // function
 
@@ -20,9 +19,9 @@ namespace uv
 class handle;
 
 
-/*! \defgroup doxy_buffer Buffer for I/O operations */
+/*! \defgroup doxy_group_buffer Buffer for I/O operations */
 
-/*! \ingroup doxy_buffer
+/*! \ingroup doxy_group_buffer
     \brief Encapsulates `uv_buf_t` data type and provides `uv_buf_t[]` functionality. */
 class buffer
 {
@@ -40,10 +39,10 @@ public: /*types*/
 private: /*types*/
   class instance
   {
-  private: /*data*/
-    ref_count rc_;
-    std::size_t buf_count_;
-    uv_t uv_buf_;
+  public: /*data*/
+    ref_count refs;
+    std::size_t buf_count;
+    uv_t uv_buf_struct;
 
   private: /*new/delete*/
     static void* operator new(std::size_t _size, const std::initializer_list< std::size_t > &_len_values)
@@ -58,29 +57,29 @@ private: /*types*/
     static void operator delete(void *_ptr)  { ::operator delete(_ptr); }
 
   private: /*constructors*/
-    instance(const std::initializer_list< std::size_t > &_len_values) : buf_count_(_len_values.size())
+    instance(const std::initializer_list< std::size_t > &_len_values) : buf_count(_len_values.size())
     {
-      if (buf_count_ == 0)
+      if (buf_count == 0)
       {
-        buf_count_ = 1;
-        uv_buf_.base = nullptr;
-        uv_buf_.len = 0;
+        buf_count = 1;
+        uv_buf_struct.base = nullptr;
+        uv_buf_struct.len = 0;
       }
       else
       {
-        uv_t *buf = &uv_buf_;
+        uv_t *buf = &uv_buf_struct;
         std::size_t total_buf_len = 0;
         for (auto len : _len_values)  total_buf_len += ((buf++)->len = len);
         if (total_buf_len == 0)
         {
-          buf = &uv_buf_;
-          for (decltype(buf_count_) i = 0; i < buf_count_; ++i)  { buf[i].base = nullptr; buf[i].len = 0; }
+          buf = &uv_buf_struct;
+          for (decltype(buf_count) i = 0; i < buf_count; ++i)  { buf[i].base = nullptr; buf[i].len = 0; }
         }
         else
         {
-          uv_buf_.base = reinterpret_cast< char* >(buf) + alignment_padding(buf_count_ - 1);
-          buf = &uv_buf_;
-          for (decltype(buf_count_) i = 1; i < buf_count_; ++i)  buf[i].base = &buf[i-1].base[buf[i-1].len];
+          uv_buf_struct.base = reinterpret_cast< char* >(buf) + alignment_padding(buf_count - 1);
+          buf = &uv_buf_struct;
+          for (decltype(buf_count) i = 1; i < buf_count; ++i)  buf[i].base = &buf[i-1].base[buf[i-1].len];
         }
       }
     }
@@ -106,24 +105,21 @@ private: /*types*/
 
   public: /*interface*/
     static uv_t* create(const std::initializer_list< std::size_t > &_len_values)
-    { return std::addressof((new(_len_values) instance(_len_values))->uv_buf_); }
+    { return &(new(_len_values) instance(_len_values))->uv_buf_struct; }
     static uv_t* create()  { return create({}); }
 
     constexpr static instance* from(uv_t *_uv_buf) noexcept
     {
       static_assert(std::is_standard_layout< instance >::value, "not a standard layout type");
-      return reinterpret_cast< instance* >(reinterpret_cast< char* >(_uv_buf) - offsetof(instance, uv_buf_));
+      return reinterpret_cast< instance* >(reinterpret_cast< char* >(_uv_buf) - offsetof(instance, uv_buf_struct));
     }
     static uv_t* from_base(decltype(uv_t::base) _base) noexcept
     {
       return reinterpret_cast< uv_t* >(reinterpret_cast< char* >(_base) - alignment_padding(0) - sizeof(uv_t));
     }
 
-    std::size_t buf_count()  { return buf_count_; }
-
-    void ref()  { rc_.inc(); }
-    void unref() noexcept  { if (rc_.dec() == 0)  destroy(); }
-    ref_count::type nrefs() const noexcept  { return rc_.value(); }
+    void ref()  { refs.inc(); }
+    void unref() noexcept  { if (refs.dec() == 0)  destroy(); }
   };
 
 private: /*data*/
@@ -195,10 +191,10 @@ public: /*constructors*/
 public: /*interface*/
   void swap(buffer &_that) noexcept  { std::swap(uv_buf, _that.uv_buf); }
   /*! \brief The current number of existing references to the same buffer as this variable refers to. */
-  long nrefs() const noexcept  { return instance::from(uv_buf)->nrefs(); }
+  long nrefs() const noexcept  { return instance::from(uv_buf)->refs.value(); }
 
   /*! \brief The number of the `uv_buf_t` structures in the array. */
-  std::size_t count() const noexcept  { return instance::from(uv_buf)->buf_count(); }
+  std::size_t count() const noexcept  { return instance::from(uv_buf)->buf_count; }
 
   /*! \brief Access to the `_i`-th `uv_buf_t` buffer structure in the array. */
   uv_t& operator [](const std::size_t _i) const noexcept  { return uv_buf[_i]; }
@@ -215,9 +211,9 @@ public: /*conversion operators*/
 };
 
 
-/*! \ingroup doxy_buffer
-    \brief The function type of the callback called by `stream::read_start()` and `udp::recv_start()`...
-    \details ...to equip the input operation with a preallocated buffer. The callback should return a `uv::buffer`
+/*! \ingroup doxy_group_buffer
+    \brief The function type of the callback called by `io::read_start()`, `stream::read_start()` and `udp::recv_start()`...
+    \details ...to supply the input operation with a preallocated buffer. The callback should return a `uv::buffer`
     instance initialized with a `_suggested_size` (the value provided by libuv API is a constant of _65536_ bytes)
     or with whatever size, as long as it’s > 0.
     \sa libuv API documentation: [`uv_alloc_cb`](http://docs.libuv.org/en/v1.x/handle.html#c.uv_alloc_cb).
@@ -229,7 +225,7 @@ public: /*conversion operators*/
     }
     ```
     */
-using on_buffer_t = std::function< buffer(handle _handle, std::size_t _suggested_size) >;
+using on_buffer_alloc_t = std::function< buffer(handle _handle, std::size_t _suggested_size) >;
 
 
 }
