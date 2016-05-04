@@ -6,7 +6,7 @@ uvcc is C++ bindings for libuv.
 [Documenting types and methods of libuv, mostly by reading  uv.h](https://github.com/thlorenz/libuv-dox)
 
 
-\page p__ref_counting Objects with reference counting semantics
+\page doxy_page_ref_counting Objects with reference counting semantics
 
 
 To implement automatic memory management for the objects involved in libuv API function calls and user callbacks
@@ -31,7 +31,7 @@ is automatically released when the last variable referencing the object is destr
 
 
 
-\page p__destroy Destroy callbacks
+\page doxy_page_destroy_cb Destroy callbacks
 
 The following libuv types provide a field which is a pointer to the user-defined arbitrary data
 that can be associated with the libuv object:
@@ -63,7 +63,7 @@ as part of the variable's destructor.
 
 
 
-\addtogroup doxy_buffer
+\addtogroup doxy_group_buffer
 \details
 [`uv_buf_t`]: http://docs.libuv.org/en/latest/misc.html#c.uv_buf_t "libuv"
 [`iovec`]: http://man7.org/linux/man-pages/man2/readv.2.html "readv(2)"
@@ -174,24 +174,24 @@ if necessary.
 
 
 
-\page p__example Examples
+\page doxy_page_example Examples
 
 uvcc sources are accompanied with several illustrative example programs the source code of which can be found in the
 /example subdirectory.
 
-* \subpage p__example_lxjs2012 "lxjs2012-demo" - an example used by Bert Belder at LXJS 2012 to demonstrate the libuv basics. \n
+* \subpage doxy_page_example_lxjs2012 "lxjs2012-demo" - an example used by Bert Belder at LXJS 2012 to demonstrate the libuv basics. \n
                                It shows how uvcc simplifies the code.
 
-* \subpage p__example_cpio "cpio" - a simple program that copies its `stdin` to `stdout`. \n
+* \subpage doxy_page_example_cpio "cpio" - a simple program that copies its `stdin` to `stdout`. \n
                            It shows some essential points that one comes across with when begin to develop
                            programs using libuv and how uvcc address them.
 
-* \subpage p__example_tee  "tee" - a simple program that copies its `stdin` to `stdout` and also to each file specified as a program argument. \n
+* \subpage doxy_page_example_tee  "tee" - a simple program that copies its `stdin` to `stdout` and also to each file specified as a program argument. \n
                            It demonstrates simple versions of the buffer and request pools that can avoid intense memory allocation requests
                            and some side effects of the C/C++ memory allocator appearing thereat.
 
 
-\page p__example_lxjs2012 lxjs2012-demo
+\page doxy_page_example_lxjs2012 lxjs2012-demo
 
 The example used by Bert Belder at LXJS 2012 to introduce the libuv basics.
 \sa Video at _youtube.com_: ["LXJS 2012 - Bert Belder - libuv"](http://www.youtube.com/watch?v=nGn60vDSxQ4).
@@ -225,7 +225,7 @@ keeps reading from the remote peer until it closes the connection.
 
 
 
-\page p__example_cpio cpio
+\page doxy_page_example_cpio cpio
 
 A simple program that copies its `stdin` to `stdout` written in pure C using libuv.
 
@@ -274,7 +274,7 @@ Obviously there is an impact of reference counting operations that slightly redu
 
 
 
-\page p__example_tee tee
+\page doxy_page_example_tee tee
 
 A simple program that copies its `stdin` to `stdout` and also to each file specified as a program argument.
 
@@ -296,7 +296,7 @@ In debug build some diagnostic messages are printed out.
 
 
 
-\page p__compiling Compiling
+\page doxy_page_compiling Compiling
 
 uvcc consists only of header files. You need just to copy files and subfolders from /src/include directory into one of
 the directories being searched for header files in your project and include uvcc.hpp header into your source files.
