@@ -41,9 +41,20 @@ struct test
 };
 
 
-
 struct A {};
 struct B { using test_type = user_type; };
+
+
+using on_read_t = std::function< void(uv::io _handle, ssize_t _nread, uv::buffer _buffer) >;
+using on_connection_t = std::function< void(uv::io) >;
+struct properties
+{
+  uv::spinlock rdstate_switch;
+  bool rdstate_flag = false;
+  uv::on_buffer_alloc_t alloc_cb;
+  on_read_t read_cb;
+  on_connection_t connection_cb;
+};
 
 
 int main(int _argc, char *_argv[])
@@ -51,6 +62,11 @@ int main(int _argc, char *_argv[])
 
   typename test< A >::type a;
   typename test< B >::type b;
+
+  fprintf(stdout, "spinlock: SIZE=%zu ALIGN=%zu\n", sizeof(uv::spinlock), alignof(uv::spinlock)); fflush(stdout);
+  fprintf(stdout, "on_read_t: SIZE=%zu ALIGN=%zu\n", sizeof(on_read_t), alignof(on_read_t)); fflush(stdout);
+  fprintf(stdout, "uv::on_buffer_alloc_t: SIZE=%zu ALIGN=%zu\n", sizeof(uv::on_buffer_alloc_t), alignof(uv::on_buffer_alloc_t)); fflush(stdout);
+  fprintf(stdout, "property: SIZE=%zu ALIGN=%zu\n", sizeof(properties), alignof(properties)); fflush(stdout);
 
   getchar();
   return 0;
