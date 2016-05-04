@@ -3,17 +3,17 @@
 #define UVCC_HANDLE__HPP
 
 #include "uvcc/handle-base.hpp"
-#include "uvcc/handle-stream.hpp"
-#include "uvcc/handle-fs.hpp"
-#include "uvcc/handle-udp.hpp"
-#include "uvcc/handle-misc.hpp"
+//#include "uvcc/handle-stream.hpp"
+//#include "uvcc/handle-fs.hpp"
+//#include "uvcc/handle-udp.hpp"
+//#include "uvcc/handle-misc.hpp"
 
 #include <uv.h>
 
 
 namespace uv
 {
-/*! \defgroup doxy_handle Handles
+/*! \defgroup doxy_group_handle Handles
     \brief The classes representing libuv handles. */
 
 
@@ -37,8 +37,8 @@ class signal;
 
 
 
-/*! \defgroup doxy_handle_traits uv_handle_traits< typename >
-    \ingroup doxy_handle
+/*! \defgroup doxy_group_handle_traits uv_handle_traits< typename >
+    \ingroup doxy_group_handle
     \brief The correspondence between libuv handle data types and C++ classes representing them. */
 //! \{
 //! \cond
