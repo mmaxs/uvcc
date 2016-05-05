@@ -40,13 +40,14 @@ int main(int _argc, char *_argv[])
 #endif
   for (int i = 1; i < _argc; ++i)
   {
-#if 0
+//#if 0
     uv::fs::file f(_argv[i], O_CREAT|O_TRUNC|O_WRONLY, mode);
     if (f)
       files.emplace_back(std::move(f));
     else
       PRINT_UV_ERR(f.path().c_str(), f.uv_status());
-#endif
+//#endif
+#if 0
     uv::fs::file f(
         uv::loop::Default(),
         _argv[i], O_CREAT|O_TRUNC|O_WRONLY, mode,
@@ -56,6 +57,7 @@ int main(int _argc, char *_argv[])
           if (!_file)  PRINT_UV_ERR(_file.path().c_str(), _file.uv_status());
         }
     );
+#endif
   }
 
   in.read_start(
@@ -78,11 +80,11 @@ int main(int _argc, char *_argv[])
         #endif
         return buf_pool.back();
       },
-      [](uv::stream _stream, ssize_t _nread, uv::buffer _buf) -> void  // read_cb
+      [](uv::io _io, ssize_t _nread, uv::buffer _buf) -> void  // read_cb
       {
         if (_nread < 0)
         {
-          _stream.read_stop();
+          _io.read_stop();
           if (_nread != UV_EOF)  PRINT_UV_ERR("read", _nread);
         }
         else if (_nread > 0)
