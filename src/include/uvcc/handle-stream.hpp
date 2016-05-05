@@ -4,6 +4,7 @@
 
 #include "uvcc/utility.hpp"
 #include "uvcc/handle-base.hpp"
+#include "uvcc/handle-io.hpp"
 #include "uvcc/buffer.hpp"
 #include "uvcc/loop.hpp"
 
@@ -137,10 +138,10 @@ void stream::alloc_cb(::uv_handle_t *_uv_handle, std::size_t _suggested_size, ::
 template< typename >
 void stream::read_cb(::uv_stream_t *_uv_stream, ssize_t _nread, const ::uv_buf_t *_uv_buf)
 {
-  auto instance = instance::from(_uv_stream);
-  instance->uv_error = _nread;
+  auto instance_ptr = instance::from(_uv_stream);
+  instance_ptr->uv_error = _nread;
 
-  auto &read_cb = instance->properties().read_cb;
+  auto &read_cb = instance_ptr->properties().read_cb;
   if (_uv_buf->base)
     read_cb(stream(_uv_stream), _nread, buffer(buffer::instance::from_base(_uv_buf->base), adopt_ref));
     // don't forget to specify adopt_ref flag when using ref_guard to unref the object
@@ -152,9 +153,9 @@ void stream::read_cb(::uv_stream_t *_uv_stream, ssize_t _nread, const ::uv_buf_t
 template< typename >
 void stream::connection_cb(::uv_stream_t *_uv_stream, int _status)
 {
-  auto instance = instance::from(_uv_stream);
-  instance->uv_error = _status;
-  auto &connection_cb = instance->properties().connection_cb;
+  auto instance_ptr = instance::from(_uv_stream);
+  instance_ptr->uv_error = _status;
+  auto &connection_cb = instance_ptr->properties().connection_cb;
   if (connection_cb)  connection_cb(stream(_uv_stream));
 }
 
