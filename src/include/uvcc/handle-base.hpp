@@ -79,6 +79,9 @@ protected: /*types*/
   private: /*constructors*/
     instance()
     {
+      static_assert(sizeof(typename _HANDLE_::properties) <= MAX_PROPERTY_SIZE, "insufficient property storage size");
+      static_assert(alignof(typename _HANDLE_::properties) <= MAX_PROPERTY_ALIGN, "not adjusted property storage alignment");
+
       property_storage.reset< typename _HANDLE_::properties >();
       uv_interface_ptr = new typename _HANDLE_::uv_interface;
     }
@@ -280,10 +283,12 @@ struct handle::uv_handle_interface : virtual uv_interface
 template< typename >
 void handle::uv_handle_interface::close_cb(::uv_handle_t *_uv_handle)
 {
-  auto instance = handle::instance< handle >::from(_uv_handle);
-  auto &destroy_cb = instance->destroy_cb_storage.value();
+  auto instance_ptr = handle::instance< handle >::from(_uv_handle);
+
+  auto &destroy_cb = instance_ptr->destroy_cb_storage.value();
   if (destroy_cb)  destroy_cb(_uv_handle->data);
-  delete instance;
+
+  delete instance_ptr;
 }//! \endcond
 
 
@@ -292,7 +297,7 @@ struct handle::uv_fs_interface : virtual uv_interface
 {
   void destroy_instance(void *_uv_fs) noexcept override
   {
-    auto instance = handle::instance< handle >::from(_uv_fs);
+    auto instance_ptr = handle::instance< handle >::from(_uv_fs);
     auto uv_fs = static_cast< ::uv_fs_t* >(_uv_fs);
     auto fd = static_cast< ::uv_file >(uv_fs->result);
     
@@ -303,9 +308,11 @@ struct handle::uv_fs_interface : virtual uv_interface
       ::uv_fs_req_cleanup(&req_close);
     };
 
-    auto &destroy_cb = instance->destroy_cb_storage.value();
+    auto &destroy_cb = instance_ptr->destroy_cb_storage.value();
     if (destroy_cb)  destroy_cb(uv_fs->data);
-    delete instance;
+
+    ::uv_fs_req_cleanup(uv_fs);
+    delete instance_ptr;
   }
 
   ::uv_handle_type type(void *_uv_fs) const noexcept override  { return UV_FILE; }
