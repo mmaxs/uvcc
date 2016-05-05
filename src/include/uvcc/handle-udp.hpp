@@ -4,6 +4,7 @@
 
 #include "uvcc/utility.hpp"
 #include "uvcc/handle-base.hpp"
+#include "uvcc/handle-io.hpp"
 
 #include <uv.h>
 
@@ -15,7 +16,7 @@ namespace uv
 /*! \ingroup doxy_handle
     \brief UDP handle type.
     \sa libuv API documentation: [`uv_udp_t`](http://docs.libuv.org/en/v1.x/udp.html#uv-udp-t-udp-handle). */
-class udp : public handle
+class udp : public io
 {
   //! \cond
   friend class handle::instance< udp >;

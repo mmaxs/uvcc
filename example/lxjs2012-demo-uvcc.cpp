@@ -29,6 +29,7 @@ int main(int _argc, char *_argv[])
       if (!_connect_req)  { PRINT_UV_ERR("connect", _connect_req.uv_status()); return; };
 
       uv::tcp tcp_handle = static_cast< uv::tcp&& >(_connect_req.handle());
+
       tcp_handle.read_start(
           [](uv::handle, std::size_t _suggested_size)  { return uv::buffer{_suggested_size}; },
           [](uv::stream _stream, ssize_t _nread, uv::buffer _buf)
@@ -61,6 +62,7 @@ int main(int _argc, char *_argv[])
     };
 
     uv::tcp tcp_handle(uv::loop::Default());
+
     connect_req.run(tcp_handle, *_result->ai_addr);
   };
 
@@ -68,3 +70,4 @@ int main(int _argc, char *_argv[])
 
   return uv::loop::Default().run(UV_RUN_DEFAULT);
 }
+
