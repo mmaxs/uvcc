@@ -105,6 +105,11 @@ public: /*interface*/
       \sa libuv API documentation: [`uv_accept()`](http://docs.libuv.org/en/v1.x/stream.html#c.uv_accept). */
   template< class _STREAM_ > _STREAM_ accept() const;
 #endif
+  /*! \brief Accept incoming connections.
+      \details The function returns `stream` instance that actually is an object of one of the stream subtype:
+      `tcp`, `pipe`, or `tty` depending on the actual subtype of the stream object which this function is applied to.
+      \sa libuv API documentation: [`uv_accept()`](http://docs.libuv.org/en/v1.x/stream.html#c.uv_accept). */
+  stream accept() const;
 
   /*! \brief The amount of queued bytes waiting to be sent. */
   std::size_t write_queue_size() const noexcept  { return static_cast< uv_t* >(uv_handle)->write_queue_size; }
@@ -399,6 +404,43 @@ template<> pipe stream::accept< pipe >() const
 }
 //! \endcond
 #endif
+
+inline stream stream::accept() const
+{
+  stream client;
+
+  switch (static_cast< uv_t* >(uv_handle)->type)
+  {
+  case UV_NAMED_PIPE:
+      client.uv_handle = handle::instance< pipe >::create();
+      client.uv_status(::uv_pipe_init(
+          static_cast< ::uv_pipe_t* >(uv_handle)->loop,
+          static_cast< ::uv_pipe_t* >(client.uv_handle),
+          static_cast< ::uv_pipe_t* >(uv_handle)->ipc
+      ));
+      break;
+  case UV_TCP:
+      client.uv_handle = handle::instance< tcp >::create();
+      client.uv_status(::uv_tcp_init(
+          static_cast< ::uv_tcp_t* >(uv_handle)->loop,
+          static_cast< ::uv_tcp_t* >(client.uv_handle)
+      ));
+      break;
+  case UV_TTY:
+      break;
+  default:
+      client.uv_status(UV_EBADF);
+      break;
+  }
+
+  if (!client)
+    uv_status(client.uv_status());
+  else if (uv_status(::uv_accept(static_cast< uv_t* >(uv_handle), static_cast< uv_t* >(client))) < 0)
+    client.uv_status(uv_status());
+
+  return client;
+}
+
 
 }
 

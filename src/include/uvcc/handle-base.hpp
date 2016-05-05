@@ -287,7 +287,6 @@ void handle::uv_handle_interface::close_cb(::uv_handle_t *_uv_handle)
 }//! \endcond
 
 
-
 //! \cond
 struct handle::uv_fs_interface : virtual uv_interface
 {
