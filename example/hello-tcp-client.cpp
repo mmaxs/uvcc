@@ -24,14 +24,15 @@ int main(int _argc, char *_argv[])
   {
     if (!_conn)  { PRINT_UV_ERR("connect", _conn.uv_status()); return; };
 
-    uv::tcp &&client = static_cast< uv::tcp&& >(_conn.handle());
+    auto client = static_cast< uv::tcp&& >(_conn.handle());
+
     client.read_start(
         [](uv::handle, std::size_t _suggested_size)  { return uv::buffer{_suggested_size}; },
-        [](uv::stream _stream, ssize_t _nread, uv::buffer _buf)
+        [](uv::io _io, ssize_t _nread, uv::buffer _buf)
         {
           if (_nread < 0)
           {
-            _stream.read_stop();
+            _io.read_stop();
             if (_nread != UV_EOF)  PRINT_UV_ERR("read", _nread);
           }
           else if (_nread > 0)
@@ -52,9 +53,6 @@ int main(int _argc, char *_argv[])
   };
 
   sockaddr_storage server_addr;
-  // uv.init(server_addr, AF_INET);
-  // reinterpret_cast< sockaddr_in& >(server_addr).sin_port = uv::hton16(54321);
-  // reinterpret_cast< sockaddr_in& >(server_addr).sin_addr.s_addr = uv::hton32(0x7F000001);
   const char *ip = _argc > 1 ? _argv[1] : "127.0.0.1";
   const char *port = _argc > 2 ? _argv[2] : "54321";
   int status = uv::init(server_addr, ip, port);
@@ -62,7 +60,9 @@ int main(int _argc, char *_argv[])
 
   uv::tcp client(uv::loop::Default(), reinterpret_cast< sockaddr& >(server_addr).sa_family);
   if (!client)  { PRINT_UV_ERR("client", client.uv_status()); return client.uv_status(); };
+
   conn.run(client, server_addr);
 
   return uv::loop::Default().run(UV_RUN_DEFAULT);
 }
+
