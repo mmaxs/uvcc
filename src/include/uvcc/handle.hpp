@@ -5,7 +5,7 @@
 #include "uvcc/handle-base.hpp"
 #include "uvcc/handle-io.hpp"
 #include "uvcc/handle-stream.hpp"
-//#include "uvcc/handle-fs.hpp"
+#include "uvcc/handle-fs.hpp"
 //#include "uvcc/handle-udp.hpp"
 //#include "uvcc/handle-misc.hpp"
 
