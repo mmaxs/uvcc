@@ -56,13 +56,14 @@ protected: /*types*/
   {
     spinlock rdstate_switch;
     bool rdstate_flag = false;
+    std::size_t rdsize = 0;
     on_buffer_alloc_t alloc_cb;
     on_read_t read_cb;
   };
 
   struct uv_interface : virtual handle::uv_interface
   {
-    virtual int read_start(void*) const noexcept = 0;
+    virtual int read_start(void*, int64_t) const noexcept = 0;
     virtual int read_stop(void*) const noexcept = 0;
   };
   //! \endcond
@@ -91,15 +92,18 @@ public: /*constructors*/
 
 protected: /*functions*/
   //! \cond
-  static void io_alloc(uv_t *_uv_handle, std::size_t _suggested_size, ::uv_buf_t *_uv_buf)
+  static void io_alloc_cb(uv_t *_uv_handle, std::size_t _suggested_size, ::uv_buf_t *_uv_buf)
   {
-    auto &alloc_cb = instance::from(_uv_handle)->properties().alloc_cb;
-    buffer &&b = alloc_cb(io(_uv_handle), _suggested_size);
+    auto &properties = instance::from(_uv_handle)->properties();
+
+    auto &alloc_cb = properties.alloc_cb;
+    buffer &&b = alloc_cb(io(_uv_handle), properties.rdsize ? properties.rdsize : _suggested_size);
+
     buffer::instance::from(b.uv_buf)->ref();  // add the reference for the future moving the buffer instance into read_cb() parameter
     *_uv_buf = b[0];
   }
 
-  static void io_read(uv_t *_uv_handle, ssize_t _nread, const ::uv_buf_t *_uv_buf, void *_info)
+  static void io_read_cb(uv_t *_uv_handle, ssize_t _nread, const ::uv_buf_t *_uv_buf, void *_info)
   {
     auto instance_ptr = instance::from(_uv_handle);
     instance_ptr->uv_error = _nread;
@@ -131,12 +135,15 @@ public: /*interface*/
       Repeated call to this function results in the automatic call to `read_stop()` firstly.
       In the repeated calls `_alloc_cb` and/or `_read_cb` functions can be empty values, which means that
       they aren't changed from the previous call.
+      \arg `_size` parameter can be set to specify suggested length of the read buffer.
+      \arg `_offset` is intended for `uv::file` I/O endpoint.
+
       \note This function adds an extra reference to the handle instance, which is released when the
       counterpart function `read_stop()` is called.
       \sa libuv API documentation: [`uv_fs_read()`](http://docs.libuv.org/en/v1.x/fs.html#c.uv_fs_read),
                                    [`uv_read_start()`](http://docs.libuv.org/en/v1.x/stream.html#c.uv_read_start),
                                    [`uv_udp_recv_start()`](http://docs.libuv.org/en/v1.x/udp.html#c.uv_udp_recv_start). */
-  int read_start(const on_buffer_alloc_t &_alloc_cb, const on_read_t &_read_cb) const
+  int read_start(const on_buffer_alloc_t &_alloc_cb, const on_read_t &_read_cb, std::size_t _size = 0, int64_t _offset = -1) const
   {
     auto instance_ptr = instance::from(uv_handle);
     auto &properties = instance_ptr->properties();
@@ -157,18 +164,19 @@ public: /*interface*/
 
     if (_alloc_cb)  properties.alloc_cb = _alloc_cb;
     if (_read_cb)  properties.read_cb = _read_cb;
+    properties.rdsize = _size;
 
     uv_status(0);
-    int o = instance_ptr->uv_interface()->read_start(uv_handle);
-    if (!o)  uv_status(o);
-    return o;
+    int ret = instance_ptr->uv_interface()->read_start(uv_handle, _offset);
+    if (!ret)  uv_status(ret);
+    return ret;
   }
   /*! \brief Restart reading incoming data from the I/O endpoint using `_alloc_cb` and `_read_cb`
       functions having been explicitly set before or provided with the previous `read_start()` call.
       Repeated call to this function results in the automatic call to `read_stop()` firstly.
       \note This function adds an extra reference to the handle instance, which is released when the
       counterpart function `read_stop()` is called. */
-  int read_start() const
+  int read_start(std::size_t _size = 0, int64_t _offset = -1) const
   {
     auto instance_ptr = instance::from(uv_handle);
     auto &properties = instance_ptr->properties();
@@ -186,10 +194,12 @@ public: /*interface*/
     }
     else properties.rdstate_flag = true;
 
+    properties.rdsize = _size;
+
     uv_status(0);
-    int o = instance_ptr->uv_interface()->read_start(uv_handle);
-    if (!o)  uv_status(o);
-    return o;
+    int ret = instance_ptr->uv_interface()->read_start(uv_handle, _offset);
+    if (!ret)  uv_status(ret);
+    return ret;
   }
 
   /*! \brief Stop reading data from the I/O endpoint.
@@ -208,6 +218,8 @@ public: /*interface*/
       properties.rdstate_flag = false;
       instance_ptr->unref();  // release the excess reference from read_start()
     };
+
+    properties.rdsize = 0;
 
     return uv_status();
   }

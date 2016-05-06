@@ -47,7 +47,7 @@ protected: /*types*/
 
   struct uv_interface : uv_handle_interface, io::uv_interface
   {
-    int read_start(void *_uv_handle) const noexcept override
+    int read_start(void *_uv_handle, int64_t) const noexcept override
     { return ::uv_read_start(static_cast< ::uv_stream_t* >(_uv_handle), alloc_cb, read_cb); }
 
     int read_stop(void *_uv_handle) const noexcept override
@@ -91,9 +91,9 @@ public: /*interface*/
   {
     instance::from(uv_handle)->properties().connection_cb = _connection_cb;
     uv_status(0);
-    int o = ::uv_listen(static_cast< uv_t* >(uv_handle), _backlog, connection_cb);
-    if (!o)  uv_status(o);
-    return o;
+    int ret = ::uv_listen(static_cast< uv_t* >(uv_handle), _backlog, connection_cb);
+    if (!ret)  uv_status(ret);
+    return ret;
   }
 #if 0
   /*! \brief Accept incoming connections.
@@ -136,7 +136,7 @@ void stream::alloc_cb(::uv_handle_t *_uv_handle, std::size_t _suggested_size, ::
   buffer::instance::from(b.uv_buf)->ref();  // add the reference for the future moving the buffer instance into read_cb() parameter
   *_uv_buf = b[0];
 #endif
-  io_alloc(_uv_handle, _suggested_size, _uv_buf);
+  io_alloc_cb(_uv_handle, _suggested_size, _uv_buf);
 }
 template< typename >
 void stream::read_cb(::uv_stream_t *_uv_stream, ssize_t _nread, const ::uv_buf_t *_uv_buf)
@@ -154,7 +154,7 @@ void stream::read_cb(::uv_stream_t *_uv_stream, ssize_t _nread, const ::uv_buf_t
   else
     read_cb(stream(_uv_stream), _nread, buffer(), nullptr);
 #endif
-  io_read(_uv_stream, _nread, _uv_buf, nullptr);
+  io_read_cb(_uv_stream, _nread, _uv_buf, nullptr);
 }
 template< typename >
 void stream::connection_cb(::uv_stream_t *_uv_stream, int _status)
