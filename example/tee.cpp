@@ -80,7 +80,7 @@ int main(int _argc, char *_argv[])
         #endif
         return buf_pool.back();
       },
-      [](uv::io _io, ssize_t _nread, uv::buffer _buf) -> void  // read_cb
+      [](uv::io _io, ssize_t _nread, uv::buffer _buf, void*) -> void  // read_cb
       {
         if (_nread < 0)
         {

@@ -44,7 +44,7 @@ int main(int _argc, char *_argv[])
 
         client.read_start(
             [](uv::handle, std::size_t _suggested_size)  { return uv::buffer{_suggested_size}; },
-            [](uv::io _io, ssize_t _nread, uv::buffer _buf)
+            [](uv::io _io, ssize_t _nread, uv::buffer _buf, void*)
             {
               if (_nread < 0)
               {
