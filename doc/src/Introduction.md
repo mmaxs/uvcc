@@ -133,7 +133,8 @@ int main() {
 [ ]: # "═ ║ ╒ ╓ ╔ ╕ ╖ ╗ ╘ ╙ ╚ ╛ ╜ ╝ ╞ ╟ ╠ ╡ ╢ ╣ ╤ ╥ ╦ ╧ ╨ ╩ ╪ ╫ ╬"
 
 The default constructor `uv::buffer::buffer()` creates a _null-initialized_ `uv_buf_t` structure.
-One can fill it to make it pointing to manually allocated memory area in the following ways:
+One can manually fill in a _null-initialized_ `uv_buf_t` structure to make it pointing to manually allocated memory
+area in the following ways:
 ```
 buffer buf;
 
@@ -149,13 +150,13 @@ buf.len() = len;
 \sa libuv documentation: [`uv_buf_init()`](http://docs.libuv.org/en/v1.x/misc.html#c.uv_buf_init).
 
 \warning Do not return such a manually initialized `buffer` objects from the buffer allocation callbacks (of
-`uv::on_buffer_t` function type) that should be passed to `stream::read_start()` and `udp::recv_start()` functions.
-Only a copy of `uv_buf_t` structure held in a `buffer` object is passed to libuv API functions and there is no way to
-reconstruct the `buffer` object's address (which is needed for the uvcc reference counting mechanism to work properly)
-from the `uv_buf_t.base` pointer referencing the manually allocated external memory.
+`uv::on_buffer_alloc_t` function type) that should be passed to `io::read_start()` and `udp::recv_start()` functions.
+Merely a copy of the first `uv_buf_t` structure held in a `buffer` object is passed to libuv API functions and there
+is no way to reconstruct the `buffer` object's address (which is needed for the uvcc reference counting mechanism to
+work properly) from the `uv_buf_t.base` pointer referencing the manually allocated external memory.
 \warning Also, the `buffer` objects that contain an array of `uv_buf_t` structures are not supported as a valid result
-of the `uv::on_buffer_t` callback functions. Only a single `uv_buf_t` structure in a `buffer` object is currently
-supported for the purposes of the `stream::read_start()` and `udp::recv_start()` functions.
+of the `uv::on_buffer_alloc_t` callback functions. Only a single `uv_buf_t` structure in a `buffer` object is currently
+supported for the purposes of the `io::read_start()` and `udp::recv_start()` functions.
 
 
 
