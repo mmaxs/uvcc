@@ -26,7 +26,7 @@ class handle;
 class buffer
 {
   //! \cond
-  friend class stream;
+  friend class io;
   friend class write;
   friend class udp;
   friend class udp_send;

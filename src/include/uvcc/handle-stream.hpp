@@ -130,14 +130,18 @@ public: /*conversion operators*/
 template< typename >
 void stream::alloc_cb(::uv_handle_t *_uv_handle, std::size_t _suggested_size, ::uv_buf_t *_uv_buf)
 {
+#if 0
   auto &alloc_cb = instance::from(_uv_handle)->properties().alloc_cb;
   buffer &&b = alloc_cb(stream(reinterpret_cast< uv_t* >(_uv_handle)), _suggested_size);
   buffer::instance::from(b.uv_buf)->ref();  // add the reference for the future moving the buffer instance into read_cb() parameter
   *_uv_buf = b[0];
+#endif
+  io_alloc(_uv_handle, _suggested_size, _uv_buf);
 }
 template< typename >
 void stream::read_cb(::uv_stream_t *_uv_stream, ssize_t _nread, const ::uv_buf_t *_uv_buf)
 {
+#if 0
   auto instance_ptr = instance::from(_uv_stream);
   instance_ptr->uv_error = _nread;
 
@@ -149,6 +153,8 @@ void stream::read_cb(::uv_stream_t *_uv_stream, ssize_t _nread, const ::uv_buf_t
     // use move/transfer semantics instead if you need just pass the object to another function for further processing
   else
     read_cb(stream(_uv_stream), _nread, buffer(), nullptr);
+#endif
+  io_read(_uv_stream, _nread, _uv_buf, nullptr);
 }
 template< typename >
 void stream::connection_cb(::uv_stream_t *_uv_stream, int _status)

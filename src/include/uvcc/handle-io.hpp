@@ -28,11 +28,11 @@ class io : public handle
 
 public: /*types*/
   using uv_t = void;
-  using on_read_t = std::function< void(io _handle, ssize_t _nread, buffer _buffer, void *_data) >;
+  using on_read_t = std::function< void(io _handle, ssize_t _nread, buffer _buffer, void *_info) >;
   /*!< \brief The function type of the callback called by `read_start()` when data was read from an I/O endpoint.
-       \details The `_data` pointer is valid for the duration of the callback only and refers to the following
+       \details The `_info` pointer is valid for the duration of the callback only and refers to the following
        supplemental data:
-        I/O endpoint  | `_data`                     | Description
+        I/O endpoint  | `_info`                     | Description
        :--------------|:----------------------------|:----------------------------------------------------
         `uv::file`    | `int64_t*`                  | the offset the read operation has been performed at
         `uv::stream`  | `nullptr`                   | no additional data
@@ -89,13 +89,37 @@ public: /*constructors*/
   io(io&&) noexcept = default;
   io& operator =(io&&) noexcept = default;
 
-private: /*functions*/
+protected: /*functions*/
+  //! \cond
+  static void io_alloc(uv_t *_uv_handle, std::size_t _suggested_size, ::uv_buf_t *_uv_buf)
+  {
+    auto &alloc_cb = instance::from(_uv_handle)->properties().alloc_cb;
+    buffer &&b = alloc_cb(io(_uv_handle), _suggested_size);
+    buffer::instance::from(b.uv_buf)->ref();  // add the reference for the future moving the buffer instance into read_cb() parameter
+    *_uv_buf = b[0];
+  }
+
+  static void io_read(uv_t *_uv_handle, ssize_t _nread, const ::uv_buf_t *_uv_buf, void *_info)
+  {
+    auto instance_ptr = instance::from(_uv_handle);
+    instance_ptr->uv_error = _nread;
+
+    auto &read_cb = instance_ptr->properties().read_cb;
+    if (_uv_buf->base)
+      read_cb(io(_uv_handle), _nread, buffer(buffer::instance::from_base(_uv_buf->base), adopt_ref), _info);
+      // don't forget to specify adopt_ref flag when using ref_guard to unref the object
+      // don't use ref_guard unless it really needs to hold on the object until the scope end
+      // use move/transfer semantics instead if you need just pass the object to another function for further processing
+    else
+      read_cb(io(_uv_handle), _nread, buffer(), _info);
+  }
+
 #if 0
-  template< typename = void > static void alloc_cb(::uv_handle_t*, std::size_t, ::uv_buf_t*);
   template< typename = void > static void file_read_cb(::uv_fs_t*);
   template< typename = void > static void stream_read_cb(::uv_stream_t*, ssize_t, const ::uv_buf_t*);
   template< typename = void > static void udp_recv_cb(::uv_udp_t*, ssize_t, const ::uv_buf_t*, const ::sockaddr*, unsigned);
 #endif
+  //! \endcond
 
 public: /*interface*/
   on_buffer_alloc_t& on_alloc() const noexcept  { return instance::from(uv_handle)->properties().alloc_cb; }
