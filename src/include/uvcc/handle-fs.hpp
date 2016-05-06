@@ -132,15 +132,15 @@ public: /*conversion operators*/
 };
 
 template< typename >
-void file::open_cb(::uv_fs_t *_req_open)
+void file::open_cb(::uv_fs_t *_uv_handle)
 {
-  auto instance_ptr = instance::from(_req_open);
-  instance_ptr->uv_error = _req_open->result;
+  auto instance_ptr = instance::from(_uv_handle);
+  instance_ptr->uv_error = _uv_handle->result;
 
   ref_guard< instance > unref_req(*instance_ptr, adopt_ref);
 
   auto &open_cb = instance_ptr->properties().open_cb;
-  if (open_cb)  open_cb(file(_req_open));
+  if (open_cb)  open_cb(file(_uv_handle));
 }
 
 
