@@ -28,15 +28,27 @@ class io : public handle
 
 public: /*types*/
   using uv_t = void;
-  using on_read_t = std::function< void(io _handle, ssize_t _nread, buffer _buffer) >;
+  using on_read_t = std::function< void(io _handle, ssize_t _nread, buffer _buffer, void *_data) >;
   /*!< \brief The function type of the callback called by `read_start()` when data was read from an I/O endpoint.
-       \note On error and EOF state the libuv API calls the user provided
+       \details The `_data` pointer is valid for the duration of the callback only and refers to the following
+       supplemental data:
+        I/O endpoint  | `_data`                     | Description
+       :--------------|:----------------------------|:----------------------------------------------------
+        `uv::file`    | `int64_t*`                  | the offset the read operation has been performed at
+        `uv::stream`  | `nullptr`                   | no additional data
+        `uv::udp`     | `struct uv::udp_recv_info*` | information on sender and received message status
+
+       \sa libuv API documentation: [`uv_read_cb`](http://docs.libuv.org/en/v1.x/stream.html#c.uv_read_cb),
+                                    [`uv_udp_recv_cb`](http://docs.libuv.org/en/v1.x/udp.html#c.uv_udp_recv_cb).
+       \note On error and EOF state the this callback is supplied with a dummy _null-initialized_ `_buffer`.
+       \internal
+       On error and EOF state the libuv API calls the user provided
        [`uv_read_cb`](http://docs.libuv.org/en/v1.x/stream.html#c.uv_read_cb) function with
        a _null-initialized_ [`uv_buf_t`](http://docs.libuv.org/en/v1.x/misc.html#c.uv_buf_t) buffer structure
        (where `buf->base = nullptr` and `buf->len = 0`) and does not try to retrieve  something from the
        [`uv_alloc_cb`](http://docs.libuv.org/en/v1.x/handle.html#c.uv_alloc_cb) callback in such a cases.
        So the uvcc `io::on_read_t` callback is supplied with a dummy _null-initialized_ `_buffer`.
-       \sa libuv API documentation: [`uv_read_cb`](http://docs.libuv.org/en/v1.x/stream.html#c.uv_read_cb) */
+       \endinternal */
 
 protected: /*types*/
   //! \cond
@@ -97,7 +109,9 @@ public: /*interface*/
       they aren't changed from the previous call.
       \note This function adds an extra reference to the handle instance, which is released when the
       counterpart function `read_stop()` is called.
-      \sa libuv API documentation: [`uv_read_start()`](http://docs.libuv.org/en/v1.x/stream.html#c.uv_read_start). */
+      \sa libuv API documentation: [`uv_fs_read()`](http://docs.libuv.org/en/v1.x/fs.html#c.uv_fs_read),
+                                   [`uv_read_start()`](http://docs.libuv.org/en/v1.x/stream.html#c.uv_read_start),
+                                   [`uv_udp_recv_start()`](http://docs.libuv.org/en/v1.x/udp.html#c.uv_udp_recv_start). */
   int read_start(const on_buffer_alloc_t &_alloc_cb, const on_read_t &_read_cb) const
   {
     auto instance_ptr = instance::from(uv_handle);
