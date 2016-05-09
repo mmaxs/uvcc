@@ -41,14 +41,14 @@ public: /*types*/
        \sa libuv API documentation: [`uv_read_cb`](http://docs.libuv.org/en/v1.x/stream.html#c.uv_read_cb),
                                     [`uv_udp_recv_cb`](http://docs.libuv.org/en/v1.x/udp.html#c.uv_udp_recv_cb).
        \note On error and EOF state the this callback is supplied with a dummy _null-initialized_ `_buffer`.
-       \internal
+
        On error and EOF state the libuv API calls the user provided
-       [`uv_read_cb`](http://docs.libuv.org/en/v1.x/stream.html#c.uv_read_cb) function with
+       [`uv_read_cb`](http://docs.libuv.org/en/v1.x/stream.html#c.uv_read_cb) or
+       [`uv_udp_recv_cb`](http://docs.libuv.org/en/v1.x/udp.html#c.uv_udp_recv_cb) functions with
        a _null-initialized_ [`uv_buf_t`](http://docs.libuv.org/en/v1.x/misc.html#c.uv_buf_t) buffer structure
        (where `buf->base = nullptr` and `buf->len = 0`) and does not try to retrieve  something from the
        [`uv_alloc_cb`](http://docs.libuv.org/en/v1.x/handle.html#c.uv_alloc_cb) callback in such a cases.
-       So the uvcc `io::on_read_t` callback is supplied with a dummy _null-initialized_ `_buffer`.
-       \endinternal */
+       So the uvcc `io::on_read_t` callback is supplied with a dummy _null-initialized_ `_buffer`. */
 
 protected: /*types*/
   //! \cond
@@ -133,13 +133,23 @@ public: /*interface*/
       \details The handle is tried to be set for reading if only nonempty `_alloc_cb` and `_read_cb` functions
       are provided, or else `UV_EINVAL` is returned with no involving any libuv API or uvcc function.
       Repeated call to this function results in the automatic call to `read_stop()` firstly.
-      In the repeated calls `_alloc_cb` and/or `_read_cb` functions can be empty values, which means that
+      In the repeated calls `_alloc_cb` and/or `_read_cb` functions may be empty values, which means that
       they aren't changed from the previous call.
       \arg `_size` parameter can be set to specify suggested length of the read buffer.
       \arg `_offset` is intended for `uv::file` I/O endpoint.
 
       \note This function adds an extra reference to the handle instance, which is released when the
       counterpart function `read_stop()` is called.
+
+      For `uv::stream` and `uv::udp` endpoints the function is just a wrapper around
+      [`uv_read_start()`](http://docs.libuv.org/en/v1.x/stream.html#c.uv_read_start) and
+      [`uv_udp_recv_start()`](http://docs.libuv.org/en/v1.x/udp.html#c.uv_udp_recv_start) libuv facilities.
+      For `uv::file` endpoint it implements an active loop for
+      [`uv_fs_read()`](http://docs.libuv.org/en/v1.x/fs.html#c.uv_fs_read) libuv API function until EOF or error state reached and
+      the user callback receives the number of bytes read during the current iteration, EOF or error state just like
+      it would be a [`uv_read_cb`](http://docs.libuv.org/en/v1.x/stream.html#c.uv_read_cb) callback for `uv::stream` endpoint.
+      Note that the loop keeps trying to read from the file until `read_stop()` has been called.
+
       \sa libuv API documentation: [`uv_fs_read()`](http://docs.libuv.org/en/v1.x/fs.html#c.uv_fs_read),
                                    [`uv_read_start()`](http://docs.libuv.org/en/v1.x/stream.html#c.uv_read_start),
                                    [`uv_udp_recv_start()`](http://docs.libuv.org/en/v1.x/udp.html#c.uv_udp_recv_start). */
@@ -203,7 +213,8 @@ public: /*interface*/
   }
 
   /*! \brief Stop reading data from the I/O endpoint.
-      \sa libuv API documentation: [`uv_read_stop()`](http://docs.libuv.org/en/v1.x/stream.html#c.uv_read_stop). */
+      \sa libuv API documentation: [`uv_read_stop()`](http://docs.libuv.org/en/v1.x/stream.html#c.uv_read_stop),
+                                   [`uv_udp_recv_stop()`](http://docs.libuv.org/en/v1.x/udp.html#c.uv_udp_recv_stop). */
   int read_stop() const
   {
     auto instance_ptr = instance::from(uv_handle);
