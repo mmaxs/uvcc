@@ -39,12 +39,12 @@ int main(int _argc, char *_argv[])
       f.read_start(
           [](uv::handle, std::size_t _suggested_size) -> uv::buffer  // alloc_cb
           {
-            fprintf(stderr, "_suggested_size = %zu\n", _suggested_size); fflush(stderr);
+            fprintf(stderr, "_suggested_size=%zu\n", _suggested_size); fflush(stderr);
             return uv::buffer{_suggested_size};
           },
           [](uv::io _io, ssize_t _nread, uv::buffer _buf, void *_offset) -> void  // read_cb
           {
-            //fprintf(stderr, "%zi\n", _nread); fflush(stderr);
+            fprintf(stderr, "_nread=%zi _offset=%zi\n", _nread, *(ssize_t*)_offset); fflush(stderr);
 
             if (_nread < 0)
             {
@@ -67,7 +67,7 @@ int main(int _argc, char *_argv[])
               wr.run(out, _buf);
             };
           },
-          2
+          30, 0
       );
     }
   }
