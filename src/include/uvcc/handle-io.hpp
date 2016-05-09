@@ -136,7 +136,7 @@ public: /*interface*/
       In the repeated calls `_alloc_cb` and/or `_read_cb` functions may be empty values, which means that
       they aren't changed from the previous call.
       \arg `_size` parameter can be set to specify suggested length of the read buffer.
-      \arg `_offset` is intended for `uv::file` I/O endpoint.
+      \arg `_offset` - the starting offset for reading (intended for `uv::file` I/O endpoint).
 
       \note This function adds an extra reference to the handle instance, which is released when the
       counterpart function `read_stop()` is called.
@@ -144,11 +144,14 @@ public: /*interface*/
       For `uv::stream` and `uv::udp` endpoints the function is just a wrapper around
       [`uv_read_start()`](http://docs.libuv.org/en/v1.x/stream.html#c.uv_read_start) and
       [`uv_udp_recv_start()`](http://docs.libuv.org/en/v1.x/udp.html#c.uv_udp_recv_start) libuv facilities.
-      For `uv::file` endpoint it implements an active loop for
-      [`uv_fs_read()`](http://docs.libuv.org/en/v1.x/fs.html#c.uv_fs_read) libuv API function until EOF or error state reached and
-      the user callback receives the number of bytes read during the current iteration, EOF or error state just like
-      it would be a [`uv_read_cb`](http://docs.libuv.org/en/v1.x/stream.html#c.uv_read_cb) callback for `uv::stream` endpoint.
-      Note that the loop keeps trying to read from the file until `read_stop()` has been called.
+      For `uv::file` endpoint it implements a chain of calls for
+      [`uv_fs_read()`](http://docs.libuv.org/en/v1.x/fs.html#c.uv_fs_read) libuv API function with the user provided
+      callback function. If the user callback does not stop the read loop by calling `read_stop()` function,
+      the next call is automatically performed after the callback returns. The user callback receives a number of bytes
+      read during the current iteration, or EOF or error state just like if it would be a
+      [`uv_read_cb`](http://docs.libuv.org/en/v1.x/stream.html#c.uv_read_cb) callback for `uv::stream` endpoint.
+      Note that even on EOF or error state having been reached the loop keeps trying to read from the file until `read_stop()`
+      is explicitly called.
 
       \sa libuv API documentation: [`uv_fs_read()`](http://docs.libuv.org/en/v1.x/fs.html#c.uv_fs_read),
                                    [`uv_read_start()`](http://docs.libuv.org/en/v1.x/stream.html#c.uv_read_start),
