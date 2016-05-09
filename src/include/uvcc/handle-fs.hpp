@@ -179,9 +179,9 @@ void file::read_cb(::uv_fs_t *_uv_req)
   auto &properties = instance_ptr->properties();
 
   ssize_t nread = _uv_req->result == 0 ? UV_EOF : _uv_req->result;
-  if (nread < 0)  // on error or EOF release the unused buffer early
+  if (nread < 0)  // on error or EOF release the unused buffer and replace it with null-initialized structure
   {
-    buffer::instance::from(buffer::instance::from_base(properties.rd.uv_buf_struct.base))->unref();
+    buffer::instance::from(buffer::instance::uv_buf::from(properties.rd.uv_buf_struct.base))->unref();
     properties.rd.uv_buf_struct = ::uv_buf_init(nullptr, 0);
   };
 

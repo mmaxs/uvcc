@@ -110,7 +110,7 @@ protected: /*functions*/
 
     auto &read_cb = instance_ptr->properties().read_cb;
     if (_uv_buf->base)
-      read_cb(io(_uv_handle), _nread, buffer(buffer::instance::from_base(_uv_buf->base), adopt_ref), _info);
+      read_cb(io(_uv_handle), _nread, buffer(buffer::instance::uv_buf::from(_uv_buf->base), adopt_ref), _info);
       // don't forget to specify adopt_ref flag when using ref_guard to unref the object
       // don't use ref_guard unless it really needs to hold on the object until the scope end
       // use move/transfer semantics instead if you need just pass the object to another function for further processing

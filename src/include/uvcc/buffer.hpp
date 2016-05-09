@@ -113,10 +113,14 @@ private: /*types*/
       static_assert(std::is_standard_layout< instance >::value, "not a standard layout type");
       return reinterpret_cast< instance* >(reinterpret_cast< char* >(_uv_buf) - offsetof(instance, uv_buf_struct));
     }
-    static uv_t* from_base(decltype(uv_t::base) _base) noexcept
+
+    struct uv_buf
     {
-      return reinterpret_cast< uv_t* >(reinterpret_cast< char* >(_base) - alignment_padding(0) - sizeof(uv_t));
-    }
+      static uv_t* from(decltype(uv_t::base) _base) noexcept
+      {
+        return reinterpret_cast< uv_t* >(reinterpret_cast< char* >(_base) - alignment_padding(0) - sizeof(uv_t));
+      }
+    };
 
     void ref()  { refs.inc(); }
     void unref() noexcept  { if (refs.dec() == 0)  destroy(); }
