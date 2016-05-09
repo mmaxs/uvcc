@@ -46,22 +46,10 @@ protected: /*types*/
     int read_start(void *_uv_handle, int64_t _offset) const noexcept override
     {
       auto instance_ptr = instance::from(_uv_handle);
-      auto &properties = instance_ptr->properties();
-
-      io_alloc_cb(_uv_handle, 65536, &properties.rd.uv_buf_struct);
-
-      properties.rd.uv_req_struct.data = instance_ptr;
-      properties.rd.offset = _offset;
-
-      fprintf(stderr, "buf size = %lu\n", properties.rd.uv_buf_struct.len); fflush(stderr);
-      fprintf(stderr, "path = %s\n", static_cast< uv_t* >(_uv_handle)->path); fflush(stderr);
-      return ::uv_fs_read(
-        static_cast< uv_t* >(_uv_handle)->loop, &properties.rd.uv_req_struct,
-        static_cast< uv_t* >(_uv_handle)->result,
-        &properties.rd.uv_buf_struct, 1,
-        _offset,
-        read_cb
-      );
+      auto &rd = instance_ptr->properties().rd;
+      rd.uv_req_struct.data = instance_ptr;
+      rd.offset = _offset;
+      return file_read_start(instance_ptr);
     }
 
     int read_stop(void *_uv_handle) const noexcept override  { return 0; }
@@ -141,6 +129,21 @@ private: /*functions*/
   template< typename = void > static void open_cb(::uv_fs_t*);
   template< typename = void > static void read_cb(::uv_fs_t*);
 
+  static int file_read_start(instance *_instance_ptr)
+  {
+    auto &rd = _instance_ptr->properties().rd;
+
+    io_alloc_cb(&_instance_ptr->uv_handle_struct, 65536, &rd.uv_buf_struct);
+
+    return ::uv_fs_read(
+      _instance_ptr->uv_handle_struct.loop, &rd.uv_req_struct,
+      _instance_ptr->uv_handle_struct.result,
+      &rd.uv_buf_struct, 1,
+      rd.offset,
+      read_cb
+    );
+  }
+
 public: /*interface*/
   /*! \brief Get the cross platform representation of the file handle.
       \details On Windows this function returns _a C run-time file descriptor_ which differs from the
@@ -169,33 +172,32 @@ void file::open_cb(::uv_fs_t *_uv_handle)
   auto &open_cb = instance_ptr->properties().open_cb;
   if (open_cb)  open_cb(file(_uv_handle));
 }
-
 template< typename >
 void file::read_cb(::uv_fs_t *_uv_req)
 {
   auto instance_ptr = static_cast< instance* >(_uv_req->data);
   auto &properties = instance_ptr->properties();
 
-  auto offset = properties.rd.offset;
   ssize_t nread = _uv_req->result == 0 ? UV_EOF : _uv_req->result;
+  if (nread < 0)  // on error or EOF release the unused buffer early
+  {
+    buffer::instance::from(buffer::instance::from_base(properties.rd.uv_buf_struct.base))->unref();
+    properties.rd.uv_buf_struct = ::uv_buf_init(nullptr, 0);
+  };
 
-  fprintf(stderr, "result = %zi\n", _uv_req->result); fflush(stderr);
-
-  io_read_cb(&instance_ptr->uv_handle_struct, nread , &properties.rd.uv_buf_struct, &offset);
+  io_read_cb(&instance_ptr->uv_handle_struct, nread , &properties.rd.uv_buf_struct, &properties.rd.offset);
 
   ::uv_fs_req_cleanup(_uv_req);
 
-  //return;
-  if (nread > 0 and properties.rdstate_flag)
+  if (properties.rdstate_flag)
   {
-    if (offset > 0)  offset += nread;
+    if (properties.rd.offset >= 0 and nread > 0)  properties.rd.offset += nread;
 
     instance_ptr->uv_error = 0;
-    int ret = instance_ptr->uv_interface()->read_start(&instance_ptr->uv_handle_struct, offset);
+    int ret = file_read_start(instance_ptr);
     if (!ret)  instance_ptr->uv_error = ret;
   };
 }
-
 
 
 
