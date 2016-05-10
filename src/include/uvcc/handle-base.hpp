@@ -116,10 +116,7 @@ protected: /*types*/
     { return dynamic_cast/* from virtual base */< typename _HANDLE_::uv_interface* >(uv_interface_ptr); }
 
     void ref()  { refs.inc(); }
-    void unref() noexcept
-    {
-      if (refs.dec() == 0)  uv_interface_ptr->destroy_instance(&uv_handle_struct);
-    }
+    void unref()  { if (refs.dec() == 0)  uv_interface_ptr->destroy_instance(&uv_handle_struct); }
   };
   //! \endcond
 
@@ -339,7 +336,7 @@ struct handle::uv_fs_interface : virtual uv_interface
 namespace std
 {
 
-//! \ingroup doxy_handle
+//! \ingroup doxy_group_handle
 template<> inline void swap(uv::handle &_this, uv::handle &_that) noexcept  { _this.swap(_that); }
 
 }
