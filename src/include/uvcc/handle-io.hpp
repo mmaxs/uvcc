@@ -237,6 +237,10 @@ public: /*interface*/
 
     return uv_status();
   }
+
+public: /*conversion operators*/
+  explicit operator const uv_t*() const noexcept  { return static_cast< const uv_t* >(uv_handle); }
+  explicit operator       uv_t*()       noexcept  { return static_cast<       uv_t* >(uv_handle); }
 };
 
 
