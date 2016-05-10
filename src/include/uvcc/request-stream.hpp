@@ -17,7 +17,7 @@ namespace uv
 {
 
 
-/*! \ingroup doxy_request
+/*! \ingroup doxy_group_request
     \brief Connect request type.
     \sa libuv API documentation: [`uv_stream_t`](http://docs.libuv.org/en/v1.x/stream.html#uv-stream-t-stream-handle),
                                  [`uv_tcp_t`](http://docs.libuv.org/en/v1.x/tcp.html#uv-tcp-t-tcp-handle),
@@ -58,8 +58,8 @@ private: /*functions*/
   template< typename = void > static void connect_cb(::uv_connect_t*, int);
 
 public: /*interface*/
-  const on_request_t& on_request() const noexcept  { return instance::from(uv_req)->on_request(); }
-        on_request_t& on_request()       noexcept  { return instance::from(uv_req)->on_request(); }
+  const on_request_t& on_request() const noexcept  { return instance::from(uv_req)->request_cb_storage.value(); }
+        on_request_t& on_request()       noexcept  { return instance::from(uv_req)->request_cb_storage.value(); }
 
   /*! \brief The stream which this connect request is running on. */
   stream handle() const noexcept  { return stream(static_cast< uv_t* >(uv_req)->handle); }
@@ -74,14 +74,15 @@ public: /*interface*/
   {
     tcp::instance::from(_tcp.uv_handle)->ref();
     instance::from(uv_req)->ref();
+
     uv_status(0);
-    int o = ::uv_tcp_connect(
+    int ret = ::uv_tcp_connect(
         static_cast< uv_t* >(uv_req), static_cast< tcp::uv_t* >(_tcp),
         reinterpret_cast< const ::sockaddr* >(&_sockaddr),
         connect_cb
     );
-    if (!o)  uv_status(o);
-    return o;
+    if (!ret)  uv_status(ret);
+    return ret;
   }
   /*! \brief Run the request for `uv::pipe` stream.
       \sa libuv API documentation: [`uv_pipe_connect()`](http://docs.libuv.org/en/v1.x/pipe.html#c.uv_pipe_connect). */
@@ -100,19 +101,19 @@ public: /*conversion operators*/
 template< typename >
 void connect::connect_cb(::uv_connect_t *_uv_req, int _status)
 {
-  auto self = instance::from(_uv_req);
-  self->uv_status() = _status;
+  auto instance_ptr = instance::from(_uv_req);
+  instance_ptr->uv_error = _status;
 
   ref_guard< stream::instance > unref_handle(*stream::instance::from(_uv_req->handle), adopt_ref);
-  ref_guard< instance > unref_req(*self, adopt_ref);
+  ref_guard< instance > unref_req(*instance_ptr, adopt_ref);
 
-  auto &connect_cb = self->on_request();
+  auto &connect_cb = instance_ptr->request_cb_storage.value();
   if (connect_cb)  connect_cb(connect(_uv_req));
 }
 
 
 
-/*! \ingroup doxy_request
+/*! \ingroup doxy_group_request
     \brief Write request type.
     \sa libuv API documentation: [`uv_stream_t`](http://docs.libuv.org/en/v1.x/stream.html#uv-stream-t-stream-handle). */
 class write : public request
@@ -129,7 +130,10 @@ public: /*types*/
 
 protected: /*types*/
   //! \cond
-  using supplemental_data_t = buffer::uv_t*;
+  struct properties
+  {
+    ::uv_buf_t *uv_buf = nullptr;
+  };
   //! \endcond
 
 private: /*types*/
@@ -157,8 +161,8 @@ private: /*functions*/
   template< typename = void > static void write2_cb(::uv_write_t*, int);
 
 public: /*interface*/
-  const on_request_t& on_request() const noexcept  { return instance::from(uv_req)->on_request(); }
-        on_request_t& on_request()       noexcept  { return instance::from(uv_req)->on_request(); }
+  const on_request_t& on_request() const noexcept  { return instance::from(uv_req)->request_cb_storage.value(); }
+        on_request_t& on_request()       noexcept  { return instance::from(uv_req)->request_cb_storage.value(); }
 
   /*! \brief The stream which this write request is running on. */
   stream handle() const noexcept  { return stream(static_cast< uv_t* >(uv_req)->handle); }
@@ -169,43 +173,41 @@ public: /*interface*/
       \sa libuv API documentation: [`uv_write()`](http://docs.libuv.org/en/v1.x/stream.html#c.uv_write). */
   int run(stream _stream, const buffer &_buf)
   {
-    auto self = instance::from(uv_req);
+    auto instance_ptr = instance::from(uv_req);
 
     stream::instance::from(_stream.uv_handle)->ref();
     buffer::instance::from(_buf.uv_buf)->ref();
-    self->ref();
-    self->supplemental_data() = _buf.uv_buf;
+    instance_ptr->ref();
+    instance_ptr->properties().uv_buf = _buf.uv_buf;
 
     uv_status(0);
-    int o = ::uv_write(
+    int ret = ::uv_write(
         static_cast< uv_t* >(uv_req), static_cast< stream::uv_t* >(_stream),
         static_cast< const buffer::uv_t* >(_buf), _buf.count(),
         write_cb
     );
-    if (!o)  uv_status(o);
-    return o;
+    if (!ret)  uv_status(ret);
+    return ret;
   }
   /*! \brief The overload for sending handles over a pipe.
       \sa libuv API documentation: [`uv_write2()`](http://docs.libuv.org/en/v1.x/stream.html#c.uv_write2). */
   int run(pipe _pipe, const buffer &_buf, stream _send_handle)
   {
-    auto self = instance::from(uv_req);
-
     pipe::instance::from(_pipe.uv_handle)->ref();
     buffer::instance::from(_buf.uv_buf)->ref();
     stream::instance::from(_send_handle.uv_handle)->ref();
-    self->ref();
-    self->supplemental_data() = _buf.uv_buf;
+    instance::from(uv_req)->ref();
+    instance::from(uv_req)->properties().uv_buf = _buf.uv_buf;
 
     uv_status(0);
-    int o = ::uv_write2(
+    int ret = ::uv_write2(
         static_cast< uv_t* >(uv_req), static_cast< stream::uv_t* >(_pipe),
         static_cast< const buffer::uv_t* >(_buf), _buf.count(),
         static_cast< stream::uv_t* >(_send_handle),
         write2_cb
     );
-    if (!o)  uv_status(o);
-    return o;
+    if (!ret)  uv_status(ret);
+    return ret;
   }
 
   /*! \details The wrapper for corresponding libuv function.
@@ -226,17 +228,17 @@ public: /*conversion operators*/
 template< typename >
 void write::write_cb(::uv_write_t *_uv_req, int _status)
 {
-  auto self = instance::from(_uv_req);
-  self->uv_status() = _status;
+  auto instance_ptr = instance::from(_uv_req);
+  instance_ptr->uv_error = _status;
 
   ref_guard< stream::instance > unref_handle(*stream::instance::from(_uv_req->handle), adopt_ref);
-  ref_guard< instance > unref_req(*self, adopt_ref);
+  ref_guard< instance > unref_req(*instance_ptr, adopt_ref);
 
-  auto &write_cb = self->on_request();
+  auto &write_cb = instance_ptr->request_cb_storage.value();
   if (write_cb)
-    write_cb(write(_uv_req), buffer(self->supplemental_data(), adopt_ref));
+    write_cb(write(_uv_req), buffer(instance_ptr->properties().uv_buf, adopt_ref));
   else
-    buffer::instance::from(self->supplemental_data())->unref();
+    buffer::instance::from(instance_ptr->properties().uv_buf)->unref();
 }
 template< typename >
 void write::write2_cb(::uv_write_t *_uv_req, int _status)
@@ -247,7 +249,7 @@ void write::write2_cb(::uv_write_t *_uv_req, int _status)
 
 
 
-/*! \ingroup doxy_request
+/*! \ingroup doxy_group_request
     \brief Shutdown request type.
     \sa libuv API documentation: [`uv_stream_t`](http://docs.libuv.org/en/v1.x/stream.html#uv-stream-t-stream-handle). */
 class shutdown : public request
@@ -286,8 +288,8 @@ private: /*functions*/
   template< typename = void > static void shutdown_cb(::uv_shutdown_t*, int);
 
 public: /*interface*/
-  const on_request_t& on_request() const noexcept  { return instance::from(uv_req)->on_request(); }
-        on_request_t& on_request()       noexcept  { return instance::from(uv_req)->on_request(); }
+  const on_request_t& on_request() const noexcept  { return instance::from(uv_req)->request_cb_storage.value(); }
+        on_request_t& on_request()       noexcept  { return instance::from(uv_req)->request_cb_storage.value(); }
 
   /*! \brief The stream which this shutdown request is running on. */
   stream handle() const noexcept  { return stream(static_cast< uv_t* >(uv_req)->handle); }
@@ -297,10 +299,11 @@ public: /*interface*/
   {
     stream::instance::from(_stream.uv_handle)->ref();
     instance::from(uv_req)->ref();
+
     uv_status(0);
-    int o = ::uv_shutdown(static_cast< uv_t* >(uv_req), static_cast< stream::uv_t* >(_stream), shutdown_cb);
-    if (!o)  uv_status(o);
-    return o;
+    int ret = ::uv_shutdown(static_cast< uv_t* >(uv_req), static_cast< stream::uv_t* >(_stream), shutdown_cb);
+    if (!ret)  uv_status(ret);
+    return ret;
   }
 
 public: /*conversion operators*/
@@ -311,13 +314,13 @@ public: /*conversion operators*/
 template< typename >
 void shutdown::shutdown_cb(::uv_shutdown_t *_uv_req, int _status)
 {
-  auto self = instance::from(_uv_req);
-  self->uv_status() = _status;
+  auto instance_ptr = instance::from(_uv_req);
+  instance_ptr->uv_error = _status;
 
   ref_guard< stream::instance > unref_handle(*stream::instance::from(_uv_req->handle), adopt_ref);
-  ref_guard< instance > unref_req(*self, adopt_ref);
+  ref_guard< instance > unref_req(*instance_ptr, adopt_ref);
 
-  auto &shutdown_cb = self->on_request();
+  auto &shutdown_cb = instance_ptr->request_cb_storage.value();
   if (shutdown_cb)  shutdown_cb(shutdown(_uv_req));
 }
 

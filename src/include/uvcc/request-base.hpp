@@ -5,18 +5,17 @@
 #include "uvcc/utility.hpp"
 
 #include <uv.h>
-#include <cstddef>      // offsetof
-#include <memory>       // addressof()
+#include <cstddef>      // size_t offsetof
 #include <functional>   // function
-#include <utility>      // swap()
 #include <type_traits>  // is_standard_layout
+#include <utility>      // forward() swap()
 
 
 namespace uv
 {
 
 
-/*! \ingroup doxy_request
+/*! \ingroup doxy_group_request
     \brief The base class for the libuv requests.
     \details Derived classes conceptually are just interfaces to the data stored
     in the base class, so there are no any virtual member functions.
@@ -27,34 +26,45 @@ public: /*types*/
   using uv_t = ::uv_req_t;
   using on_destroy_t = std::function< void(void *_data) >;
   /*!< \brief The function type of the callback called when the request object is about to be destroyed. */
-  using on_request_t = null_t;
 
 protected: /*types*/
   //! \cond
-  using supplemental_data_t = empty_t;
+  using properties = empty_t;
+  constexpr static const std::size_t MAX_PROPERTY_SIZE = 24;
+  constexpr static const std::size_t MAX_PROPERTY_ALIGN = 8;
 
   template< class _REQUEST_ > class instance
   {
-  public: /*types*/
-    using uv_t = typename _REQUEST_::uv_t;
-    using on_request_t = typename _REQUEST_::on_request_t;
+    struct uv_t
+    {
+      template< typename _T_, typename = std::size_t > struct substitute  { using type = empty_t; };
+      template< typename _T_ > struct substitute< _T_, decltype(sizeof(typename _T_::uv_t)) >  { using type = typename _T_::uv_t; };
+      using type = typename substitute< _REQUEST_ >::type;
+    };
+    struct on_request_t
+    {
+      template< typename _T_, typename = std::size_t > struct substitute  { using type = null_t; };
+      template< typename _T_ > struct substitute< _T_, decltype(sizeof(typename _T_::on_request_t)) >  { using type = typename _T_::on_request_t; };
+      using type = typename substitute< _REQUEST_ >::type;
+    };
 
-  private: /*types*/
-    using supplemental_data_t = typename _REQUEST_::supplemental_data_t;
-
-  private: /*data*/
+  public: /*data*/
     mutable int uv_error = 0;
-    void (*Delete)(void*) = default_delete< instance >::Delete;  // store a proper delete operator
-    ref_count rc;
-    type_storage< on_destroy_t > on_destroy_storage;
-    alignas(32) type_storage< on_request_t > on_request_storage;
-    static_assert(sizeof(on_request_storage) <= 32, "non-static layout structure");
-    alignas(32) mutable type_storage< supplemental_data_t > supplemental_data_storage;
-    static_assert(sizeof(supplemental_data_storage) <= 32, "non-static layout structure");
-    alignas(32) uv_t uv_req = { 0,};  // must be zeroed!
+    ref_count refs;
+    type_storage< on_destroy_t > destroy_cb_storage;
+    type_storage< typename on_request_t::type > request_cb_storage;
+    aligned_storage< MAX_PROPERTY_SIZE, MAX_PROPERTY_ALIGN > property_storage;
+    alignas(::uv_any_req) typename uv_t::type uv_req_struct = { 0,};  // must be zeroed!
 
   private: /*constructors*/
-    instance() = default;
+    instance()
+    {
+      property_storage.reset< typename _REQUEST_::properties >();
+    }
+    template< typename... _Args_ > instance(_Args_&&... _args)
+    {
+      property_storage.reset< typename _REQUEST_::properties >(std::forward< _Args_ >(_args)...);
+    }
 
   public: /*constructors*/
     ~instance() = default;
@@ -66,31 +76,32 @@ protected: /*types*/
     instance& operator =(instance&&) = delete;
 
   private: /*functions*/
-    void destroy()
+    void destroy_instance()
     {
-      auto &destroy_cb = on_destroy_storage.value();
-      if (destroy_cb)  destroy_cb(uv_req.data);
-      Delete(this);
+      auto &destroy_cb = destroy_cb_storage.value();
+      if (destroy_cb)  destroy_cb(uv_req_struct.data);
+
+      delete this;
     }
 
   public: /*interface*/
-    static void* create()  { return std::addressof((new instance())->uv_req); }
+    static void* create()  { return &(new instance())->uv_req_struct; }
+    template< typename... _Args_ > static void* create(_Args_&&... _args)
+    {
+      return &(new instance(std::forward< _Args_ >(_args)...))->uv_req_struct;
+    }
 
     constexpr static instance* from(void *_uv_req) noexcept
     {
       static_assert(std::is_standard_layout< instance >::value, "not a standard layout type");
-      return reinterpret_cast< instance* >(static_cast< char* >(_uv_req) - offsetof(instance, uv_req));
+      return reinterpret_cast< instance* >(static_cast< char* >(_uv_req) - offsetof(instance, uv_req_struct));
     }
 
-    on_destroy_t& on_destroy() noexcept  { return on_destroy_storage.value(); }
-    on_request_t& on_request() noexcept  { return on_request_storage.value(); }
-    supplemental_data_t& supplemental_data() const noexcept  { return supplemental_data_storage.value(); }
+    typename _REQUEST_::properties& properties() noexcept
+    { return property_storage.get< typename _REQUEST_::properties >(); }
 
-    void ref()  { rc.inc(); }
-    void unref()  { if (rc.dec() == 0)  destroy(); }
-    ref_count::type nrefs() const noexcept  { return rc.value(); }
-
-    decltype(uv_error)& uv_status() const noexcept  { return uv_error; }
+    void ref()  { refs.inc(); }
+    void unref()  { if (refs.dec() == 0)  destroy_instance(); }
   };
   //! \endcond
 
@@ -142,7 +153,7 @@ protected: /*functions*/
   //! \cond
   int uv_status(int _value) const noexcept
   {
-    instance< request >::from(uv_req)->uv_status() = _value;
+    instance< request >::from(uv_req)->uv_error = _value;
     return _value;
   }
   //! \endcond
@@ -150,12 +161,12 @@ protected: /*functions*/
 public: /*interface*/
   void swap(request &_that) noexcept  { std::swap(uv_req, _that.uv_req); }
   /*! \brief The current number of existing references to the same object as this request variable refers to. */
-  long nrefs() const noexcept  { return instance< request >::from(uv_req)->nrefs(); }
+  long nrefs() const noexcept  { return instance< request >::from(uv_req)->refs.value(); }
   /*! \brief The status value returned by the last executed libuv API function on this request. */
-  int uv_status() const noexcept  { return instance< request >::from(uv_req)->uv_status(); }
+  int uv_status() const noexcept  { return instance< request >::from(uv_req)->uv_error; }
 
-  const on_destroy_t& on_destroy() const noexcept  { return instance< request >::from(uv_req)->on_destroy(); }
-        on_destroy_t& on_destroy()       noexcept  { return instance< request >::from(uv_req)->on_destroy(); }
+  const on_destroy_t& on_destroy() const noexcept  { return instance< request >::from(uv_req)->destroy_cb_storage.value(); }
+        on_destroy_t& on_destroy()       noexcept  { return instance< request >::from(uv_req)->destroy_cb_storage.value(); }
 
   /*! \brief The tag indicating a libuv type of the request.
       \sa libuv API documentation: [`uv_req_t.type`](http://docs.libuv.org/en/v1.x/request.html#c.uv_req_t.type). */
@@ -183,7 +194,7 @@ public: /*conversion operators*/
 namespace std
 {
 
-//! \ingroup doxy_request
+//! \ingroup doxy_group_request
 template<> inline void swap(uv::request &_this, uv::request &_that) noexcept  { _this.swap(_that); }
 
 }
