@@ -328,6 +328,8 @@ public: /*constructors*/
   template< typename _T_ > aligned_storage(const _T_ &_value)
   {
     using type = typename std::decay< _T_ >::type;
+    static_assert(sizeof(type) <= _LEN_, "insufficient storage size");
+    static_assert(alignof(type) <= _ALIGN_, "not adjusted storage alignment");
 
     new(static_cast< void* >(&storage)) type{_value};
     Destroy = default_destroy< type >::Destroy;
@@ -337,6 +339,8 @@ public: /*constructors*/
   template< typename _T_ > aligned_storage(_T_ &&_value)
   {
     using type = typename std::decay< _T_ >::type;
+    static_assert(sizeof(type) <= _LEN_, "insufficient storage size");
+    static_assert(alignof(type) <= _ALIGN_, "not adjusted storage alignment");
 
     new(static_cast< void* >(&storage)) type{std::move(_value)};
     Destroy = default_destroy< type >::Destroy;
@@ -359,6 +363,8 @@ public: /*interface*/
   template< typename _T_ > void reset()
   {
     using type = typename std::decay< _T_ >::type;
+    static_assert(sizeof(type) <= _LEN_, "insufficient storage size");
+    static_assert(alignof(type) <= _ALIGN_, "not adjusted storage alignment");
 
     destroy();
 
@@ -370,6 +376,8 @@ public: /*interface*/
   template< typename _T_, typename... _Args_ > void reset(_Args_&&... _args)
   {
     using type = typename std::decay< _T_ >::type;
+    static_assert(sizeof(type) <= _LEN_, "insufficient storage size");
+    static_assert(alignof(type) <= _ALIGN_, "not adjusted storage alignment");
 
     destroy();
 
@@ -381,6 +389,8 @@ public: /*interface*/
   template< typename _T_ > void reset(const _T_ &_value)
   {
     using type = typename std::decay< _T_ >::type;
+    static_assert(sizeof(type) <= _LEN_, "insufficient storage size");
+    static_assert(alignof(type) <= _ALIGN_, "not adjusted storage alignment");
 
     if (reinterpret_cast< type* >(&storage) == std::addressof(static_cast< const type& >(_value)))  return;  // cast _T_& to type&
 
@@ -394,6 +404,8 @@ public: /*interface*/
   template< typename _T_ > void reset(_T_ &&_value)
   {
     using type = typename std::decay< _T_ >::type;
+    static_assert(sizeof(type) <= _LEN_, "insufficient storage size");
+    static_assert(alignof(type) <= _ALIGN_, "not adjusted storage alignment");
 
     if (reinterpret_cast< type* >(&storage) == std::addressof(static_cast< type& >(_value)))  return;  // cast _T_& to type&
 

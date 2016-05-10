@@ -79,9 +79,6 @@ protected: /*types*/
   private: /*constructors*/
     instance()
     {
-      static_assert(sizeof(typename _HANDLE_::properties) <= MAX_PROPERTY_SIZE, "insufficient property storage size");
-      static_assert(alignof(typename _HANDLE_::properties) <= MAX_PROPERTY_ALIGN, "not adjusted property storage alignment");
-
       property_storage.reset< typename _HANDLE_::properties >();
       uv_interface_ptr = new typename _HANDLE_::uv_interface;
     }
