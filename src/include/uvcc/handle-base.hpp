@@ -187,7 +187,7 @@ public: /*interface*/
   ::uv_handle_type type() const noexcept  { return instance< handle >::from(uv_handle)->uv_interface()->type(uv_handle); }
   /*! \brief The libuv loop where the handle is running on.
       \details It is guaranteed that it will be a valid instance at least within the callback of the requests
-      running with the handle. */
+      running on the handle. */
   uv::loop loop() const noexcept  { return uv::loop(instance< handle >::from(uv_handle)->uv_interface()->loop(uv_handle)); }
 
   /*! \brief The pointer to the user-defined arbitrary data. libuv and uvcc does not use this field. */
