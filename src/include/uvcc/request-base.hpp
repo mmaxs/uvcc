@@ -52,9 +52,9 @@ protected: /*types*/
     mutable int uv_error = 0;
     ref_count refs;
     type_storage< on_destroy_t > destroy_cb_storage;
-    type_storage< typename on_request_t::type > request_cb_storage;
     aligned_storage< MAX_PROPERTY_SIZE, MAX_PROPERTY_ALIGN > property_storage;
     alignas(::uv_any_req) typename uv_t::type uv_req_struct = { 0,};  // must be zeroed!
+    type_storage< typename on_request_t::type > request_cb_storage;  // this field has a mutable layout structure
 
   private: /*constructors*/
     instance()
@@ -85,7 +85,7 @@ protected: /*types*/
     }
 
   public: /*interface*/
-    static void* create()  { return &(new instance())->uv_req_struct; }
+    static void* create()  { return &(new instance)->uv_req_struct; }
     template< typename... _Args_ > static void* create(_Args_&&... _args)
     {
       return &(new instance(std::forward< _Args_ >(_args)...))->uv_req_struct;
