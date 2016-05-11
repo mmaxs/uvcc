@@ -210,7 +210,7 @@ public: /*interface*/
     return ret;
   }
 
-  /*! \details The wrapper for corresponding libuv function.
+  /*! \details The wrapper for a corresponding libuv function.
       \note It tries to execute and complete immediately and does not call the request callback.
       \sa libuv API documentation: [`uv_try_write()`](http://docs.libuv.org/en/v1.x/stream.html#c.uv_try_write). */
   int try_write(stream _stream, const buffer _buf)

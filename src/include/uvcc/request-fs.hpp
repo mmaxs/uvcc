@@ -21,7 +21,7 @@ namespace uv
 {
 
 
-/*! \ingroup doxy_request
+/*! \ingroup doxy_group_request
     \brief The base calss for filesystem requests.
     \sa libuv API documentation: [Filesystem operations](http://docs.libuv.org/en/v1.x/fs.html#filesystem-operations). */
 class fs : public request
@@ -95,6 +95,7 @@ public: /*conversion operators*/
 
 
 
+#if 0
 /*! \brief The open file handle. */
 class fs::file
 {
@@ -326,6 +327,7 @@ void fs::file::open_cb(::uv_fs_t *_req_open)
   auto &open_cb = t->on_open_storage.value();
   if (open_cb)  open_cb(file(t->uv_file));
 }
+#endif
 
 
 
@@ -445,13 +447,15 @@ class fs::write : public fs
 }
 
 
+#if 0
 namespace std
 {
 
-//! \ingroup doxy_request
+//! \ingroup doxy_group_request
 template<> inline void swap(uv::fs::file &_this, uv::fs::file &_that) noexcept  { _this.swap(_that); }
 
 }
+#endif
 
 
 #endif
