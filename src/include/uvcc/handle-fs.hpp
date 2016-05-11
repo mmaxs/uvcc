@@ -21,6 +21,7 @@ class file : public io
 {
   //! \cond
   friend class handle::instance< file >;
+  friend class fs;
   //! \endcond
 
 public: /*types*/
