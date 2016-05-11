@@ -105,6 +105,7 @@ public: /*constructors*/
     };
 
     uv_handle = instance::create();
+    instance::from(uv_handle)->properties().open_cb = _open_cb;
 
     instance::from(uv_handle)->ref();
 
