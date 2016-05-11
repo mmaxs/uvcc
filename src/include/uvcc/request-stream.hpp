@@ -132,7 +132,7 @@ protected: /*types*/
   //! \cond
   struct properties
   {
-    ::uv_buf_t *uv_buf = nullptr;
+    buffer::uv_t *uv_buf = nullptr;
   };
   //! \endcond
 
@@ -178,7 +178,8 @@ public: /*interface*/
     stream::instance::from(_stream.uv_handle)->ref();
     buffer::instance::from(_buf.uv_buf)->ref();
     instance_ptr->ref();
-    instance_ptr->properties().uv_buf = _buf.uv_buf;
+
+    instance_ptr->properties() = {_buf.uv_buf};
 
     uv_status(0);
     int ret = ::uv_write(
@@ -193,11 +194,14 @@ public: /*interface*/
       \sa libuv API documentation: [`uv_write2()`](http://docs.libuv.org/en/v1.x/stream.html#c.uv_write2). */
   int run(pipe _pipe, const buffer &_buf, stream _send_handle)
   {
+    auto instance_ptr = instance::from(uv_req);
+
     pipe::instance::from(_pipe.uv_handle)->ref();
     buffer::instance::from(_buf.uv_buf)->ref();
     stream::instance::from(_send_handle.uv_handle)->ref();
-    instance::from(uv_req)->ref();
-    instance::from(uv_req)->properties().uv_buf = _buf.uv_buf;
+    instance_ptr->ref();
+
+    instance_ptr->properties() = {_buf.uv_buf};
 
     uv_status(0);
     int ret = ::uv_write2(

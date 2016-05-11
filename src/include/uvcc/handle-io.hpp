@@ -99,7 +99,7 @@ protected: /*functions*/
     auto &alloc_cb = properties.alloc_cb;
     buffer &&b = alloc_cb(io(_uv_handle), properties.rdsize ? properties.rdsize : _suggested_size);
 
-    buffer::instance::from(b.uv_buf)->ref();  // add the reference for the future moving the buffer instance into read_cb() parameter
+    buffer::instance::from(b.uv_buf)->ref();  // add the reference for the future moving the buffer instance into io_read_cb() parameter
     *_uv_buf = b[0];
   }
 
