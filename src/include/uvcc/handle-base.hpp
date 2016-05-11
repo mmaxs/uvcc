@@ -98,7 +98,7 @@ protected: /*types*/
     instance& operator =(instance&&) = delete;
 
   public: /*interface*/
-    static void* create()  { return &(new instance())->uv_handle_struct; }
+    static void* create()  { return &(new instance)->uv_handle_struct; }
     template< typename... _Args_ > static void* create(_Args_&&... _args)
     {
       return &(new instance(std::forward< _Args_ >(_args)...))->uv_handle_struct;
