@@ -16,7 +16,7 @@
 uv::pipe in(uv::loop::Default(), fileno(stdin)),
          out(uv::loop::Default(), fileno(stdout));
 
-std::vector< uv::fs::file > files;
+std::vector< uv::file > files;
 
 
 int main(int _argc, char *_argv[])
@@ -41,20 +41,20 @@ int main(int _argc, char *_argv[])
   for (int i = 1; i < _argc; ++i)
   {
 //#if 0
-    uv::fs::file f(_argv[i], O_CREAT|O_TRUNC|O_WRONLY, mode);
+    uv::file f(_argv[i], O_CREAT|O_TRUNC|O_WRONLY, mode);
     if (f)
       files.emplace_back(std::move(f));
     else
-      PRINT_UV_ERR(f.path().c_str(), f.uv_status());
+      PRINT_UV_ERR(f.path(), f.uv_status());
 //#endif
 #if 0
-    uv::fs::file f(
+    uv::file f(
         uv::loop::Default(),
         _argv[i], O_CREAT|O_TRUNC|O_WRONLY, mode,
-        [](uv::fs::file _file) -> void
+        [](uv::file _file) -> void
         {
-          fprintf(stderr, "%s:%i\n", _file.path().c_str(), _file.fd());  fflush(stderr);
-          if (!_file)  PRINT_UV_ERR(_file.path().c_str(), _file.uv_status());
+          fprintf(stderr, "%s:%i\n", _file.path(), _file.fd());  fflush(stderr);
+          if (!_file)  PRINT_UV_ERR(_file.path(), _file.uv_status());
         }
     );
 #endif
@@ -66,15 +66,21 @@ int main(int _argc, char *_argv[])
         constexpr const std::size_t default_size = 8192;
         static std::vector< uv::buffer > buf_pool;
 
+        #ifndef NDEBUG
         for (std::size_t i = 0; i < buf_pool.size(); ++i)  if (buf_pool[i].nrefs() == 1)  {
-            buf_pool[i].len() = default_size;
-            #ifndef NDEBUG
             fprintf(stderr, "[buffer pool]: item #%zu of %zu\n", i+1, buf_pool.size());  fflush(stderr);
-            #endif
+            buf_pool[i].len() = default_size;
             return buf_pool[i];
         };
+        #else
+        for (auto &buf : buf_pool)  if (buf.nrefs() == 1)  {
+            buf.len() = default_size;
+            return buf;
+        };
+        #endif
 
         buf_pool.emplace_back(uv::buffer{default_size});
+
         #ifndef NDEBUG
         fprintf(stderr, "[buffer pool]: new item #%zu\n", buf_pool.size());  fflush(stderr);
         #endif
@@ -93,7 +99,14 @@ int main(int _argc, char *_argv[])
           {
             static std::vector< uv::write > wr_pool;
 
+            #ifndef NDEBUG
+            for (std::size_t i = 0; i < wr_pool.size(); ++i)  if (wr_pool[i].nrefs() == 1)  {
+              fprintf(stderr, "[write request pool]: item #%zu of %zu\n", i+1, wr_pool.size());  fflush(stderr);  
+              return wr_pool[i];
+            };
+            #else
             for (auto &wr : wr_pool)  if (wr.nrefs() == 1)  return wr;
+            #endif
 
             wr_pool.emplace_back();
             wr_pool.back().on_request() = [](uv::write _wr, uv::buffer) -> void  // write_cb
@@ -113,13 +126,16 @@ int main(int _argc, char *_argv[])
 
           _buf.len() = _nread;
           wr().run(out, _buf);
-#if 0
+
           for (auto &f : files)
           {
-            f.write(_buf);
-            if (!f)  PRINT_UV_ERR(f.path().c_str(), f.uv_status());
+            uv::fs::write fwr;
+            fwr.on_request() = [](uv::fs::write _req, uv::buffer) -> void
+            {
+              if (!_req)  PRINT_UV_ERR("fs::write", _req.uv_status());
+            };
+            fwr.run(f, _buf);
           }
-#endif
         };
       }
   );
