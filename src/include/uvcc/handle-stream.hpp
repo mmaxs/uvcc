@@ -288,7 +288,7 @@ public: /*constructors*/
 
   /*! \details Create a pipe bound to a file path (Unix domain socket) or a name (Windows named pipe).
       \sa libuv API documentation: [`uv_pipe_init()`](http://docs.libuv.org/en/v1.x/pipe.html#c.uv_pipe_init),
-                               [`uv_pipe_bind()`](http://docs.libuv.org/en/v1.x/pipe.html#c.uv_pipe_bind). */
+                                   [`uv_pipe_bind()`](http://docs.libuv.org/en/v1.x/pipe.html#c.uv_pipe_bind). */
   pipe(uv::loop _loop, const char* _name, bool _ipc = false)
   {
     uv_handle = instance::create();
@@ -356,6 +356,64 @@ public: /*conversion operators*/
     \sa libuv API documentation: [`uv_tty_t — TTY handle`](http://docs.libuv.org/en/v1.x/tty.html#uv-tty-t-tty-handle). */
 class tty : public stream
 {
+  //! \cond
+  friend class handle::instance< tty >;
+  //! \endcond
+
+public: /*types*/
+  using uv_t = ::uv_tty_t;
+
+private: /*types*/
+  using instance = handle::instance< pipe >;
+
+private: /*constructors*/
+  explicit tty(uv_t *_uv_handle)
+  {
+    if (_uv_handle)  instance::from(_uv_handle)->ref();
+    uv_handle = _uv_handle;
+  }
+
+public: /*constructors*/
+  ~tty() = default;
+
+  tty(const tty&) = default;
+  tty& operator =(const tty&) = default;
+
+  tty(tty&&) noexcept = default;
+  tty& operator =(tty&&) noexcept = default;
+
+  /*! \details Create a tty object from the given TTY file descriptor.
+      \sa libuv API documentation: [`uv_tty_init()`](http://docs.libuv.org/en/v1.x/tty.html#c.uv_tty_init). */
+  tty(uv::loop _loop, ::uv_file _fd, bool _readable, bool _set_blocking = false)
+  {
+    uv_handle = instance::create();
+    if (uv_status(::uv_tty_init(static_cast< uv::loop::uv_t* >(_loop), static_cast< uv_t* >(uv_handle), _fd, _readable)) != 0)  return;
+    if (_set_blocking)  set_blocking(_set_blocking);
+  }
+
+public: /*interface*/
+  /*! \brief Set the TTY using the specified terminal mode.
+      \sa libuv API documentation: [`uv_tty_set_mode()`](http://docs.libuv.org/en/v1.x/tty.html#c.uv_tty_set_mode),
+                                   [`uv_tty_mode_t`](http://docs.libuv.org/en/v1.x/tty.html#c.uv_tty_mode_t). */
+  int set_mode(::uv_tty_mode_t _mode) noexcept
+  {
+    return uv_status(::uv_tty_set_mode(static_cast< uv_t* >(uv_handle), _mode));
+  }
+
+  /*! \brief Get the current window size.
+      \sa libuv API documentation: [`uv_tty_get_winsize()`](http://docs.libuv.org/en/v1.x/tty.html#c.uv_tty_get_winsize). */
+  int get_winsize(int &_width, int &_height) const noexcept
+  {
+    return uv_status(::uv_tty_get_winsize(static_cast< uv_t* >(uv_handle), &_width, &_height));
+  }
+
+  /*! \brief Reset TTY settings to default values. To be called when the program exits.
+      \sa libuv API documentation: [`uv_tty_reset_mode()`](http://docs.libuv.org/en/v1.x/tty.html#c.uv_tty_reset_mode). */
+  static int reset_mode() noexcept  { return ::uv_tty_reset_mode(); }
+
+public: /*conversion operators*/
+  explicit operator const uv_t*() const noexcept  { return static_cast< const uv_t* >(uv_handle); }
+  explicit operator       uv_t*()       noexcept  { return static_cast<       uv_t* >(uv_handle); }
 };
 
 
@@ -382,6 +440,7 @@ inline stream stream::accept() const
       ));
       break;
   case UV_TTY:
+      client.uv_status(UV_ENOTSUP);
       break;
   default:
       client.uv_status(UV_EBADF);
