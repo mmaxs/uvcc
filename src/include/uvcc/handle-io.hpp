@@ -238,10 +238,62 @@ public: /*interface*/
     return uv_status();
   }
 
+  static io guess_handle(::uv_file _fd);
+
 public: /*conversion operators*/
   explicit operator const uv_t*() const noexcept  { return static_cast< const uv_t* >(uv_handle); }
   explicit operator       uv_t*()       noexcept  { return static_cast<       uv_t* >(uv_handle); }
 };
+
+
+}
+
+
+#include "uvcc/loop.hpp"
+#include "uvcc/handle-stream.hpp"
+#include "uvcc/handle-fs.hpp"
+#include "uvcc/handle-udp.hpp"
+
+
+namespace uv
+{
+
+
+inline io io::guess_handle(::uv_file _fd)
+{
+  io handle;
+
+  switch (::uv_guess_handle(_fd))
+  {
+  default:
+  case UV_UNKNOWN_HANDLE:
+      handle.uv_status(UV_EBADF);
+      break;
+  case UV_NAMED_PIPE:
+      handle.uv_handle = handle::instance< pipe >::create();
+      handle.uv_status(::uv_pipe_init(
+          static_cast< loop::uv_t* >(loop::Default()),
+          static_cast< ::uv_pipe_t* >(handle.uv_handle),
+          0
+      ));
+      if (!handle) break;
+      handle.uv_status(::uv_pipe_open(
+          static_cast< uv_pipe_t* >(handle.uv_handle),
+          _fd
+      ));
+      break;
+  case UV_TCP:
+      break;
+  case UV_TTY:
+      break;
+  case UV_UDP:
+      break;
+  case UV_FILE:
+      break;
+  }
+
+  return handle;
+}
 
 
 }
