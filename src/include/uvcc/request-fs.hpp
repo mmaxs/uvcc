@@ -165,7 +165,13 @@ public: /*interface*/
       buffer::instance::from(_buf.uv_buf)->ref();
       instance_ptr->ref();
 
-      instance_ptr->properties() = {static_cast< file::uv_t* >(_file), _buf.uv_buf, _offset};
+      // instance_ptr->properties() = {static_cast< file::uv_t* >(_file), _buf.uv_buf, _offset};
+      {
+        auto &properties = instance_ptr->properties();
+        properties.uv_handle = static_cast< file::uv_t* >(_file);
+        properties.uv_buf = _buf.uv_buf;
+        properties.offset = _offset;
+      }
     };
 
     uv_status(0);
@@ -277,7 +283,13 @@ public: /*interface*/
       buffer::instance::from(_buf.uv_buf)->ref();
       instance_ptr->ref();
 
-      instance_ptr->properties() = {static_cast< file::uv_t* >(_file), _buf.uv_buf, _offset};
+      // instance_ptr->properties() = {static_cast< file::uv_t* >(_file), _buf.uv_buf, _offset};
+      {
+        auto &properties = instance_ptr->properties();
+        properties.uv_handle = static_cast< file::uv_t* >(_file);
+        properties.uv_buf = _buf.uv_buf;
+        properties.offset = _offset;
+      }
     };
 
     uv_status(0);
