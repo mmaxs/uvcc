@@ -5,6 +5,7 @@
 #include "uvcc/utility.hpp"
 #include "uvcc/handle-base.hpp"
 #include "uvcc/buffer.hpp"
+#include "uvcc/loop.hpp"
 
 #include <uv.h>
 #include <cstddef>      // size_t
@@ -238,7 +239,7 @@ public: /*interface*/
     return uv_status();
   }
 
-  static io guess_handle(::uv_file _fd);
+  static io guess_handle(::uv_file, uv::loop _loop = uv::loop::Default());
 
 public: /*conversion operators*/
   explicit operator const uv_t*() const noexcept  { return static_cast< const uv_t* >(uv_handle); }
@@ -249,7 +250,7 @@ public: /*conversion operators*/
 }
 
 
-#include "uvcc/loop.hpp"
+
 #include "uvcc/handle-stream.hpp"
 #include "uvcc/handle-fs.hpp"
 #include "uvcc/handle-udp.hpp"
@@ -259,40 +260,61 @@ namespace uv
 {
 
 
-inline io io::guess_handle(::uv_file _fd)
+inline io io::guess_handle(::uv_file _fd, uv::loop _loop)
 {
-  io handle;
+  io ret;
 
   switch (::uv_guess_handle(_fd))
   {
   default:
   case UV_UNKNOWN_HANDLE:
-      handle.uv_status(UV_EBADF);
+      ret.uv_status(UV_EBADF);
       break;
   case UV_NAMED_PIPE:
-      handle.uv_handle = handle::instance< pipe >::create();
-      handle.uv_status(::uv_pipe_init(
-          static_cast< loop::uv_t* >(loop::Default()),
-          static_cast< ::uv_pipe_t* >(handle.uv_handle),
+      ret.uv_handle = handle::instance< pipe >::create();
+      ret.uv_status(::uv_pipe_init(
+          static_cast< uv::loop::uv_t* >(_loop),
+          static_cast< ::uv_pipe_t* >(ret.uv_handle),
           0
       ));
-      if (!handle) break;
-      handle.uv_status(::uv_pipe_open(
-          static_cast< uv_pipe_t* >(handle.uv_handle),
+      if (!ret) break;
+      ret.uv_status(::uv_pipe_open(
+          static_cast< uv_pipe_t* >(ret.uv_handle),
           _fd
       ));
       break;
   case UV_TCP:
+      ret.uv_handle = handle::instance< tcp >::create();
+      ret.uv_status(::uv_tcp_init(
+          static_cast< uv::loop::uv_t* >(_loop),
+          static_cast< ::uv_tcp_t* >(ret.uv_handle)
+      ));
+      if (!ret)  break;
+      ret.uv_status(::uv_tcp_open(
+          static_cast< ::uv_tcp_t* >(ret.uv_handle),
+          _fd
+      ));
       break;
   case UV_TTY:
+      ret.uv_handle = handle::instance< tty >::create();
+      ret.uv_status(::uv_tty_init(
+          static_cast< uv::loop::uv_t* >(_loop),
+          static_cast< ::uv_tty_t* >(ret.uv_handle),
+          _fd,
+          1
+      ));
       break;
   case UV_UDP:
       break;
   case UV_FILE:
+      ret.uv_handle = handle::instance< file >::create();
+      static_cast< file::uv_t* >(ret.uv_handle)->loop = static_cast< uv::loop::uv_t* >(_loop);
+      static_cast< file::uv_t* >(ret.uv_handle)->result = _fd;
+      static_cast< file::uv_t* >(ret.uv_handle)->path = nullptr;
       break;
   }
 
-  return handle;
+  return ret;
 }
 
 
