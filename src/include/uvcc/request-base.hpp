@@ -19,7 +19,7 @@ namespace uv
     \brief The base class for the libuv requests.
     \details Derived classes conceptually are just interfaces to the data stored
     in the base class, so there are no any virtual member functions.
-    \sa libuv API documentation: [`uv_req_t`](http://docs.libuv.org/en/v1.x/request.html#uv-req-t-base-request). */
+    \sa libuv API documentation: [`uv_req_t — Base request`](http://docs.libuv.org/en/v1.x/request.html#uv-req-t-base-request). */
 class request
 {
 public: /*types*/
@@ -54,7 +54,7 @@ protected: /*types*/
     type_storage< on_destroy_t > destroy_cb_storage;
     aligned_storage< MAX_PROPERTY_SIZE, MAX_PROPERTY_ALIGN > property_storage;
     alignas(::uv_any_req) typename uv_t::type uv_req_struct = { 0,};  // must be zeroed!
-    type_storage< typename on_request_t::type > request_cb_storage;  // this field has a mutable layout structure
+    type_storage< typename on_request_t::type > request_cb_storage;  // this field has a mutable layout size
 
   private: /*constructors*/
     instance()

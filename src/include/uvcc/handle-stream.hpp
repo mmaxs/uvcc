@@ -20,7 +20,7 @@ namespace uv
 
 /*! \ingroup doxy_group_handle
     \brief Stream handle type.
-    \sa libuv API documentation: [`uv_stream_t`](http://docs.libuv.org/en/v1.x/stream.html#uv-stream-t-stream-handle).
+    \sa libuv API documentation: [`uv_stream_t — Stream handle`](http://docs.libuv.org/en/v1.x/stream.html#uv-stream-t-stream-handle).
     \note `read_start()` and `read_stop()` functions are mutually exclusive and thread-safe. */
 class stream : public io
 {
@@ -95,17 +95,6 @@ public: /*interface*/
     if (!ret)  uv_status(ret);
     return ret;
   }
-#if 0
-  /*! \brief Accept incoming connections.
-      \details There are specializations of this function for every `stream` subtype.
-      ```
-      template<> tcp accept< tcp >() const;
-      template<> pipe accept< pipe >() const;
-      template<> tty accept< tty >() const;
-      ```
-      \sa libuv API documentation: [`uv_accept()`](http://docs.libuv.org/en/v1.x/stream.html#c.uv_accept). */
-  template< class _STREAM_ > _STREAM_ accept() const;
-#endif
   /*! \brief Accept incoming connections.
       \details The function returns `stream` instance that actually is an object of one of the stream subtype:
       `tcp`, `pipe`, or `tty` depending on the actual subtype of the stream object which this function is applied to.
@@ -169,7 +158,7 @@ void stream::connection_cb(::uv_stream_t *_uv_stream, int _status)
 
 /*! \ingroup doxy_group_handle
     \brief TCP handle type.
-    \sa libuv API documentation: [`uv_tcp_t`](http://docs.libuv.org/en/v1.x/tcp.html#uv-tcp-t-tcp-handle). */
+    \sa libuv API documentation: [`uv_tcp_t — TCP handle`](http://docs.libuv.org/en/v1.x/tcp.html#uv-tcp-t-tcp-handle). */
 class tcp : public stream
 {
   //! \cond
@@ -263,35 +252,10 @@ public: /*conversion operators*/
 };
 
 
-#if 0
-//! \cond
-template<> tcp stream::accept< tcp >() const
-{
-  using instance = handle::instance< tcp >;
-
-  stream client;
-  client.uv_handle = instance::create();
-  if (
-    client.uv_status(::uv_tcp_init(
-        static_cast< instance::uv_t* >(uv_handle)->loop,
-        static_cast< instance::uv_t* >(client.uv_handle)
-    )) < 0
-  )
-    uv_status(client.uv_status());
-  else if (
-    uv_status(::uv_accept(static_cast< stream::uv_t* >(uv_handle), static_cast< stream::uv_t* >(client))) < 0
-  )
-    client.uv_status(uv_status());
-
-  return static_cast< tcp& >(client);
-}
-//! \endcond
-#endif
-
 
 /*! \ingroup doxy_group_handle
     \brief Pipe handle type.
-    \sa libuv API documentation: [`uv_pipe_t`](http://docs.libuv.org/en/v1.x/pipe.html#uv-pipe-t-pipe-handle). */
+    \sa libuv API documentation: [`uv_pipe_t — Pipe handle`](http://docs.libuv.org/en/v1.x/pipe.html#uv-pipe-t-pipe-handle). */
 class pipe : public stream
 {
   //! \cond
@@ -386,31 +350,15 @@ public: /*conversion operators*/
 };
 
 
-#if 0
-//! \cond
-template<> pipe stream::accept< pipe >() const
+
+/*! \ingroup doxy_group_handle
+    \brief TTY handle type.
+    \sa libuv API documentation: [`uv_tty_t — TTY handle`](http://docs.libuv.org/en/v1.x/tty.html#uv-tty-t-tty-handle). */
+class tty : public stream
 {
-  using instance = handle::instance< pipe >;
+};
 
-  stream client;
-  client.uv_handle = instance::create();
-  if (
-    client.uv_status(::uv_pipe_init(
-        static_cast< instance::uv_t* >(uv_handle)->loop,
-        static_cast< instance::uv_t* >(client.uv_handle),
-        static_cast< instance::uv_t* >(uv_handle)->ipc
-    )) < 0
-  )
-    uv_status(client.uv_status());
-  else if (
-    uv_status(::uv_accept(static_cast< stream::uv_t* >(uv_handle), static_cast< stream::uv_t* >(client))) < 0
-  )
-    client.uv_status(uv_status());
 
-  return static_cast< pipe& >(client);
-}
-//! \endcond
-#endif
 
 inline stream stream::accept() const
 {

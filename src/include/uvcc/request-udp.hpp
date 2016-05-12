@@ -16,7 +16,7 @@ namespace uv
 
 /*! \ingroup doxy_request
     \brief ...
-    \sa libuv API documentation: [`uv_udp_t`](http://docs.libuv.org/en/v1.x/udp.html#uv-udp-t-udp-handle). */
+    \sa libuv API documentation: [`uv_udp_t — UDP handle`](http://docs.libuv.org/en/v1.x/udp.html#uv-udp-t-udp-handle). */
 class udp_send : public request
 {
   //! \cond
