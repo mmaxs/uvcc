@@ -310,6 +310,16 @@ inline io io::guess_handle(::uv_file _fd, uv::loop _loop)
       ));
       break;
   case UV_UDP:
+      ret.uv_handle = handle::instance< udp >::create();
+      ret.uv_status(::uv_udp_init(
+          static_cast< uv::loop::uv_t* >(_loop),
+          static_cast< ::uv_udp_t* >(ret.uv_handle)
+      ));
+      if (!ret)  break;
+      ret.uv_status(::uv_udp_open(
+          static_cast< ::uv_udp_t* >(ret.uv_handle),
+          _fd
+      ));
       break;
   case UV_FILE:
       ret.uv_handle = handle::instance< file >::create();
