@@ -12,6 +12,7 @@
 #include <cstddef>      // size_t
 #include <functional>   // function
 #include <string>       // string
+#include <type_traits>  // enable_if_t
 
 
 namespace uv
@@ -229,7 +230,7 @@ public: /*interface*/
     return uv_status(::uv_tcp_bind(static_cast< uv_t* >(uv_handle), reinterpret_cast< const ::sockaddr* >(&_sa), _flags));
   }
 
-  /*! \details Get the address which this handle is bound to.
+  /*! \details Get the local address which this handle is bound to.
       \sa libuv API documentation: [`uv_tcp_getsockname()`](http://docs.libuv.org/en/v1.x/tcp.html#c.uv_tcp_getsockname). */
   template< typename _T_, typename = std::enable_if_t< is_one_of< _T_, ::sockaddr_in, ::sockaddr_in6, ::sockaddr_storage >::value > >
   int getsockname(_T_ &_sockaddr) const noexcept
