@@ -14,7 +14,7 @@ namespace uv
 {
 
 
-/*! \ingroup doxy_request
+/*! \ingroup doxy_group_request
     \brief ...
     \sa libuv API documentation: [`uv_udp_t — UDP handle`](http://docs.libuv.org/en/v1.x/udp.html#uv-udp-t-udp-handle). */
 class udp_send : public request
@@ -40,8 +40,8 @@ public: /*constructors*/
   udp_send& operator =(udp_send&&) noexcept = default;
 
 public: /*interface*/
-  const on_request_t& on_request() const noexcept  { return instance::from(uv_req)->on_request(); }
-        on_request_t& on_request()       noexcept  { return instance::from(uv_req)->on_request(); }
+  const on_request_t& on_request() const noexcept  { return instance::from(uv_req)->request_cb_storage.value(); }
+        on_request_t& on_request()       noexcept  { return instance::from(uv_req)->request_cb_storage.value(); }
 
 public: /*conversion operators*/
   explicit operator const uv_t*() const noexcept  { return static_cast< const uv_t* >(uv_req); }

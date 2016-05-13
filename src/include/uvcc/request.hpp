@@ -5,9 +5,9 @@
 #include "uvcc/request-base.hpp"
 #include "uvcc/request-stream.hpp"
 #include "uvcc/request-fs.hpp"
-//#include "uvcc/request-udp.hpp"
-//#include "uvcc/request-dns.hpp"
-//#include "uvcc/request-misc.hpp"
+#include "uvcc/request-udp.hpp"
+#include "uvcc/request-dns.hpp"
+#include "uvcc/request-misc.hpp"
 
 #include <uv.h>
 

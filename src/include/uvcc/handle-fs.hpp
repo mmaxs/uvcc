@@ -48,8 +48,10 @@ protected: /*types*/
     {
       auto instance_ptr = instance::from(_uv_handle);
       auto &rd = instance_ptr->properties().rd;
+
       rd.uv_req_struct.data = instance_ptr;
       rd.offset = _offset;
+
       return file_read_start(instance_ptr);
     }
 
