@@ -239,7 +239,13 @@ public: /*interface*/
     return uv_status();
   }
 
-  static io guess_handle(::uv_file, uv::loop _loop = uv::loop::Default());
+  /*! \brief Create an `io` handle object which actual type is derived from an existing file descriptor.
+      \details Supported file desctriptors:
+      - Windows: pipe, tty, file
+      - Unicies: pipe, tty, file, tcp/udp socket
+      .
+      \sa [`uv_guess_handle()`](http://docs.libuv.org/en/v1.x/misc.html#c.uv_guess_handle). */
+  static io guess_handle(::uv_file, uv::loop = uv::loop::Default());
 
 public: /*conversion operators*/
   explicit operator const uv_t*() const noexcept  { return static_cast< const uv_t* >(uv_handle); }
@@ -248,7 +254,6 @@ public: /*conversion operators*/
 
 
 }
-
 
 
 #include "uvcc/handle-stream.hpp"

@@ -16,7 +16,7 @@ namespace uv
 {
 
 
-/*! \ingroup doxy_request
+/*! \ingroup doxy_group_request
     \brief Getaddrinfo request type.
     \sa libuv API documentation: [DNS utility functions](http://docs.libuv.org/en/v1.x/dns.html#dns-utility-functions). */
 class getaddrinfo : public request
@@ -100,7 +100,7 @@ public: /*interface*/
   /*! \brief Run the request.
       \details For supplying `_hints` argument the appropriate helper function for \ref doxy_group_netstruct can be utilized.
       \sa libuv API documentation: [`uv_getaddrinfo()`](http://docs.libuv.org/en/v1.x/dns.html#c.uv_getaddrinfo).
-      \note If the request callback is empty (has not been set), the request runs **synchronously**
+      \note If the request callback is empty (has not been set), the request runs _synchronously_
       (and `_loop` parameter is ignored). */
   int run(uv::loop _loop, const char *_hostname, const char *_service, const ::addrinfo &_hints)
   {
@@ -131,7 +131,7 @@ void getaddrinfo::getaddrinfo_cb(::uv_getaddrinfo_t *_uv_req, int _status, ::add
 
 
 
-/*! \ingroup doxy_request
+/*! \ingroup doxy_group_request
     \brief Getnameinfo request type.
     \sa libuv API documentation: [DNS utility functions](http://docs.libuv.org/en/v1.x/dns.html#dns-utility-functions). */
 class getnameinfo : public request
@@ -184,15 +184,15 @@ public: /*interface*/
 
   /*! \brief Run the request.
       \sa libuv API documentation: [`uv_getnameinfo()`](http://docs.libuv.org/en/v1.x/dns.html#c.uv_getnameinfo).
-      \note If the request callback is empty, the request runs **synchronously**.
+      \note If the request callback is empty, the request runs _synchronously_.
 
       Available `_NI_FLAGS` are:
-+ NI_DGRAM
-+ NI_NAMEREQD
-+ NI_NOFQDN
-+ NI_NUMERICHOST
-+ NI_NUMERICSERV
-.
+      - NI_DGRAM
+      - NI_NAMEREQD
+      - NI_NOFQDN
+      - NI_NUMERICHOST
+      - NI_NUMERICSERV
+      .
       \sa Linux: [`getnameinfo()`](http://man7.org/linux/man-pages/man3/getnameinfo.3.html).
           Windows: [`getnameinfo()`](https://msdn.microsoft.com/en-us/library/ms738532(v=vs.85).aspx). */
   template< typename _T_, typename = std::enable_if_t< is_one_of< _T_, ::sockaddr, ::sockaddr_in, ::sockaddr_in6, ::sockaddr_storage >::value > >

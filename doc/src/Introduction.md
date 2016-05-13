@@ -14,7 +14,6 @@ these uvcc classes are designed with the use of a reference counting technique:
 * `uv::buffer`
 * `uv::handle`
 * `uv::request`
-* `uv::fs::file`
 * `uv::loop`
 
 This means that the variables for one of these types are just pointers to an object instance created on the heap
