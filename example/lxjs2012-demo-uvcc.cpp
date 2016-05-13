@@ -19,7 +19,7 @@
 int main(int _argc, char *_argv[])
 {
   uv::getaddrinfo gai_req;
-  gai_req.on_request() = [](uv::getaddrinfo _gai_req, const addrinfo *_result)
+  gai_req.on_request() = [](uv::getaddrinfo _gai_req)
   {
     if (!_gai_req)  { PRINT_UV_ERR("getaddrinfo", _gai_req.uv_status()); return; };
 
@@ -63,7 +63,7 @@ int main(int _argc, char *_argv[])
 
     uv::tcp tcp_handle(uv::loop::Default());
 
-    connect_req.run(tcp_handle, *_result->ai_addr);
+    connect_req.run(tcp_handle, *_gai_req.addrinfo()->ai_addr);
   };
 
   gai_req.run(uv::loop::Default(), "www.nyan.cat", "80");

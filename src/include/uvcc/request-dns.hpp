@@ -27,7 +27,7 @@ class getaddrinfo : public request
 
 public: /*types*/
   using uv_t = ::uv_getaddrinfo_t;
-  using on_request_t = std::function< void(getaddrinfo, const ::addrinfo *_result) >;
+  using on_request_t = std::function< void(getaddrinfo) >;
   /*!< \brief The function type of the callback that is called with the `getaddrinfo` request result once complete.
        \sa libuv API documentation: [`uv_getaddrinfo_cb`](http://docs.libuv.org/en/v1.x/dns.html#c.uv_getaddrinfo_cb). */
 
@@ -126,7 +126,7 @@ void getaddrinfo::getaddrinfo_cb(::uv_getaddrinfo_t *_uv_req, int _status, ::add
   ref_guard< instance > unref_req(*instance_ptr, adopt_ref);
 
   auto &getaddrinfo_cb = instance_ptr->request_cb_storage.value();
-  if (getaddrinfo_cb)  getaddrinfo_cb(getaddrinfo(_uv_req), _result);
+  if (getaddrinfo_cb)  getaddrinfo_cb(getaddrinfo(_uv_req));
 }
 
 
@@ -142,7 +142,7 @@ class getnameinfo : public request
 
 public: /*types*/
   using uv_t = ::uv_getnameinfo_t;
-  using on_request_t = std::function< void(getnameinfo, const char *_hostname, const char *_service) >;
+  using on_request_t = std::function< void(getnameinfo) >;
   /*!< \brief The function type of the callback that is called with the `getnameinfo` request result once complete.
        \sa libuv API documentation: [`uv_getnameinfo_cb`](http://docs.libuv.org/en/v1.x/dns.html#c.uv_getnameinfo_cb). */
 
@@ -227,7 +227,7 @@ void getnameinfo::getnameinfo_cb(::uv_getnameinfo_t *_uv_req, int _status, const
   ref_guard< instance > unref_req(*instance_ptr, adopt_ref);
 
   auto &getnameinfo_cb = instance_ptr->request_cb_storage.value();
-  if (getnameinfo_cb)  getnameinfo_cb(getnameinfo(_uv_req), _hostname, _service);
+  if (getnameinfo_cb)  getnameinfo_cb(getnameinfo(_uv_req));
 }
 
 
