@@ -119,33 +119,12 @@ public: /*conversion operators*/
 
 template< typename >
 void stream::alloc_cb(::uv_handle_t *_uv_handle, std::size_t _suggested_size, ::uv_buf_t *_uv_buf)
-{
-#if 0
-  auto &alloc_cb = instance::from(_uv_handle)->properties().alloc_cb;
-  buffer &&b = alloc_cb(stream(reinterpret_cast< uv_t* >(_uv_handle)), _suggested_size);
-  buffer::instance::from(b.uv_buf)->ref();  // add the reference for the future moving the buffer instance into read_cb() parameter
-  *_uv_buf = b[0];
-#endif
-  io_alloc_cb(_uv_handle, _suggested_size, _uv_buf);
-}
+{ io_alloc_cb(_uv_handle, _suggested_size, _uv_buf); }
+
 template< typename >
 void stream::read_cb(::uv_stream_t *_uv_stream, ssize_t _nread, const ::uv_buf_t *_uv_buf)
-{
-#if 0
-  auto instance_ptr = instance::from(_uv_stream);
-  instance_ptr->uv_error = _nread;
+{ io_read_cb(_uv_stream, _nread, _uv_buf, nullptr); }
 
-  auto &read_cb = instance_ptr->properties().read_cb;
-  if (_uv_buf->base)
-    read_cb(stream(_uv_stream), _nread, buffer(buffer::instance::from_base(_uv_buf->base), adopt_ref), nullptr);
-    // don't forget to specify adopt_ref flag when using ref_guard to unref the object
-    // don't use ref_guard unless it really needs to hold on the object until the scope end
-    // use move/transfer semantics instead if you need just pass the object to another function for further processing
-  else
-    read_cb(stream(_uv_stream), _nread, buffer(), nullptr);
-#endif
-  io_read_cb(_uv_stream, _nread, _uv_buf, nullptr);
-}
 template< typename >
 void stream::connection_cb(::uv_stream_t *_uv_stream, int _status)
 {
@@ -189,7 +168,7 @@ public: /*constructors*/
   tcp(tcp&&) noexcept = default;
   tcp& operator =(tcp&&) noexcept = default;
 
-  /*! \details Create a socket with the specified flags.
+  /*! \details Create a TCP socket with the specified flags.
       \note With `AF_UNSPEC` flag no socket is actually created on the system.
       \sa libuv API documentation: [`uv_tcp_init_ex()`](http://docs.libuv.org/en/v1.x/tcp.html#c.uv_tcp_init_ex).
       \sa libuv enhancement proposals: <https://github.com/libuv/leps/blob/master/003-create-sockets-early.md>. */
@@ -198,14 +177,14 @@ public: /*constructors*/
     uv_handle = instance::create();
     uv_status(::uv_tcp_init_ex(static_cast< uv::loop::uv_t* >(_loop), static_cast< uv_t* >(uv_handle), _flags));
   }
-  /*! \details Create a socket object from an existing native platform depended socket descriptor.
+  /*! \details Create a handle object from an existing native platform depended TCP socket descriptor.
       \sa libuv API documentation: [`uv_tcp_open()`](http://docs.libuv.org/en/v1.x/tcp.html#c.uv_tcp_open),
                                    [`uv_tcp_init()`](http://docs.libuv.org/en/v1.x/tcp.html#c.uv_tcp_init). */
-  tcp(uv::loop _loop, ::uv_os_sock_t _sock, bool _set_blocking)
+  tcp(uv::loop _loop, ::uv_os_sock_t _socket, bool _set_blocking)
   {
     uv_handle = instance::create();
     if (uv_status(::uv_tcp_init(static_cast< uv::loop::uv_t* >(_loop), static_cast< uv_t* >(uv_handle))) != 0)  return;
-    if (uv_status(::uv_tcp_open(static_cast< uv_t* >(uv_handle), _sock)) != 0)  return;
+    if (uv_status(::uv_tcp_open(static_cast< uv_t* >(uv_handle), _socket)) != 0)  return;
     if (_set_blocking)  set_blocking(_set_blocking);
   }
 
@@ -225,9 +204,9 @@ public: /*interface*/
   /*! \details Bind the handle to an address and port.
       \sa libuv API documentation: [`uv_tcp_bind()`](http://docs.libuv.org/en/v1.x/tcp.html#c.uv_tcp_bind). */
   template< typename _T_, typename = std::enable_if_t< is_one_of< _T_, ::sockaddr_in, ::sockaddr_in6, ::sockaddr_storage >::value > >
-  int bind(const _T_ &_sa, unsigned int _flags = 0) noexcept
+  int bind(const _T_ &_sockaddr, unsigned int _flags = 0) noexcept
   {
-    return uv_status(::uv_tcp_bind(static_cast< uv_t* >(uv_handle), reinterpret_cast< const ::sockaddr* >(&_sa), _flags));
+    return uv_status(::uv_tcp_bind(static_cast< uv_t* >(uv_handle), reinterpret_cast< const ::sockaddr* >(&_sockaddr), _flags));
   }
 
   /*! \details Get the local address which this handle is bound to.

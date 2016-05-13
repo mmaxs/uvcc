@@ -122,7 +122,7 @@ protected: /*functions*/
 #if 0
   template< typename = void > static void file_read_cb(::uv_fs_t*);
   template< typename = void > static void stream_read_cb(::uv_stream_t*, ssize_t, const ::uv_buf_t*);
-  template< typename = void > static void udp_recv_cb(::uv_udp_t*, ssize_t, const ::uv_buf_t*, const ::sockaddr*, unsigned);
+  template< typename = void > static void udp_recv_cb(::uv_udp_t*, ssize_t, const ::uv_buf_t*, const ::sockaddr*, unsigned int);
 #endif
   //! \endcond
 

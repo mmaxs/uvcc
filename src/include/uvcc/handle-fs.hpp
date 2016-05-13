@@ -176,6 +176,7 @@ void file::open_cb(::uv_fs_t *_uv_handle)
   auto &open_cb = instance_ptr->properties().open_cb;
   if (open_cb)  open_cb(file(_uv_handle));
 }
+
 template< typename >
 void file::read_cb(::uv_fs_t *_uv_req)
 {
