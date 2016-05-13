@@ -216,7 +216,7 @@ public: /*conversion operators*/
 
 
 /*! \ingroup doxy_group_buffer
-    \brief The function type of the callback called by `io::read_start()`, `stream::read_start()` and `udp::recv_start()`...
+    \brief The function type of the callback called by `io::read_start()` and `udp::recv_start()`...
     \details ...to supply the input operation with a preallocated buffer. The callback should return a `uv::buffer`
     instance initialized with a `_suggested_size` (the value provided by libuv API is a constant of _65536_ bytes)
     or with whatever size, as long as it’s > 0.
