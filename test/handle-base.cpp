@@ -68,6 +68,17 @@ int main(int _argc, char *_argv[])
   fprintf(stdout, "uv::on_buffer_alloc_t: SIZE=%zu ALIGN=%zu\n", sizeof(uv::on_buffer_alloc_t), alignof(uv::on_buffer_alloc_t)); fflush(stdout);
   fprintf(stdout, "property: SIZE=%zu ALIGN=%zu\n", sizeof(properties), alignof(properties)); fflush(stdout);
 
+  uv::file f(1);
+
+  {
+    uv::handle h = f;
+    h.on_destroy() = [](void*) -> void
+    {
+      __pf;
+    };
+  }
+  fprintf(stderr, "~h\n"); fflush(stderr);
+
   getchar();
   return 0;
 }

@@ -58,7 +58,7 @@ int main(int _argc, char *_argv[])
   int status = uv::init(server_addr, ip, port);
   if (status != 0)  { PRINT_UV_ERR("init", status); return status; };
 
-  uv::tcp client(uv::loop::Default(), reinterpret_cast< sockaddr& >(server_addr).sa_family);
+  uv::tcp client(uv::loop::Default(), server_addr.ss_family);
   if (!client)  { PRINT_UV_ERR("client", client.uv_status()); return client.uv_status(); };
 
   conn.run(client, server_addr);

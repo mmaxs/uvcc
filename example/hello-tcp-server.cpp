@@ -30,7 +30,7 @@ int main(int _argc, char *_argv[])
   int status = uv::init(listen_addr, ip, port);  // IP agnostic address initialization
   if (status != 0)  { PRINT_UV_ERR("init", status); return status; };
 
-  uv::tcp server(uv::loop::Default(), reinterpret_cast< sockaddr& >(listen_addr).sa_family);
+  uv::tcp server(uv::loop::Default(), listen_addr.ss_family);
 
   server.bind(listen_addr);
   if (!server)  { PRINT_UV_ERR("bind", server.uv_status()); return server.uv_status(); };
