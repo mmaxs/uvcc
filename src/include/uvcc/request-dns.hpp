@@ -33,10 +33,10 @@ public: /*types*/
 
 protected: /*types*/
   //! \cond
-  struct supplemental_data_t
+  struct properties
   {
     uv_t *uv_req = nullptr;
-    ~supplemental_data_t()  { if (uv_req)  ::uv_freeaddrinfo(uv_req->addrinfo); }
+    ~properties()  { if (uv_req)  ::uv_freeaddrinfo(uv_req->addrinfo); }
   };
   //! \endcond
 
@@ -55,7 +55,7 @@ public: /*constructors*/
   getaddrinfo()
   {
     uv_req = instance::create();
-    instance::from(uv_req)->supplemental_data().uv_req = static_cast< uv_t* >(uv_req);
+    instance::from(uv_req)->properties().uv_req = static_cast< uv_t* >(uv_req);
   }
 
   getaddrinfo(const getaddrinfo&) = default;
@@ -69,26 +69,26 @@ private: /*functions*/
 
   int run(uv::loop _loop, const char *_hostname, const char *_service, const ::addrinfo *_hints)
   {
-    auto self = instance::from(uv_req);
+    auto instance_ptr = instance::from(uv_req);
 
-    auto &request_cb = self->on_request();
-    if (request_cb)  self->ref();
+    auto &request_cb = instance_ptr->request_cb_storage.value();
+    if (request_cb)  instance_ptr->ref();
 
     ::uv_freeaddrinfo(static_cast< uv_t* >(uv_req)->addrinfo);  // assuming that *uv_req has initially been zeroed
 
     uv_status(0);
-    int o = ::uv_getaddrinfo(
+    int ret = ::uv_getaddrinfo(
         static_cast< uv::loop::uv_t* >(_loop), static_cast< uv_t* >(uv_req),
         request_cb ? static_cast< ::uv_getaddrinfo_cb >(getaddrinfo_cb) : nullptr,
         _hostname, _service, _hints
     );
-    if (!o)  uv_status(o);
-    return o;
+    if (!ret)  uv_status(ret);
+    return ret;
   }
 
 public: /*interface*/
-  const on_request_t& on_request() const noexcept  { return instance::from(uv_req)->on_request(); }
-        on_request_t& on_request()       noexcept  { return instance::from(uv_req)->on_request(); }
+  const on_request_t& on_request() const noexcept  { return instance::from(uv_req)->request_cb_storage.value(); }
+        on_request_t& on_request()       noexcept  { return instance::from(uv_req)->request_cb_storage.value(); }
 
   /*! \brief The libuv loop that started this `getaddrinfo` request and where completion will be reported.
       \details It is guaranteed that it will be a valid instance at least within the request callback. */
@@ -120,12 +120,12 @@ public: /*conversion operators*/
 template< typename >
 void getaddrinfo::getaddrinfo_cb(::uv_getaddrinfo_t *_uv_req, int _status, ::addrinfo *_result)
 {
-  auto self = instance::from(_uv_req);
-  self->uv_status() = _status;
+  auto instance_ptr = instance::from(_uv_req);
+  instance_ptr->uv_error = _status;
 
-  ref_guard< instance > unref_req(*self, adopt_ref);
+  ref_guard< instance > unref_req(*instance_ptr, adopt_ref);
 
-  auto &getaddrinfo_cb = self->on_request();
+  auto &getaddrinfo_cb = instance_ptr->request_cb_storage.value();
   if (getaddrinfo_cb)  getaddrinfo_cb(getaddrinfo(_uv_req), _result);
 }
 
@@ -170,8 +170,8 @@ private: /*functions*/
   template< typename = void > static void getnameinfo_cb(::uv_getnameinfo_t*, int, const char*, const char*);
 
 public: /*interface*/
-  const on_request_t& on_request() const noexcept  { return instance::from(uv_req)->on_request(); }
-        on_request_t& on_request()       noexcept  { return instance::from(uv_req)->on_request(); }
+  const on_request_t& on_request() const noexcept  { return instance::from(uv_req)->request_cb_storage.value(); }
+        on_request_t& on_request()       noexcept  { return instance::from(uv_req)->request_cb_storage.value(); }
 
   /*! \brief The libuv loop that started this `getnameinfo` request and where completion will be reported.
       \details It is guaranteed that it will be a valid instance at least within the request callback. */
@@ -198,19 +198,19 @@ public: /*interface*/
   template< typename _T_, typename = std::enable_if_t< is_one_of< _T_, ::sockaddr, ::sockaddr_in, ::sockaddr_in6, ::sockaddr_storage >::value > >
   int run(uv::loop _loop, const _T_ &_sa, int _NI_FLAGS = 0)
   {
-    auto self = instance::from(uv_req);
+    auto instance_ptr = instance::from(uv_req);
 
-    auto &request_cb = self->on_request();
-    if (request_cb)  self->ref();
+    auto &request_cb = instance_ptr->request_cb_storage.value();
+    if (request_cb)  instance_ptr->ref();
 
     uv_status(0);
-    int o =::uv_getnameinfo(
+    int ret =::uv_getnameinfo(
         static_cast< uv::loop::uv_t* >(_loop), static_cast< uv_t* >(uv_req),
         request_cb ? static_cast< ::uv_getnameinfo_cb >(getnameinfo_cb) : nullptr,
         reinterpret_cast< const ::sockaddr* >(&_sa), _NI_FLAGS
     );
-    if (!o)  uv_status(o);
-    return o;
+    if (!ret)  uv_status(ret);
+    return ret;
   }
 
 public: /*conversion operators*/
@@ -221,12 +221,12 @@ public: /*conversion operators*/
 template< typename >
 void getnameinfo::getnameinfo_cb(::uv_getnameinfo_t *_uv_req, int _status, const char* _hostname, const char* _service)
 {
-  auto self = instance::from(_uv_req);
-  self->uv_status() = _status;
+  auto instance_ptr = instance::from(_uv_req);
+  instance_ptr->uv_error = _status;
 
-  ref_guard< instance > unref_req(*self, adopt_ref);
+  ref_guard< instance > unref_req(*instance_ptr, adopt_ref);
 
-  auto &getnameinfo_cb = self->on_request();
+  auto &getnameinfo_cb = instance_ptr->request_cb_storage.value();
   if (getnameinfo_cb)  getnameinfo_cb(getnameinfo(_uv_req), _hostname, _service);
 }
 
