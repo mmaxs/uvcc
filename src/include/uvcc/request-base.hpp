@@ -53,7 +53,8 @@ protected: /*types*/
     ref_count refs;
     type_storage< on_destroy_t > destroy_cb_storage;
     aligned_storage< MAX_PROPERTY_SIZE, MAX_PROPERTY_ALIGN > property_storage;
-    alignas(::uv_any_req) typename uv_t::type uv_req_struct = { 0,};  // must be zeroed, some subclasses do rely on this
+    alignas(::uv_any_req) typename uv_t::type uv_req_struct = { 0,};  // must be zeroed (some subclasses did rely on this)
+    //* all the fields placed hereafter should be accessed from only the class where the instance has been created *//
     type_storage< typename on_request_t::type > request_cb_storage;  // this field has a mutable layout size
 
   private: /*constructors*/

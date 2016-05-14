@@ -48,7 +48,7 @@ The callback is intended to give the option to manipulate the user-defined data 
 through the `.data` pointer before the last variable referencing this object has been destroyed.
 
 For the `uv::handle` calss the destroy callback functionality is based on the underlying libuv API
-[`uv_close_cb`](http://docs.libuv.org/en/v1.x/handle.html#c.uv_close_cb) feature.
+[`uv_close_cb`](http://docs.libuv.org/en/v1.x/handle.html#c.uv_close_cb) facilities.
 The handle close callback passed to [`uv_close()`](http://docs.libuv.org/en/v1.x/handle.html#c.uv_close)
 goes through the event loop and is called asynchronously after the `uv_close()` call. But it wouldn't be executed if the handle
 to be closed is not an "active" handle (libuv API function [`uv_is_active()`](http://docs.libuv.org/en/v1.x/handle.html#c.uv_is_active)
@@ -253,24 +253,6 @@ The following is the above program being rewritten using uvcc. All the considere
 \verbatim example/cpio-uvcc.cpp \endverbatim
 \includelineno cpio-uvcc.cpp
 
-Here is a performance comparison between the two variants:
-
-\verbatim
-Mike@U250 [CYGWIN] /cygdrive/d/wroot/libuv/uvcc/uvcc.git
-$ cat /dev/zero | ./build/example/cpio-uv.exe | dd of=/dev/null iflag=fullblock bs=1M count=50240
-50240+0 records in
-50240+0 records out
-52680458240 bytes (53 GB, 49 GiB) copied, 120.507 s, 437 MB/s
-
-Mike@U250 [CYGWIN] /cygdrive/d/wroot/libuv/uvcc/uvcc.git
-$ cat /dev/zero | ./build/example/cpio-uvcc.exe | dd of=/dev/null iflag=fullblock bs=1M count=50240
-50240+0 records in
-50240+0 records out
-52680458240 bytes (53 GB, 49 GiB) copied, 122.482 s, 430 MB/s
-\endverbatim
-
-Obviously there is an impact of reference counting operations that slightly reduce the performance.
-
 
 
 
@@ -283,9 +265,12 @@ will continue until the last operation has completed, and 2) the example for a s
 
 Pools help avoid intense memory allocation requests and the effect of continuous increasing of the memory consumed by the program
 until the C/C++ memory allocator decides to actually free up the allocated space.
-The provided simple implementation is an auto-growing pool that is not thread-safe, so only one dedicated thread might acquire an item
-from the pool in multi-thread environment. The condition of item's `nrefs() == 1` indicates that no more references are left anywhere
-at the runtime other than in the pool container itself.
+The provided simple implementation is an auto-growing pool that is not thread-safe, so either only one dedicated thread might acquire an item
+from the pool in multi-thread environment or such acquire requests from different threads shall not interleave with each other.
+The condition of item's `(nrefs() == 1)` indicates that no more references are left anywhere at the runtime other than in the pool
+container itself and thus this spare item can be returned on an acquire request.
+
+
 In debug build some diagnostic messages are printed out.
 
 \sa _stackoverflow.com_: ["libuv allocated memory buffers re-use techniques"](http://stackoverflow.com/questions/28511541/libuv-allocated-memory-buffers-re-use-techniques)
