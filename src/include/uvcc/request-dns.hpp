@@ -55,6 +55,7 @@ public: /*constructors*/
   getaddrinfo()
   {
     uv_req = instance::create();
+    static_cast< uv_t* >(uv_req)->addrinfo = nullptr;  // ensure for desired initial value
     instance::from(uv_req)->properties().uv_req = static_cast< uv_t* >(uv_req);
   }
 
@@ -74,7 +75,7 @@ private: /*functions*/
     auto &request_cb = instance_ptr->request_cb_storage.value();
     if (request_cb)  instance_ptr->ref();
 
-    ::uv_freeaddrinfo(static_cast< uv_t* >(uv_req)->addrinfo);  // assuming that *uv_req has initially been zeroed
+    ::uv_freeaddrinfo(static_cast< uv_t* >(uv_req)->addrinfo);  // assuming that *uv_req or this particular field has initially been nulled
 
     uv_status(0);
     int ret = ::uv_getaddrinfo(
