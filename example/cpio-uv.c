@@ -23,22 +23,22 @@ void write_cb(uv_write_t*, int);
 
 int main(int _argc, char *_argv[])
 {
-  int o = 0;
+  int ret = 0;
 
   uv_loop_t *loop = uv_default_loop();
 
   uv_pipe_init(loop, &in, 0);
-  o = uv_pipe_open(&in, fileno(stdin));
-  if (o < 0)  {
-    PRINT_UV_ERR("stdin open", o);
-    return o;
+  ret = uv_pipe_open(&in, fileno(stdin));
+  if (ret < 0)  {
+    PRINT_UV_ERR("stdin open", ret);
+    return ret;
   }
 
   uv_pipe_init(loop, &out, 0);
-  o = uv_pipe_open(&out, fileno(stdout));
-  if (o < 0)  {
-    PRINT_UV_ERR("stdout open", o);
-    return o;
+  ret = uv_pipe_open(&out, fileno(stdout));
+  if (ret < 0)  {
+    PRINT_UV_ERR("stdout open", ret);
+    return ret;
   }
 
   uv_read_start((uv_stream_t*)&in, alloc_cb, read_cb);
@@ -81,11 +81,11 @@ void read_cb(uv_stream_t *_stream, ssize_t _nread, const uv_buf_t *_buf)
 }
 
 
-void write_cb(uv_write_t *_wr, int _o)
+void write_cb(uv_write_t *_wr, int _status)
 {
-  if (_o < 0)
+  if (_status < 0)
   {
-    PRINT_UV_ERR("write", _o);
+    PRINT_UV_ERR("write", _status);
     uv_read_stop((uv_stream_t*)&in);
   };
 
