@@ -101,7 +101,7 @@ public: /*interface*/
   /*! \brief Number of send requests currently in the queue awaiting to be processed. */
   std::size_t send_queue_count() const noexcept  { return static_cast< uv_t* >(uv_handle)->send_queue_count; }
 
-  /*! \name UDP multicast/broadcast facilities: */
+  /*! \name UDP multicast/broadcast features: */
   //! \{
   /*! \brief Set membership for a multicast address.
       \sa libuv API documentation: [`uv_udp_set_membership()`](http://docs.libuv.org/en/v1.x/udp.html#c.uv_udp_set_membership),
@@ -173,6 +173,8 @@ void udp::alloc_cb(::uv_handle_t *_uv_handle, std::size_t _suggested_size, ::uv_
 template< typename >
 void udp::recv_cb(::uv_udp_t *_uv_handle, ssize_t _nread, const ::uv_buf_t *_uv_buf, const ::sockaddr *_sockaddr, unsigned int _flags)
 {
+  recv_info t = {_sockaddr, _flags};
+  io_read_cb(_uv_handle, _nread, _uv_buf, &t);
 }
 
 
