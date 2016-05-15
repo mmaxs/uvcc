@@ -31,7 +31,7 @@ int main(int _argc, char *_argv[])
 #endif
   for (int i = 1; i < _argc; ++i)
   {
-    uv::file f(_argv[i], O_RDONLY, mode);
+    uv::file f(uv::loop::Default(), _argv[i], O_RDONLY, mode);
     if (!f)
       PRINT_UV_ERR(f.path(), f.uv_status());
     else

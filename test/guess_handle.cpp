@@ -11,8 +11,8 @@
 
 
 
-uv::io in = uv::io::guess_handle(fileno(stdin));
-uv::io out = uv::io::guess_handle(fileno(stdout));
+uv::io in = uv::io::guess_handle(uv::loop::Default(), fileno(stdin));
+uv::io out = uv::io::guess_handle(uv::loop::Default(), fileno(stdout));
 
 
 const char* str_handle_type(uv::handle &_h)
