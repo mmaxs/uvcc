@@ -39,6 +39,8 @@ public: /*types*/
   using uv_t = ::uv_loop_t;
   using on_destroy_t = std::function< void(void *_data) >;
   /*!< \brief The function type of the callback called when the loop instance is about to be destroyed. */
+  using on_exit_t = std::function< void(loop) >;
+  /*!< \brief The function type of the callback called after the loop exit. */
   using on_walk_t = std::function< void(handle _handle, void *_arg) >;
   /*!< \brief The function type of the callback called by the `walk()` function.
        \sa libuv API documentation: [`uv_walk_cb`](http://docs.libuv.org/en/v1.x/loop.html#c.uv_walk_cb),
@@ -51,6 +53,7 @@ private: /*types*/
     mutable int uv_error = 0;
     ref_count refs;
     type_storage< on_destroy_t > destroy_cb_storage;
+    type_storage< on_exit_t > exit_cb_storage;
     uv_t uv_loop_struct = { 0,};
 
   private: /*constructors*/
@@ -164,6 +167,9 @@ public: /*interface*/
   const on_destroy_t& on_destroy() const noexcept  { return instance::from(uv_loop)->destroy_cb_storage.value(); }
         on_destroy_t& on_destroy()       noexcept  { return instance::from(uv_loop)->destroy_cb_storage.value(); }
 
+  const on_exit_t& on_exit() const noexcept  { return instance::from(uv_loop)->exit_cb_storage.value(); }
+        on_exit_t& on_exit()       noexcept  { return instance::from(uv_loop)->exit_cb_storage.value(); }
+
   /*! \details The pointer to the user-defined arbitrary data.
       \sa libuv API documentation: [`uv_loop_t.data`](http://docs.libuv.org/en/v1.x/loop.html#c.uv_loop_t.data). */
   void* const& data() const noexcept  { return uv_loop->data; }
@@ -178,7 +184,15 @@ public: /*interface*/
 
   /*! \details Start the event loop.
       \sa libuv API documentation: [`uv_run()`](http://docs.libuv.org/en/v1.x/loop.html#c.uv_run). */
-  int run(::uv_run_mode _mode)  { return uv_status(::uv_run(uv_loop, _mode)); }
+  int run(::uv_run_mode _mode)
+  {
+    int ret = uv_status(::uv_run(uv_loop, _mode));
+
+    auto &exit_cb = instance::from(uv_loop)->exit_cb_storage.value();
+    if (exit_cb)  exit_cb(loop(uv_loop));
+
+    return ret;
+  }
   /*! \details Stop the event loop.
       \sa libuv API documentation: [`uv_stop()`](http://docs.libuv.org/en/v1.x/loop.html#c.uv_stop). */
   void stop()  { ::uv_stop(uv_loop); }
