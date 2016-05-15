@@ -185,6 +185,23 @@ public: /*interface*/
 
   /*! \brief The tag indicating the libuv type of the handle. */
   ::uv_handle_type type() const noexcept  { return instance< handle >::from(uv_handle)->uv_interface()->type(uv_handle); }
+  /*! \brief A string containing the name of the handle type. */
+  const char* type_name() const noexcept
+  {
+    const char *ret;
+
+    switch (type())
+    {
+#define XX(X, x) case UV_##X: ret = #x; break;
+      UV_HANDLE_TYPE_MAP(XX)
+#undef XX
+      case UV_FILE: ret = "file"; break;
+      default: ret = "<unknown>"; break;
+    }
+
+    return ret;
+  }
+
   /*! \brief The libuv loop where the handle is running on.
       \details It is guaranteed that it will be a valid instance at least within the callback of the requests
       running on the handle. */
