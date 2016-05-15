@@ -6,8 +6,8 @@
 
 #include <uv.h>
 #include <cstddef>      // offsetof
-#include <functional>   // function
-#include <type_traits>  // is_standard_layout
+#include <functional>   // function bind placeholders::
+#include <type_traits>  // is_standard_layout enable_if is_convertible
 #include <utility>      // swap() forward()
 
 
@@ -41,7 +41,11 @@ public: /*types*/
   /*!< \brief The function type of the callback called when the loop instance is about to be destroyed. */
   using on_exit_t = std::function< void(loop) >;
   /*!< \brief The function type of the callback called after the loop exit. */
+#if 0
   using on_walk_t = std::function< void(handle _handle, void *_arg) >;
+#endif
+  template< typename... _Args_ >
+  using on_walk_t = std::function< void(handle _handle, _Args_&&... _args) >;
   /*!< \brief The function type of the callback called by the `walk()` function.
        \sa libuv API documentation: [`uv_walk_cb`](http://docs.libuv.org/en/v1.x/loop.html#c.uv_walk_cb),
                                     [`uv_walk()`](http://docs.libuv.org/en/v1.x/loop.html#c.uv_walk). */
@@ -88,13 +92,13 @@ private: /*types*/
     void ref()  { refs.inc(); }
     void unref()  { if (refs.dec() == 0)  destroy(); }
   };
-
+#if 0
   struct walk_cb_pack
   {
     const on_walk_t &walk_cb;
     void *arg;
   };
-
+#endif
 private: /*data*/
   uv_t *uv_loop;
 
@@ -212,13 +216,27 @@ public: /*interface*/
   /*! \details Update the event loop’s concept of “now”.
       \sa libuv API documentation: [`uv_update_time()`](http://docs.libuv.org/en/v1.x/loop.html#c.uv_update_time). */
   void update_time() noexcept  { ::uv_update_time(uv_loop); }
-
+#if 0
   /*! \brief Walk the handles in the loop: for each handle in the loop `_walk_cb` will be executed with the given `_arg`. */
   void walk(const on_walk_t &_walk_cb, void *_arg)
   {
     if (!_walk_cb)  return;
     walk_cb_pack t{_walk_cb, _arg};
     ::uv_walk(uv_loop, walk_cb, &t);
+  }
+#endif
+  /*! \brief Walk the list of active handles referenced by the loop: for each handle `_walk_cb`
+      will be executed with the given `_args`.
+      \note All arguments are copied (or moved) to the callback function object.
+      For passing arguments by reference and/or if some callback parameters are used as output ones,
+      wrap corresponding arguments with `std::ref()`. */
+  template< class _Func_, typename... _Args_ >
+  std::enable_if_t< std::is_convertible< _Func_, on_walk_t< _Args_&&... > >::value >
+  walk(const _Func_&& _walk_cb, _Args_&&... _args)
+  {
+    if (!_walk_cb)  return;
+    std::function< void(handle) > cb{std::bind(_walk_cb, std::placeholders::_1, std::forward< _Args_ >(_args)...)};
+    ::uv_walk(uv_loop, walk_cb, &cb);
   }
 
 public: /*conversion operators*/
@@ -237,14 +255,19 @@ public: /*conversion operators*/
 
 namespace uv
 {
-
+#if 0
 template< typename >
 void loop::walk_cb(::uv_handle_t *_uv_handle, void *_arg)
 {
   auto t = static_cast< walk_cb_pack* >(_arg);
   t->walk_cb(handle(_uv_handle), t->arg);
 }
-
+#endif
+template< typename >
+void loop::walk_cb(::uv_handle_t *_uv_handle, void *_arg)
+{
+  static_cast< std::function< void(handle) >* >(_arg)->operator()(handle(_uv_handle));
+}
 }
 
 
