@@ -51,12 +51,12 @@ void ccb2(uv::connect _conn)
   else
   {
     uv::write wr;
-    wr.on_request() = [](uv::write _wr) -> void  {
+    wr.on_request() = [](uv::write _wr, uv::buffer) -> void  {
         if (!_wr)  PRINT_UV_ERR("write", _wr.uv_status());
         _wr.handle().loop().walk(
             [](handle _h, void*) -> void
             {
-              fprintf(stdout, "walk: 0x%p:%u\n", _h.fileno(), _h.type());  fflush(stdout);
+              fprintf(stdout, "walk: %p:%s(%u)\n", _h.fileno(), _h.type_name(), _h.type());  fflush(stdout);
             },
             nullptr
         );
@@ -98,7 +98,7 @@ int main(int _argc, char *_argv[])
 
   c.read_start(
       [](handle, std::size_t){ return buffer(); },
-      [](stream, ssize_t, buffer){}
+      [](io, ssize_t, buffer, void*){}
   );
   c.read_stop();
 
