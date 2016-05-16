@@ -39,7 +39,7 @@ public: /*types*/
   using uv_t = ::uv_loop_t;
   using on_destroy_t = std::function< void(void *_data) >;
   /*!< \brief The function type of the callback called when the loop instance is about to be destroyed. */
-  using on_exit_t = std::function< void(loop) >;
+  using on_exit_t = std::function< void(loop _loop) >;
   /*!< \brief The function type of the callback called after the loop exit. */
 #if 0
   using on_walk_t = std::function< void(handle _handle, void *_arg) >;
@@ -179,15 +179,18 @@ public: /*interface*/
   void* const& data() const noexcept  { return uv_loop->data; }
   void*      & data()       noexcept  { return uv_loop->data; }
 
-  /*! \details Set additional loop options.
+  /*! \brief Set additional loop options.
       \sa libuv API documentation: [`uv_loop_configure()`](http://docs.libuv.org/en/v1.x/loop.html#c.uv_loop_configure). */
   template< typename... _Args_ > int configure(::uv_loop_option _opt, _Args_&&... _args)
   {
     return uv_status(::uv_loop_configure(uv_loop, _opt, std::forward< _Args_ >(_args)...));
   }
 
-  /*! \details Start the event loop.
-      \sa libuv API documentation: [`uv_run()`](http://docs.libuv.org/en/v1.x/loop.html#c.uv_run). */
+  /*! \brief Go into a loop and process events and their callbacks with the current thread.
+      \details The function acts and returns depending on circumstances which processing is defined by the `_mode` argument.
+      \sa libuv API documentation: [`uv_run()`](http://docs.libuv.org/en/v1.x/loop.html#c.uv_run).
+      \note If you start a loop with this function within a callback executed by another loop the first one will
+      be "blocked" until the second started loop ends and the function returns. */
   int run(::uv_run_mode _mode)
   {
     int ret = uv_status(::uv_run(uv_loop, _mode));
@@ -197,7 +200,8 @@ public: /*interface*/
 
     return ret;
   }
-  /*! \details Stop the event loop.
+
+  /*! \brief Stop the event loop.
       \sa libuv API documentation: [`uv_stop()`](http://docs.libuv.org/en/v1.x/loop.html#c.uv_stop). */
   void stop()  { ::uv_stop(uv_loop); }
 
@@ -225,7 +229,7 @@ public: /*interface*/
     ::uv_walk(uv_loop, walk_cb, &t);
   }
 #endif
-  /*! \brief Walk the list of active handles referenced by the loop: for each handle `_walk_cb`
+  /*! \details Walk the list of active handles referenced by the loop: for each handle `_walk_cb`
       will be executed with the given `_args`.
       \note All arguments are copied (or moved) to the callback function object.
       For passing arguments by reference and/or if some callback parameters are used as output ones,
