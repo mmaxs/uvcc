@@ -5,6 +5,7 @@
 #include "uvcc/utility.hpp"
 #include "uvcc/request-base.hpp"
 #include "uvcc/handle-udp.hpp"
+#include "uvcc/buffer.hpp"
 
 #include <uv.h>
 #include <functional>   // function
@@ -25,7 +26,7 @@ class udp_send : public request
 
 public: /*types*/
   using uv_t = ::uv_udp_send_t;
-  using on_request_t = std::function< void(int) >;
+  using on_request_t = std::function< void(udp_send _request, buffer _buffer) >;
 
 private: /*types*/
   using instance = request::instance< udp_send >;

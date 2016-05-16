@@ -30,7 +30,7 @@ class connect : public request
 
 public: /*types*/
   using uv_t = ::uv_connect_t;
-  using on_request_t = std::function< void(connect) >;
+  using on_request_t = std::function< void(connect _request) >;
   /*!< \brief The function type of the callback called after a connection request is done.
        \sa libuv API documentation: [`uv_connect_cb`](http://docs.libuv.org/en/v1.x/stream.html#c.uv_connect_cb). */
 
@@ -124,7 +124,7 @@ class write : public request
 
 public: /*types*/
   using uv_t = ::uv_write_t;
-  using on_request_t = std::function< void(write, buffer) >;
+  using on_request_t = std::function< void(write _request, buffer _buffer) >;
   /*!< \brief The function type of the callback called after data was written on a stream.
        \sa libuv API documentation: [`uv_write_cb`](http://docs.libuv.org/en/v1.x/stream.html#c.uv_write_cb). */
 
@@ -273,7 +273,7 @@ class shutdown : public request
 
 public: /*types*/
   using uv_t = ::uv_shutdown_t;
-  using on_request_t = std::function< void(shutdown) >;
+  using on_request_t = std::function< void(shutdown _request) >;
   /*!< \brief The function type of the callback called after a shutdown request has been completed.
        \sa libuv API documentation: [`uv_shutdown_cb`](http://docs.libuv.org/en/v1.x/stream.html#c.uv_shutdown_cb). */
 

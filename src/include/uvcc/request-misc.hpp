@@ -24,7 +24,7 @@ class work : public request
 
 public: /*types*/
   using uv_t = ::uv_work_t;
-  using on_request_t = std::function< void(int) >;
+  using on_request_t = std::function< void(work _request) >;
 
 private: /*types*/
   using instance = request::instance< work >;
