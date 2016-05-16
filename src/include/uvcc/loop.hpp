@@ -247,7 +247,7 @@ public: /*conversion operators*/
   explicit operator const uv_t*() const noexcept  { return uv_loop; }
   explicit operator       uv_t*()       noexcept  { return uv_loop; }
 
-  explicit operator bool() const noexcept  { return (uv_status() == 0); }  /*!< \brief Equivalent to `(uv_status() == 0)`. */
+  explicit operator bool() const noexcept  { return (uv_status() >= 0); }  /*!< \brief Equivalent to `(uv_status() >= 0)`. */
 };
 
 
