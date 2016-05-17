@@ -58,23 +58,13 @@ private: /*types*/
     ref_count refs;
     type_storage< on_destroy_t > destroy_cb_storage;
     type_storage< on_exit_t > exit_cb_storage;
-    ::uv_async_t *keep_alive_handle = nullptr;
     uv_t uv_loop_struct = { 0,};
 
   private: /*constructors*/
     instance()  { uv_error = ::uv_loop_init(&uv_loop_struct); }
 
   public: /*constructors*/
-    ~instance()
-    {
-      if (keep_alive_handle)
-      {
-        ::uv_unref(reinterpret_cast< ::uv_handle_t* >(keep_alive_handle));
-        ::uv_close(reinterpret_cast< ::uv_handle_t* >(keep_alive_handle), nullptr);
-        delete keep_alive_handle;
-      };
-      uv_error = ::uv_loop_close(&uv_loop_struct);
-    }
+    ~instance()  { uv_error = ::uv_loop_close(&uv_loop_struct); }
 
     instance(const instance&) = delete;
     instance& operator =(const instance&) = delete;
@@ -217,30 +207,6 @@ public: /*interface*/
 
   /*! \brief Returns non-zero if there are active handles or request in the loop. */
   int is_alive() const noexcept  { return uv_status(::uv_loop_alive(uv_loop)); }
-  /*! \brief */
-  int keep_alive(bool _enable) noexcept
-  {
-    int ret = 0;
-
-    ::uv_async_t* &keep_alive_handle = instance::from(uv_loop)->keep_alive_handle;
-
-    switch (_enable)
-    {
-    case true:
-        if (keep_alive_handle)  ::uv_ref(reinterpret_cast< ::uv_handle_t* >(keep_alive_handle));
-        else
-        {
-          keep_alive_handle = new ::uv_async_t;
-          ret = ::uv_async_init(uv_loop, keep_alive_handle, nullptr);
-        }
-        break;
-    case false:
-        if (keep_alive_handle)  ::uv_unref(reinterpret_cast< ::uv_handle_t* >(keep_alive_handle));
-        break;
-    }
-
-    return uv_status(ret);
-  }
 
   /*! \details Get backend file descriptor.
       \sa libuv API documentation: [`uv_backend_fd()`](http://docs.libuv.org/en/v1.x/loop.html#c.uv_backend_fd). */
