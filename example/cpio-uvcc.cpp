@@ -40,6 +40,8 @@ int main(int _argc, char *_argv[])
         }
         else if (_nread > 0)
         {
+          _buffer.len() = _nread;
+
           uv::write wr;
           wr.on_request() = [](uv::write _wr, uv::buffer) -> void  // write_cb
           {
@@ -49,8 +51,6 @@ int main(int _argc, char *_argv[])
               in.read_stop();
             };
           };
-
-          _buffer.len() = _nread;
           wr.run(out, _buffer);
         }
       }

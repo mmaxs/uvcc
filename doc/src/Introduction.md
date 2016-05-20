@@ -263,12 +263,12 @@ A simple program that copies its `stdin` to `stdout` and also to each file speci
 It demonstrates two points: 1) the very same uvcc buffer can be easily dispatched to different asynchronous operations and its lifetime
 will continue until the last operation has completed, and 2) the example for a simple version of the buffer and request pool implementation.
 
-Pools help avoid intense memory allocation requests and the effect of continuous increasing of the memory consumed by the program
-until the C/C++ memory allocator decides to actually free up the allocated space.
+Pools help avoid intense memory allocation requests.
 The provided simple implementation is an auto-growing pool that is not thread-safe, so either only one dedicated thread might acquire an item
 from the pool in multi-thread environment or such acquire requests from different threads shall not interleave with each other.
 The condition of item's `(nrefs() == 1)` indicates that no more references are left anywhere at the runtime other than in the pool
 container itself and thus this spare item can be returned on an acquire request.
+As far as this program is a typical single-thread libuv application these conditions are fulfilled.
 
 
 In debug build some diagnostic messages are printed out.

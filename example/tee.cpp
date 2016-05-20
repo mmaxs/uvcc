@@ -13,8 +13,8 @@
 
 
 
-uv::pipe in(uv::loop::Default(), fileno(stdin)),
-         out(uv::loop::Default(), fileno(stdout));
+uv::io in = uv::io::guess_handle(uv::loop::Default(), fileno(stdin)),
+       out = uv::io::guess_handle(uv::loop::Default(), fileno(stdout));
 
 std::vector< uv::file > files;
 
@@ -48,7 +48,7 @@ int main(int _argc, char *_argv[])
   }
 
   in.read_start(
-      [](uv::handle, std::size_t) -> uv::buffer  // alloc_cb
+      [](uv::handle, std::size_t) -> uv::buffer
       {
         constexpr const std::size_t default_size = 8192;
         static std::vector< uv::buffer > buf_pool;
@@ -73,7 +73,7 @@ int main(int _argc, char *_argv[])
         #endif
         return buf_pool.back();
       },
-      [](uv::io _io, ssize_t _nread, uv::buffer _buf, void*) -> void  // read_cb
+      [](uv::io _io, ssize_t _nread, uv::buffer _buf, void*) -> void
       {
         if (_nread < 0)
         {
@@ -82,46 +82,27 @@ int main(int _argc, char *_argv[])
         }
         else if (_nread > 0)
         {
-          auto wr = []() -> uv::write
-          {
-            static std::vector< uv::write > wr_pool;
-
-            #ifndef NDEBUG
-            for (std::size_t i = 0; i < wr_pool.size(); ++i)  if (wr_pool[i].nrefs() == 1)  {
-              fprintf(stderr, "[write request pool]: item #%zu of %zu\n", i+1, wr_pool.size());  fflush(stderr);  
-              return wr_pool[i];
-            };
-            #else
-            for (auto &wr : wr_pool)  if (wr.nrefs() == 1)  return wr;
-            #endif
-
-            wr_pool.emplace_back();
-            wr_pool.back().on_request() = [](uv::write _wr, uv::buffer) -> void  // write_cb
-            {
-              if (!_wr)
-              {
-                PRINT_UV_ERR("write", _wr.uv_status());
-                in.read_stop();
-              };
-            };
-
-            #ifndef NDEBUG
-            fprintf(stderr, "[write request pool]: new item #%zu\n", wr_pool.size());  fflush(stderr);
-            #endif
-            return wr_pool.back();
-          };
-
           _buf.len() = _nread;
-          wr().run(out, _buf);
+
+          io::write wr;
+          wr.on_request() = [](io::write _wr, uv::buffer) -> void
+          {
+            if (!_wr)
+            {
+              PRINT_UV_ERR("write", _wr.uv_status());
+              in.read_stop();
+            };
+          };
+          wr.run(out, _buf);
 
           for (auto &f : files)
           {
-            uv::fs::write fwr;
-            fwr.on_request() = [](uv::fs::write _req, uv::buffer) -> void
+            uv::fs::write file_wr;
+            file_wr.on_request() = [](uv::fs::write _file_wr, uv::buffer) -> void
             {
-              if (!_req)  PRINT_UV_ERR("fs::write", _req.uv_status());
+              if (!_file_wr)  PRINT_UV_ERR("fs::write", _file_wr.uv_status());
             };
-            fwr.run(f, _buf);
+            file_wr.run(f, _buf);
           }
         };
       }

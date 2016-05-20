@@ -48,7 +48,7 @@ int main(int _argc, char *_argv[])
 
 
 
-void alloc_cb(uv_handle_t*, size_t _suggested_size, uv_buf_t *_buf)
+void alloc_cb(uv_handle_t *_handle, size_t _suggested_size, uv_buf_t *_buf)
 {
   /* allocate the memory for a new I/O buffer */
   *_buf = uv_buf_init((char*)malloc(_suggested_size), _suggested_size);
