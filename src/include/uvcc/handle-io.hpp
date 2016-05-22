@@ -64,6 +64,7 @@ protected: /*types*/
 
   struct uv_interface : virtual handle::uv_interface
   {
+    virtual std::size_t write_queue_size(void*) const noexcept = 0;
     virtual int read_start(void*, int64_t) const noexcept = 0;
     virtual int read_stop(void*) const noexcept = 0;
   };
@@ -127,6 +128,11 @@ protected: /*functions*/
   //! \endcond
 
 public: /*interface*/
+  /*! \brief The amount of queued bytes waiting to be written/sent to the I/O endpoint.
+      \sa libuv API documentation: [`uv_stream_t.write_queue_size`](http://docs.libuv.org/en/v1.x/stream.html#c.uv_stream_t.write_queue_size),
+                                   [`uv_udp_t.send_queue_size`](http://docs.libuv.org/en/v1.x/udp.html#c.uv_udp_t.send_queue_size). */
+  std::size_t write_queue_size() const noexcept  { return instance::from(uv_handle)->uv_interface()->write_queue_size(uv_handle); }
+
   on_buffer_alloc_t& on_alloc() const noexcept  { return instance::from(uv_handle)->properties().alloc_cb; }
   on_read_t& on_read() const noexcept  { return instance::from(uv_handle)->properties().read_cb; }
 

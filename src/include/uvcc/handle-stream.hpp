@@ -48,6 +48,9 @@ protected: /*types*/
 
   struct uv_interface : uv_handle_interface, io::uv_interface
   {
+    std::size_t write_queue_size(void *_uv_handle) const noexcept override
+    { return static_cast< ::uv_stream_t* >(_uv_handle)->write_queue_size; }
+
     int read_start(void *_uv_handle, int64_t) const noexcept override
     { return ::uv_read_start(static_cast< ::uv_stream_t* >(_uv_handle), alloc_cb, read_cb); }
 
@@ -104,10 +107,12 @@ public: /*interface*/
 
   /*! \brief The amount of queued bytes waiting to be sent. */
   std::size_t write_queue_size() const noexcept  { return static_cast< uv_t* >(uv_handle)->write_queue_size; }
+
   /*! \brief Check if the stream is readable. */
   bool is_readable() const noexcept  { return uv_status(::uv_is_readable(static_cast< uv_t* >(uv_handle))); }
   /*! \brief Check if the stream is writable. */
   bool is_writable() const noexcept  { return uv_status(::uv_is_writable(static_cast< uv_t* >(uv_handle))); }
+
   /*! \details Enable or disable blocking mode for the stream.
       \sa libuv API documentation: [`uv_stream_set_blocking()`](http://docs.libuv.org/en/v1.x/stream.html#c.uv_stream_set_blocking). */
   int set_blocking(bool _enable) noexcept  { return uv_status(::uv_stream_set_blocking(static_cast< uv_t* >(uv_handle), _enable)); }

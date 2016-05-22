@@ -41,7 +41,7 @@ public: /*types*/
 protected: /*types*/
   //! \cond
   using properties = empty_t;
-  constexpr static const std::size_t MAX_PROPERTY_SIZE = 120 + sizeof(::uv_buf_t) + sizeof(::uv_fs_t);
+  constexpr static const std::size_t MAX_PROPERTY_SIZE = 128 + sizeof(::uv_buf_t) + sizeof(::uv_fs_t);
   constexpr static const std::size_t MAX_PROPERTY_ALIGN = 8;
 
   struct uv_interface

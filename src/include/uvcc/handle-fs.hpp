@@ -40,10 +40,14 @@ protected: /*types*/
       ::uv_fs_t  uv_req_struct = { 0,};
       int64_t offset = -1;
     } rd;
+    std::size_t write_queue_size = 0;
   };
 
   struct uv_interface : uv_fs_interface, io::uv_interface
   {
+    std::size_t write_queue_size(void *_uv_handle) const noexcept override
+    { return instance::from(_uv_handle)->properties().write_queue_size; }
+
     int read_start(void *_uv_handle, int64_t _offset) const noexcept override
     {
       auto instance_ptr = instance::from(_uv_handle);
@@ -148,6 +152,9 @@ private: /*functions*/
   }
 
 public: /*interface*/
+  /*! \brief The amount of bytes waiting to be written to the file. */
+  std::size_t write_queue_size() const noexcept  { return instance::from(uv_handle)->properties().write_queue_size; }
+
   /*! \brief Get the cross platform representation of the file handle.
       \details On Windows this function returns _a C run-time file descriptor_ which differs from the
       _operating-system file handle_ that is returned by `handle::fileno()` function.

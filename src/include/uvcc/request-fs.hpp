@@ -290,6 +290,10 @@ public: /*interface*/
         properties.uv_buf = _buf.uv_buf;
         properties.offset = _offset;
       }
+
+      std::size_t wr_size = 0;
+      for (std::size_t i = 0, buf_count = _buf.count(); i < buf_count; ++i)  wr_size += _buf.len(i);
+      file::instance::from(_file.uv_handle)->properties().write_queue_size += wr_size;
     };
 
     uv_status(0);
@@ -316,9 +320,12 @@ void fs::write::write_cb(::uv_fs_t *_uv_req)
   instance_ptr->uv_error = _uv_req->result;
 
   auto &properties = instance_ptr->properties();
+  auto file_instance_ptr = file::instance::from(properties.uv_handle);
 
-  ref_guard< file::instance > unref_file(*file::instance::from(properties.uv_handle), adopt_ref);
+  ref_guard< file::instance > unref_file(*file_instance_ptr, adopt_ref);
   ref_guard< instance > unref_req(*instance_ptr, adopt_ref);
+
+  if (_uv_req->result > 0)  file_instance_ptr->properties().write_queue_size -= _uv_req->result;
 
   auto &write_cb = instance_ptr->request_cb_storage.value();
   if (write_cb)
