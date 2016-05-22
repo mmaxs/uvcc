@@ -23,6 +23,7 @@ class udp : public io
 {
   //! \cond
   friend class handle::instance< udp >;
+  friend class udp_send;
   //! \endcond
 
 public: /*types*/
@@ -33,14 +34,14 @@ public: /*types*/
       \sa libuv API documentation: [`uv_udp_recv_cb`](http://docs.libuv.org/en/v1.x/udp.html#c.uv_udp_recv_cb). */
   struct recv_info
   {
-    /*! \brief The address of the sender. Can be `nullptr`. The pointer is valid for the duration of the callback only.
+    /*! \brief The address of the remote peer. Can be `nullptr`. The pointer is valid for the duration of the callback only.
         \note If the receive callback is called with zero number of bytes that have been received then `(udp_sender == nullptr)`
         indicates that there is nothing to read, and `(udp_sender != nullptr)` indicates an empty UDP packet is received. */
-    const ::sockaddr *udp_sender;
+    const ::sockaddr *peer;
     /*! \brief One or more or’ed [`uv_udp_flags`](http://docs.libuv.org/en/v1.x/udp.html#c.uv_udp_flags) constants.
         \sa libuv API documentation: [`uv_udp_recv_cb`](http://docs.libuv.org/en/v1.x/udp.html#c.uv_udp_recv_cb),
                                      [`uv_udp_flags`](http://docs.libuv.org/en/v1.x/udp.html#c.uv_udp_flags). */
-    unsigned int udp_flags;
+    unsigned int flags;
   };
 
 protected: /*types*/
@@ -49,6 +50,9 @@ protected: /*types*/
 
   struct uv_interface : uv_handle_interface, io::uv_interface
   {
+    std::size_t write_queue_size(void *_uv_handle) const noexcept override
+    { return static_cast< ::uv_udp_t* >(_uv_handle)->send_queue_size; }
+
     int read_start(void *_uv_handle, int64_t) const noexcept override
     { return ::uv_udp_recv_start(static_cast< ::uv_udp_t* >(_uv_handle), alloc_cb, recv_cb); }
 
@@ -59,6 +63,13 @@ protected: /*types*/
 
 private: /*types*/
   using instance = handle::instance< udp >;
+
+private: /*constructors*/
+  explicit udp(uv_t *_uv_handle)
+  {
+    if (_uv_handle)  instance::from(_uv_handle)->ref();
+    uv_handle = _uv_handle;
+  }
 
 public: /*constructors*/
   ~udp() = default;
