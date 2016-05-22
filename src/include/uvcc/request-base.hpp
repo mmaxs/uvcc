@@ -177,7 +177,7 @@ public: /*interface*/
   void* const& data() const noexcept  { return static_cast< uv_t* >(uv_req)->data; }
   void*      & data()       noexcept  { return static_cast< uv_t* >(uv_req)->data; }
 
-  /*! \details Cancel a pending request.
+  /*! \brief Cancel a pending request.
       \sa libuv API documentation: [`uv_cancel()`](http://docs.libuv.org/en/v1.x/request.html#c.uv_cancel).*/
   int cancel() noexcept  { return ::uv_cancel(static_cast< uv_t* >(uv_req)); }
 

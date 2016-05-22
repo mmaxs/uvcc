@@ -183,7 +183,7 @@ uvcc sources are accompanied with several illustrative example programs the sour
                                It shows how uvcc simplifies the code.
 
 * \subpage doxy_page_example_cpio "cpio" - a simple program that copies its `stdin` to `stdout`. \n
-                           It shows some essential points that one comes across with when begin to develop
+                           It shows some essential points that one comes across with when beginning to develop
                            programs using libuv and how uvcc address them.
 
 * \subpage doxy_page_example_tee  "tee" - a simple program that copies its `stdin` to `stdout` and also to each file specified as a program argument. \n
