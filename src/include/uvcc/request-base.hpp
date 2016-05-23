@@ -30,7 +30,7 @@ public: /*types*/
 protected: /*types*/
   //! \cond
   using properties = empty_t;
-  constexpr static const std::size_t MAX_PROPERTY_SIZE = 24;
+  constexpr static const std::size_t MAX_PROPERTY_SIZE = 24 + sizeof(::sockaddr_storage);
   constexpr static const std::size_t MAX_PROPERTY_ALIGN = 8;
 
   template< class _REQUEST_ > class instance
