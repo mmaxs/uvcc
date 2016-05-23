@@ -146,8 +146,6 @@ buf[0] = uv_buf_init(new char[len], len);
 buf.base() = new char[len];
 buf.len() = len;
 ```
-\sa libuv documentation: [`uv_buf_init()`](http://docs.libuv.org/en/v1.x/misc.html#c.uv_buf_init).
-
 \warning Do not return such a manually initialized `buffer` objects from the buffer allocation callbacks (of
 `uv::on_buffer_alloc_t` function type) that should be passed to `io::read_start()` and `udp::recv_start()` functions.
 Merely a copy of the first `uv_buf_t` structure held in a `buffer` object is passed to libuv API functions and there
@@ -156,6 +154,8 @@ work properly) from the `uv_buf_t.base` pointer referencing the manually allocat
 \warning Also, the `buffer` objects that contain an array of `uv_buf_t` structures are not supported as a valid result
 of the `uv::on_buffer_alloc_t` callback functions. Only a single `uv_buf_t` structure in a `buffer` object is currently
 supported for the purposes of the `io::read_start()` and `udp::recv_start()` functions.
+
+\sa libuv documentation: [`uv_buf_init()`](http://docs.libuv.org/en/v1.x/misc.html#c.uv_buf_init).
 
 
 
