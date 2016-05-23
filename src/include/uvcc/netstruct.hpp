@@ -31,11 +31,10 @@ namespace uv
 //! \{
 
 /*! \brief Initialize a `sockaddr_in` structure. */
-template< typename = void >
-int init(::sockaddr_in &_sa)
+inline int init(::sockaddr_in &_sin)
 {
-  std::memset(&_sa, 0, sizeof(_sa));
-  _sa.sin_family = AF_INET;
+  std::memset(&_sin, 0, sizeof(_sin));
+  _sin.sin_family = AF_INET;
   return 0;
 }
 /*! \brief Initialize a `sockaddr_in` structure from strings containing an IPv4 address and (optionally) a port.
@@ -44,11 +43,10 @@ int init(::sockaddr_in &_sa)
     \sa Linux: [`inet_pton()`](http://man7.org/linux/man-pages/man3/inet_pton.3.html).
         Windows: [`RtlIpv4StringToAddressEx()`](https://msdn.microsoft.com/en-us/library/aa814459(v=vs.85).aspx),
                  [`InetPton()`](https://msdn.microsoft.com/en-us/library/cc805844(v=vs.85).aspx). */
-template< typename = void >
-int init(::sockaddr_in &_sa, const char *_ip, const char *_port = nullptr)
+inline int init(::sockaddr_in &_sin, const char *_ip, const char *_port = nullptr)
 {
   int pnum = _port ? std::atoi(_port) : 0;
-  return ::uv_ip4_addr(_ip, pnum, &_sa);
+  return ::uv_ip4_addr(_ip, pnum, &_sin);
 }
 
 //! \}
@@ -58,11 +56,10 @@ int init(::sockaddr_in &_sa, const char *_ip, const char *_port = nullptr)
 //! \{
 
 /*! \brief Initialize a `sockaddr_in6` structure. */
-template< typename = void >
-int init(::sockaddr_in6 &_sa)
+inline int init(::sockaddr_in6 &_sin6)
 {
-  std::memset(&_sa, 0, sizeof(_sa));
-  _sa.sin6_family = AF_INET6;
+  std::memset(&_sin6, 0, sizeof(_sin6));
+  _sin6.sin6_family = AF_INET6;
   return 0;
 }
 /*! \brief Initialize a `sockaddr_in6` structure from strings containing an IPv6 address and (optionally) a port.
@@ -71,11 +68,10 @@ int init(::sockaddr_in6 &_sa)
     \sa Linux: [`inet_pton()`](http://man7.org/linux/man-pages/man3/inet_pton.3.html).
         Windows: [`RtlIpv6StringToAddressEx()`](https://msdn.microsoft.com/en-us/library/aa814463(v=vs.85).aspx),
                  [`InetPton()`](https://msdn.microsoft.com/en-us/library/cc805844(v=vs.85).aspx). */
-template< typename = void >
-int init(::sockaddr_in6 &_sa, const char *_ip, const char *_port = nullptr)
+inline int init(::sockaddr_in6 &_sin6, const char *_ip, const char *_port = nullptr)
 {
   int pnum = _port ? std::atoi(_port) : 0;
-  return ::uv_ip6_addr(_ip, pnum, &_sa);
+  return ::uv_ip6_addr(_ip, pnum, &_sin6);
 }
 
 //! \}
@@ -84,22 +80,37 @@ int init(::sockaddr_in6 &_sa, const char *_ip, const char *_port = nullptr)
 //! \name sockaddr_storage
 //! \{
 
-template< typename = void >
-int init(::sockaddr_storage &_sa, decltype(::sockaddr_storage::ss_family) _family = AF_UNSPEC)
+inline int init(::sockaddr_storage &_ss, decltype(::sockaddr::sa_family) _family = AF_UNSPEC)
 {
-  std::memset(&_sa, 0, sizeof(_sa));
-  _sa.ss_family = _family;
+  std::memset(&_ss, 0, sizeof(_ss));
+  _ss.ss_family = _family;
   return 0;
 }
 
-template< typename = void >
-int init(::sockaddr_storage &_sa, const char *_ip, const char *_port = nullptr)
+inline int init(::sockaddr_storage &_ss, const ::sockaddr &_sa)
 {
-  std::memset(&_sa, 0, sizeof(_sa));
+  std::memset(&_ss, 0, sizeof(_ss));
+  switch (_sa.sa_family)
+  {
+  case AF_INET:
+      reinterpret_cast< ::sockaddr_in& >(_ss) = reinterpret_cast< const ::sockaddr_in& >(_sa);
+      break;
+  case AF_INET6:
+      reinterpret_cast< ::sockaddr_in6& >(_ss) = reinterpret_cast< const ::sockaddr_in6& >(_sa);
+      break;
+  default:
+      return UV_EAFNOSUPPORT;
+  }
+  return 0;
+}
+
+inline int init(::sockaddr_storage &_ss, const char *_ip, const char *_port = nullptr)
+{
+  std::memset(&_ss, 0, sizeof(_ss));
   return (
-      init(reinterpret_cast< ::sockaddr_in& >(_sa), _ip, _port) == 0
+      init(reinterpret_cast< ::sockaddr_in& >(_ss), _ip, _port) == 0
       or
-      init(reinterpret_cast< ::sockaddr_in6& >(_sa), _ip, _port) == 0
+      init(reinterpret_cast< ::sockaddr_in6& >(_ss), _ip, _port) == 0
   ) ? 0 : UV_EINVAL;
 }
 
@@ -143,8 +154,7 @@ Windows only:
         Windows: [`addrinfo`](https://msdn.microsoft.com/en-us/library/ms737530(v=vs.85).aspx),
                  [`getaddrinfo()`](https://msdn.microsoft.com/en-us/library/ms738520(v=vs.85).aspx),
                  [`GetAddrInfoEx()`](https://msdn.microsoft.com/en-us/library/ms738518(v=vs.85).aspx). */
-template< typename = void >
-int init(::addrinfo &_ai,
+inline int init(::addrinfo &_ai,
     decltype(::addrinfo::ai_family)   _family = AF_UNSPEC,
     decltype(::addrinfo::ai_socktype) _socktype = 0,
     decltype(::addrinfo::ai_flags)    _flags = AI_ADDRCONFIG
