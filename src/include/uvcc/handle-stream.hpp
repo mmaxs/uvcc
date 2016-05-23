@@ -113,7 +113,7 @@ public: /*interface*/
   /*! \brief Check if the stream is writable. */
   bool is_writable() const noexcept  { return uv_status(::uv_is_writable(static_cast< uv_t* >(uv_handle))); }
 
-  /*! \details Enable or disable blocking mode for the stream.
+  /*! \brief Enable or disable blocking mode for the stream.
       \sa libuv API documentation: [`uv_stream_set_blocking()`](http://docs.libuv.org/en/v1.x/stream.html#c.uv_stream_set_blocking). */
   int set_blocking(bool _enable) noexcept  { return uv_status(::uv_stream_set_blocking(static_cast< uv_t* >(uv_handle), _enable)); }
 
@@ -173,7 +173,7 @@ public: /*constructors*/
   tcp(tcp&&) noexcept = default;
   tcp& operator =(tcp&&) noexcept = default;
 
-  /*! \details Create a TCP socket with the specified flags.
+  /*! \brief Create a TCP socket with the specified flags.
       \note With `AF_UNSPEC` flag no socket is actually created on the system.
       \sa libuv API documentation: [`uv_tcp_init_ex()`](http://docs.libuv.org/en/v1.x/tcp.html#c.uv_tcp_init_ex).
       \sa libuv enhancement proposals: <https://github.com/libuv/leps/blob/master/003-create-sockets-early.md>. */
@@ -182,7 +182,7 @@ public: /*constructors*/
     uv_handle = instance::create();
     uv_status(::uv_tcp_init_ex(static_cast< uv::loop::uv_t* >(_loop), static_cast< uv_t* >(uv_handle), _flags));
   }
-  /*! \details Create a handle object from an existing native platform depended TCP socket descriptor.
+  /*! \brief Create a handle object from an existing native platform depended TCP socket descriptor.
       \sa libuv API documentation: [`uv_tcp_open()`](http://docs.libuv.org/en/v1.x/tcp.html#c.uv_tcp_open),
                                    [`uv_tcp_init()`](http://docs.libuv.org/en/v1.x/tcp.html#c.uv_tcp_init). */
   tcp(uv::loop _loop, ::uv_os_sock_t _socket, bool _set_blocking)
@@ -199,22 +199,25 @@ public: /*interface*/
 
   /*! \brief Enable or disable Nagle’s algorithm on the socket. */
   int nodelay(bool _enable) noexcept  { return uv_status(::uv_tcp_nodelay(static_cast< uv_t* >(uv_handle), _enable)); }
-  /*! \details Enable or disable TCP keep-alive.
+  /*! \brief Enable or disable TCP keep-alive.
       \arg `_delay` is the initial delay in seconds, ignored when `_enable = false`. */
   int keepalive(bool _enable, unsigned int _delay) noexcept  { return uv_status(::uv_tcp_keepalive(static_cast< uv_t* >(uv_handle), _enable, _delay)); }
   /*! \details Enable or disable simultaneous asynchronous accept requests that are queued by the operating system when listening for new TCP connections.
       \sa libuv API documentation: [`uv_tcp_simultaneous_accepts()`](http://docs.libuv.org/en/v1.x/tcp.html#c.uv_tcp_simultaneous_accepts). */
   int simultaneous_accepts(bool _enable) noexcept  { return uv_status(::uv_tcp_simultaneous_accepts(static_cast< uv_t* >(uv_handle), _enable)); }
 
-  /*! \details Bind the handle to an address and port.
+  /*! \brief Bind the handle to an address and port.
       \sa libuv API documentation: [`uv_tcp_bind()`](http://docs.libuv.org/en/v1.x/tcp.html#c.uv_tcp_bind). */
-  template< typename _T_, typename = std::enable_if_t< is_one_of< _T_, ::sockaddr_in, ::sockaddr_in6, ::sockaddr_storage >::value > >
+  template<
+      typename _T_,
+      typename = std::enable_if_t< is_one_of< _T_, ::sockaddr, ::sockaddr_in, ::sockaddr_in6, ::sockaddr_storage >::value >
+  >
   int bind(const _T_ &_sockaddr, unsigned int _flags = 0) noexcept
   {
     return uv_status(::uv_tcp_bind(static_cast< uv_t* >(uv_handle), reinterpret_cast< const ::sockaddr* >(&_sockaddr), _flags));
   }
 
-  /*! \details Get the local address which this handle is bound to.
+  /*! \brief Get the local address which this handle is bound to.
       \sa libuv API documentation: [`uv_tcp_getsockname()`](http://docs.libuv.org/en/v1.x/tcp.html#c.uv_tcp_getsockname). */
   template< typename _T_, typename = std::enable_if_t< is_one_of< _T_, ::sockaddr_in, ::sockaddr_in6, ::sockaddr_storage >::value > >
   int getsockname(_T_ &_sockaddr) const noexcept
@@ -222,7 +225,7 @@ public: /*interface*/
     int z = sizeof(_T_);
     return uv_status(::uv_tcp_getsockname(static_cast< uv_t* >(uv_handle), reinterpret_cast< ::sockaddr* >(&_sockaddr), &z));
   }
-  /*! \details Get the address of the remote peer connected to this handle.
+  /*! \brief Get the address of the remote peer connected to this handle.
       \sa libuv API documentation: [`uv_tcp_getpeername()`](http://docs.libuv.org/en/v1.x/tcp.html#c.uv_tcp_getpeername). */
   template< typename _T_, typename = std::enable_if_t< is_one_of< _T_, ::sockaddr_in, ::sockaddr_in6, ::sockaddr_storage >::value > >
   int getpeername(_T_ &_sockaddr) const noexcept
@@ -271,7 +274,7 @@ public: /*constructors*/
   pipe(pipe&&) noexcept = default;
   pipe& operator =(pipe&&) noexcept = default;
 
-  /*! \details Create a pipe bound to a file path (Unix domain socket) or a name (Windows named pipe).
+  /*! \brief Create a pipe bound to a file path (Unix domain socket) or a name (Windows named pipe).
       \sa libuv API documentation: [`uv_pipe_init()`](http://docs.libuv.org/en/v1.x/pipe.html#c.uv_pipe_init),
                                    [`uv_pipe_bind()`](http://docs.libuv.org/en/v1.x/pipe.html#c.uv_pipe_bind). */
   pipe(uv::loop _loop, const char* _name, bool _ipc = false)
@@ -280,7 +283,7 @@ public: /*constructors*/
     if (uv_status(::uv_pipe_init(static_cast< uv::loop::uv_t* >(_loop), static_cast< uv_t* >(uv_handle), _ipc)) != 0)  return;
     uv_status(::uv_pipe_bind(static_cast< uv_t* >(uv_handle), _name));
   }
-  /*! \details Create a pipe object from an existing OS native pipe descriptor.
+  /*! \brief Create a pipe object from an existing OS native pipe descriptor.
       \sa libuv API documentation: [`uv_pipe_open()`](http://docs.libuv.org/en/v1.x/pipe.html#c.uv_pipe_open). */
   pipe(uv::loop _loop, ::uv_file _fd, bool _ipc = false, bool _set_blocking = false)
   {
@@ -323,7 +326,7 @@ public: /*interface*/
   /*! \brief Set the number of pending pipe instances when this pipe server is waiting for connections. (_Windows only_) */
   void pending_instances(int _count) noexcept  { ::uv_pipe_pending_instances(static_cast< uv_t* >(uv_handle), _count); }
 
-  /*! \brief Used in conjunction with `pending_type()`. */
+  /*! \details Used in conjunction with `pending_type()`. */
   int pending_count() const noexcept  { return ::uv_pipe_pending_count(static_cast< uv_t* >(uv_handle)); }
   /*! \details Used to receive handles over IPC pipes.
       \sa libuv API documentation: [`uv_pipe_pending_type()`](http://docs.libuv.org/en/v1.x/pipe.html#c.uv_pipe_pending_type). */
@@ -367,7 +370,7 @@ public: /*constructors*/
   tty(tty&&) noexcept = default;
   tty& operator =(tty&&) noexcept = default;
 
-  /*! \details Create a tty object from the given TTY file descriptor.
+  /*! \brief Create a tty object from the given TTY file descriptor.
       \sa libuv API documentation: [`uv_tty_init()`](http://docs.libuv.org/en/v1.x/tty.html#c.uv_tty_init). */
   tty(uv::loop _loop, ::uv_file _fd, bool _readable, bool _set_blocking = false)
   {
