@@ -145,7 +145,10 @@ public: /*interface*/
   /*! \details Bind the handle to an address and port.
       \sa libuv API documentation: [`uv_udp_bind()`](http://docs.libuv.org/en/v1.x/udp.html#c.uv_udp_bind),
                                    [`uv_udp_flags`](http://docs.libuv.org/en/v1.x/udp.html#c.uv_udp_flags). */
-  template< typename _T_, typename = std::enable_if_t< is_one_of< _T_, ::sockaddr_in, ::sockaddr_in6, ::sockaddr_storage >::value > >
+  template<
+      typename _T_,
+      typename = std::enable_if_t< is_one_of< _T_, ::sockaddr, ::sockaddr_in, ::sockaddr_in6, ::sockaddr_storage >::value >
+  >
   int bind(const _T_ &_sockaddr, unsigned int _flags = 0) noexcept
   {
     return uv_status(::uv_udp_bind(static_cast< uv_t* >(uv_handle), reinterpret_cast< const ::sockaddr* >(&_sockaddr), _flags));
