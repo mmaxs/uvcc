@@ -259,7 +259,7 @@ public: /*interface*/
   const on_request_t& on_request() const noexcept  { return instance::from(uv_req)->request_cb_storage.value(); }
         on_request_t& on_request()       noexcept  { return instance::from(uv_req)->request_cb_storage.value(); }
 
-  /*! \brief The file which this write request is running on.
+  /*! \brief The file which this write request has been running on.
       \details It is guaranteed that it will be a valid instance at least within the request callback. */
   uv::file file() const noexcept  { return uv::file(instance::from(uv_req)->properties().uv_handle); }
   /*! \brief The offset this write request has been performed at. */
@@ -272,7 +272,7 @@ public: /*interface*/
       (and the `_loop` parameter is ignored).
       In this case the function returns a number of bytes written or relevant
       [libuv error constant](http://docs.libuv.org/en/v1.x/errors.html#error-constants).*/
-  int run(uv::file _file, buffer &_buf, int64_t _offset = -1)
+  int run(uv::file _file, const buffer &_buf, int64_t _offset = -1)
   {
     auto instance_ptr = instance::from(uv_req);
 
