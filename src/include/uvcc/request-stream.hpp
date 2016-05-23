@@ -61,7 +61,7 @@ public: /*interface*/
   const on_request_t& on_request() const noexcept  { return instance::from(uv_req)->request_cb_storage.value(); }
         on_request_t& on_request()       noexcept  { return instance::from(uv_req)->request_cb_storage.value(); }
 
-  /*! \brief The stream which this connect request is running on. */
+  /*! \brief The stream which this connect request has been running on. */
   stream handle() const noexcept  { return stream(static_cast< uv_t* >(uv_req)->handle); }
 
   /*! \brief Run the request for `uv::tcp` stream.
@@ -164,7 +164,7 @@ public: /*interface*/
   const on_request_t& on_request() const noexcept  { return instance::from(uv_req)->request_cb_storage.value(); }
         on_request_t& on_request()       noexcept  { return instance::from(uv_req)->request_cb_storage.value(); }
 
-  /*! \brief The stream which this write request is running on. */
+  /*! \brief The stream which this write request has been running on. */
   stream handle() const noexcept  { return stream(static_cast< uv_t* >(uv_req)->handle); }
   /*! \brief The handle of the stream being sent over a pipe using this write request. */
   stream send_handle() const noexcept  { return stream(static_cast< uv_t* >(uv_req)->send_handle); }
@@ -226,7 +226,7 @@ public: /*interface*/
   /*! \details The wrapper for a corresponding libuv function.
       \note It tries to execute and complete immediately and does not call the request callback.
       \sa libuv API documentation: [`uv_try_write()`](http://docs.libuv.org/en/v1.x/stream.html#c.uv_try_write). */
-  int try_write(stream _stream, const buffer _buf)
+  int try_write(stream _stream, const buffer &_buf)
   {
     return uv_status(
         ::uv_try_write(static_cast< stream::uv_t* >(_stream), static_cast< const buffer::uv_t* >(_buf), _buf.count())
@@ -304,7 +304,7 @@ public: /*interface*/
   const on_request_t& on_request() const noexcept  { return instance::from(uv_req)->request_cb_storage.value(); }
         on_request_t& on_request()       noexcept  { return instance::from(uv_req)->request_cb_storage.value(); }
 
-  /*! \brief The stream which this shutdown request is running on. */
+  /*! \brief The stream which this shutdown request has been running on. */
   stream handle() const noexcept  { return stream(static_cast< uv_t* >(uv_req)->handle); }
 
   /*! \brief Run the request. */
