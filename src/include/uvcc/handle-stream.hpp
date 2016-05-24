@@ -218,20 +218,30 @@ public: /*interface*/
   }
 
   /*! \brief Get the local address which this handle is bound to.
+      \returns `true` if the operation has completed successfully (can be checked with `uv_status()`) and
+      the size of the passed argument (i.e. `sizeof(_T_)`) is enough to hold the returned socket address structure.
       \sa libuv API documentation: [`uv_tcp_getsockname()`](http://docs.libuv.org/en/v1.x/tcp.html#c.uv_tcp_getsockname). */
   template< typename _T_, typename = std::enable_if_t< is_one_of< _T_, ::sockaddr_in, ::sockaddr_in6, ::sockaddr_storage >::value > >
-  int getsockname(_T_ &_sockaddr) const noexcept
+  bool getsockname(_T_ &_sockaddr) const noexcept
   {
     int z = sizeof(_T_);
-    return uv_status(::uv_tcp_getsockname(static_cast< uv_t* >(uv_handle), reinterpret_cast< ::sockaddr* >(&_sockaddr), &z));
+    return
+        uv_status(::uv_tcp_getsockname(static_cast< uv_t* >(uv_handle), reinterpret_cast< ::sockaddr* >(&_sockaddr), &z))
+      and
+        sizeof(_T_) >= z;
   }
   /*! \brief Get the address of the remote peer connected to this handle.
+      \returns `true` if the operation has completed successfully (can be checked with `uv_status()`) and
+      the size of the passed argument (i.e. `sizeof(_T_)`) is enough to hold the returned socket address structure.
       \sa libuv API documentation: [`uv_tcp_getpeername()`](http://docs.libuv.org/en/v1.x/tcp.html#c.uv_tcp_getpeername). */
   template< typename _T_, typename = std::enable_if_t< is_one_of< _T_, ::sockaddr_in, ::sockaddr_in6, ::sockaddr_storage >::value > >
-  int getpeername(_T_ &_sockaddr) const noexcept
+  bool getpeername(_T_ &_sockaddr) const noexcept
   {
     int z = sizeof(_T_);
-    return uv_status(::uv_tcp_getpeername(static_cast< uv_t* >(uv_handle), reinterpret_cast< ::sockaddr* >(&_sockaddr), &z));
+    return
+        uv_status(::uv_tcp_getpeername(static_cast< uv_t* >(uv_handle), reinterpret_cast< ::sockaddr* >(&_sockaddr), &z))
+      and
+        sizeof(_T_) >= z;
   }
 
 public: /*conversion operators*/

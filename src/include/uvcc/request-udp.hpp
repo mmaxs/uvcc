@@ -70,11 +70,18 @@ public: /*interface*/
 
   /*! \brief UDP handle where this send request has been taking place. */
   udp handle() const noexcept  { return udp(static_cast< uv_t* >(uv_req)->handle); }
-  /*! \brief Get the address of the remote peer which this request has sent data to. */
+  /*! \brief Get the address of the remote peer which this request has sent data to.
+      \returns `true` if `sizeof(_T_)` is enough to hold the returned socket address structure. */
   template< typename _T_, typename = std::enable_if_t< is_one_of< _T_, ::sockaddr_in, ::sockaddr_in6, ::sockaddr_storage >::value > >
-  int getpeername(_T_ &_sockaddr) const noexcept
+  bool getpeername(_T_ &_sockaddr) const noexcept
   {
-    return 0;
+    _sockaddr = reinterpret_cast< _T_& >(instance::from(uv_req)->properties().peer);
+    switch (reinterpret_cast< ::sockaddr >(_sockaddr).sa_family)
+    {
+      case AF_INET:   return sizeof(_T_) >= sizeof(::sockaddr_in);
+      case AF_INET6:  return sizeof(_T_) >= sizeof(::sockaddr_in6);
+      default:        return sizeof(_T_) == sizeof(::sockaddr_storage);
+    }
   }
 
   /*! \brief Run the request.
