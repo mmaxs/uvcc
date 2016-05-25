@@ -37,13 +37,13 @@ protected: /*types*/
   {
     struct uv_t
     {
-      template< typename _T_, typename = std::size_t > struct substitute  { using type = empty_t; };
+      template< typename _T_, typename = std::size_t > struct substitute  { using type = null_t; };
       template< typename _T_ > struct substitute< _T_, decltype(sizeof(typename _T_::uv_t)) >  { using type = typename _T_::uv_t; };
       using type = typename substitute< _REQUEST_ >::type;
     };
     struct on_request_t
     {
-      template< typename _T_, typename = std::size_t > struct substitute  { using type = null_t; };
+      template< typename _T_, typename = std::size_t > struct substitute  { using type = std::function< void() >; };
       template< typename _T_ > struct substitute< _T_, decltype(sizeof(typename _T_::on_request_t)) >  { using type = typename _T_::on_request_t; };
       using type = typename substitute< _REQUEST_ >::type;
     };
@@ -52,10 +52,10 @@ protected: /*types*/
     mutable int uv_error = 0;
     ref_count refs;
     type_storage< on_destroy_t > destroy_cb_storage;
+    type_storage< typename on_request_t::type > request_cb_storage;  // XXX : ensure this field is of immutable layout size
     aligned_storage< MAX_PROPERTY_SIZE, MAX_PROPERTY_ALIGN > property_storage;
-    alignas(::uv_any_req) typename uv_t::type uv_req_struct = { 0,};  // must be zeroed (some subclasses did rely on this)
-    //* all the fields placed hereafter should be accessed from only the class where the instance has been created *//
-    type_storage< typename on_request_t::type > request_cb_storage;  // this field has a mutable layout size
+    //* all the fields placed before should have immutable layout size across the request class hierarchy *//
+    alignas(::uv_any_req) typename uv_t::type uv_req_struct = { 0,};  // must be zeroed  // some subclasses did rely on this
 
   private: /*constructors*/
     instance()

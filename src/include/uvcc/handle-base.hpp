@@ -72,6 +72,7 @@ protected: /*types*/
     type_storage< on_destroy_t > destroy_cb_storage;
     aligned_storage< MAX_PROPERTY_SIZE, MAX_PROPERTY_ALIGN > property_storage;
     handle::uv_interface *uv_interface_ptr = nullptr;
+    //* all the fields placed before should have immutable layout size across the handle class hierarchy *//
     alignas(static_cast< const int >(
         greatest(alignof(::uv_any_handle), alignof(::uv_fs_t))
     )) typename uv_t::type uv_handle_struct = { 0,};
