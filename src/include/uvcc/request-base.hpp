@@ -6,6 +6,7 @@
 
 #include <uv.h>
 #include <cstddef>      // size_t offsetof
+#include <cstring>      // memset()
 #include <functional>   // function
 #include <type_traits>  // is_standard_layout
 #include <utility>      // forward() swap()
@@ -55,15 +56,17 @@ protected: /*types*/
     type_storage< typename on_request_t::type > request_cb_storage;  // XXX : ensure this field is of immutable layout size
     aligned_storage< MAX_PROPERTY_SIZE, MAX_PROPERTY_ALIGN > property_storage;
     //* all the fields placed before should have immutable layout size across the request class hierarchy *//
-    alignas(::uv_any_req) typename uv_t::type uv_req_struct = { 0,};  // must be zeroed  // some subclasses did rely on this
+    alignas(::uv_any_req) typename uv_t::type uv_req_struct;
 
   private: /*constructors*/
     instance()
     {
+      std::memset(&uv_req_struct, 0, sizeof(uv_req_struct));
       property_storage.reset< typename _REQUEST_::properties >();
     }
     template< typename... _Args_ > instance(_Args_&&... _args)
     {
+      std::memset(&uv_req_struct, 0, sizeof(uv_req_struct));
       property_storage.reset< typename _REQUEST_::properties >(std::forward< _Args_ >(_args)...);
     }
 
