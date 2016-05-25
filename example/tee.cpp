@@ -94,6 +94,7 @@ int main(int _argc, char *_argv[])
             };
           };
           wr.run(out, _buf);
+          if (!wr)  PRINT_UV_ERR("output::run", wr.uv_status());
 
           for (auto &f : files)
           {
