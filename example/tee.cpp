@@ -84,12 +84,12 @@ int main(int _argc, char *_argv[])
         {
           _buf.len() = _nread;
 
-          io::write wr;
-          wr.on_request() = [](io::write _wr, uv::buffer) -> void
+          uv::output wr;
+          wr.on_request() = [](uv::output _wr, uv::buffer) -> void
           {
             if (!_wr)
             {
-              PRINT_UV_ERR("write", _wr.uv_status());
+              PRINT_UV_ERR("output", _wr.uv_status());
               in.read_stop();
             };
           };
