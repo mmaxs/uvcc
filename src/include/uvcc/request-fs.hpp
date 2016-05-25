@@ -143,7 +143,7 @@ public: /*interface*/
 
   /*! \brief The file which this read request is running on.
       \details It is guaranteed that it will be a valid instance at least within the request callback. */
-  uv::file file() const noexcept  { return uv::file(instance::from(uv_req)->properties().uv_handle); }
+  uv::file handle() const noexcept  { return uv::file(instance::from(uv_req)->properties().uv_handle); }
   /*! \brief The offset this read request has been performed at. */
   int64_t offset() const noexcept  { return instance::from(uv_req)->properties().offset; }
 
@@ -261,7 +261,7 @@ public: /*interface*/
 
   /*! \brief The file which this write request has been running on.
       \details It is guaranteed that it will be a valid instance at least within the request callback. */
-  uv::file file() const noexcept  { return uv::file(instance::from(uv_req)->properties().uv_handle); }
+  uv::file handle() const noexcept  { return uv::file(instance::from(uv_req)->properties().uv_handle); }
   /*! \brief The offset this write request has been performed at. */
   int64_t offset() const noexcept  { return instance::from(uv_req)->properties().offset; }
 
