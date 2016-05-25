@@ -316,8 +316,11 @@ public: /*interface*/
     std::size_t len = 108;
 #endif
     std::string name(len, '\0');
-    while ( uv_status(::uv_pipe_getsockname(static_cast< uv_t* >(uv_handle), const_cast< char* >(name.c_str()), &len)) != 0 and uv_status() == UV_ENOBUFS )
-        name.resize(len, '\0');
+    while (
+        uv_status(::uv_pipe_getsockname(static_cast< uv_t* >(uv_handle), const_cast< char* >(name.c_str()), &len)) != 0
+      and
+        uv_status() == UV_ENOBUFS
+    )  name.resize(len, '\0');
     return name;
   }
   /*! \brief Get the name of the Unix domain socket or the Windows named pipe which this pipe object is connected to. */
@@ -329,8 +332,11 @@ public: /*interface*/
     std::size_t len = 108;
 #endif
     std::string name(len, '\0');
-    while ( uv_status(::uv_pipe_getpeername(static_cast< uv_t* >(uv_handle), const_cast< char* >(name.c_str()), &len)) != 0 and uv_status() == UV_ENOBUFS )
-        name.resize(len, '\0');
+    while (
+        uv_status(::uv_pipe_getpeername(static_cast< uv_t* >(uv_handle), const_cast< char* >(name.c_str()), &len)) != 0
+      and
+        uv_status() == UV_ENOBUFS
+    )  name.resize(len, '\0');
     return name;
   }
   /*! \brief Set the number of pending pipe instances when this pipe server is waiting for connections. (_Windows only_) */

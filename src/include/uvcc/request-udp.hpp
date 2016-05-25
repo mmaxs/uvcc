@@ -68,8 +68,9 @@ public: /*interface*/
   const on_request_t& on_request() const noexcept  { return instance::from(uv_req)->request_cb_storage.value(); }
         on_request_t& on_request()       noexcept  { return instance::from(uv_req)->request_cb_storage.value(); }
 
-  /*! \brief UDP handle where this send request has been taking place. */
+  /*! \brief The UDP handle where this send request has been taking place. */
   udp handle() const noexcept  { return udp(static_cast< uv_t* >(uv_req)->handle); }
+
   /*! \brief Get the address of the remote peer which this request has sent data to.
       \returns `true` if `sizeof(_T_)` is enough to hold the returned socket address structure. */
   template< typename _T_, typename = std::enable_if_t< is_one_of< _T_, ::sockaddr_in, ::sockaddr_in6, ::sockaddr_storage >::value > >
