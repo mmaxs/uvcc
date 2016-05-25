@@ -47,13 +47,13 @@ private: /*types*/
   template< class _T_, typename... _Args_ >
   struct has_run_method
   {
-    template< typename _U_, typename = void >
-    struct test  { static constexpr const bool value = false; };
+    template< typename _U_, typename = int >
+    struct test
+    { static constexpr const bool value = false; };
     template< typename _U_ >
-    struct test<
-        _U_,
-        decltype(std::declval< _U_ >().run(std::declval< _Args_ >()...))
-    >  { static constexpr const bool value = true; };
+    struct test< _U_, decltype(std::declval< _U_ >().run(std::declval< _Args_&& >()...)) >
+    { static constexpr const bool value = true; };
+
     static constexpr const bool value = test< _T_ >::value;
   };
 
@@ -66,49 +66,35 @@ private: /*constructors*/
 
 private: /*functions*/
   template< typename... _Args_ >
-    std::enable_if_t< has_run_method< write, _Args_... >::value, int >
-    run(pipe &_io, const buffer &_buf, _Args_&&... _args)
-    { return reinterpret_cast< write* >(this)->run(_io, _buf, std::forward< _Args_ >(_args)...); }
-  template< typename... _Args_ >
-    int
-    run(pipe &_io, const buffer &_buf, _Args_&&... _args)
-    { return UV_EINVAL; }
+  std::enable_if_t< has_run_method< write, pipe, const buffer&, _Args_&&... >::value, int >
+  run_(pipe &_io, const buffer &_buf, _Args_&&... _args)
+  { return reinterpret_cast< write* >(this)->run(_io, _buf, std::forward< _Args_ >(_args)...); }
 
   template< typename... _Args_ >
-    std::enable_if_t< has_run_method< write, _Args_... >::value, int >
-    run(tcp &_io, const buffer &_buf, _Args_&&... _args)
-    { return reinterpret_cast< write* >(this)->run(_io, _buf, std::forward< _Args_ >(_args)...); }
-  template< typename... _Args_ >
-    int
-    run(tcp &_io, const buffer &_buf, _Args_&&... _args)
-    { return UV_EINVAL; }
+  std::enable_if_t< has_run_method< write, tcp, const buffer&, _Args_&&... >::value, int >
+  run(tcp &_io, const buffer &_buf, _Args_&&... _args)
+  { return reinterpret_cast< write* >(this)->run(_io, _buf, std::forward< _Args_ >(_args)...); }
 
   template< typename... _Args_ >
-    std::enable_if_t< has_run_method< write, _Args_... >::value, int >
-    run(tty &_io, const buffer &_buf, _Args_&&... _args)
-    { return reinterpret_cast< write* >(this)->run(_io, _buf, std::forward< _Args_ >(_args)...); }
-  template< typename... _Args_ >
-    int
-    run(tty &_io, const buffer &_buf, _Args_&&... _args)
-    { return UV_EINVAL; }
+  std::enable_if_t< has_run_method< write, tty, const buffer&, _Args_&&... >::value, int >
+  run(tty &_io, const buffer &_buf, _Args_&&... _args)
+  { return reinterpret_cast< write* >(this)->run(_io, _buf, std::forward< _Args_ >(_args)...); }
 
   template< typename... _Args_ >
-    std::enable_if_t< has_run_method< udp_send, _Args_... >::value, int >
-    run(udp &_io, const buffer &_buf, _Args_&&... _args)
-    { return reinterpret_cast< udp_send* >(this)->run(_io, _buf, std::forward< _Args_ >(_args)...); }
-  template< typename... _Args_ >
-    int
-    run(udp &_io, const buffer &_buf, _Args_&&... _args)
-    { return UV_EINVAL; }
+  std::enable_if_t< has_run_method< udp_send, udp, const buffer&, _Args_&&... >::value, int >
+  run(udp &_io, const buffer &_buf, _Args_&&... _args)
+  { return reinterpret_cast< udp_send* >(this)->run(_io, _buf, std::forward< _Args_ >(_args)...); }
 
   template< typename... _Args_ >
-    std::enable_if_t< has_run_method< fs::write, _Args_... >::value, int >
-    run(file &_io, const buffer &_buf, _Args_&&... _args)
-    { return reinterpret_cast< fs::write* >(this)->run(_io, _buf, std::forward< _Args_ >(_args)...); }
-  template< typename... _Args_ >
-    int
-    run(file &_io, const buffer &_buf, _Args_&&... _args)
-    { return UV_EINVAL; }
+  std::enable_if_t< has_run_method< fs::write, file, const buffer&, _Args_&&... >::value, int >
+  run(file &_io, const buffer &_buf, _Args_&&... _args)
+  { return reinterpret_cast< fs::write* >(this)->run(_io, _buf, std::forward< _Args_ >(_args)...); }
+
+  template< typename... _Args_ > int run_(_Args_&&... _args)
+  {
+    // static_assert(false, "no matching function for call");
+    return uv_status(UV_EINVAL);
+  }
 
 public: /*constructors*/
   ~output() = default;
@@ -149,17 +135,17 @@ public: /*interface*/
     switch (_io.type())
     {
     case UV_NAMED_PIPE:
-        return run(static_cast< pipe& >(_io), _buf, std::forward< _Args_ >(_args)...);
+        return run_(static_cast< pipe& >(_io), _buf, std::forward< _Args_ >(_args)...);
     case UV_TCP:
-        return run(static_cast< tcp& >(_io), _buf, std::forward< _Args_ >(_args)...);
+        return run_(static_cast< tcp& >(_io), _buf, std::forward< _Args_ >(_args)...);
     case UV_TTY:
-        return run(static_cast< tty& >(_io), _buf, std::forward< _Args_ >(_args)...);
+        return run_(static_cast< tty& >(_io), _buf, std::forward< _Args_ >(_args)...);
     case UV_UDP:
-        return run(static_cast< udp& >(_io), _buf, std::forward< _Args_ >(_args)...);
+        return run_(static_cast< udp& >(_io), _buf, std::forward< _Args_ >(_args)...);
     case UV_FILE:
-        return run(static_cast< file& >(_io), _buf, std::forward< _Args_ >(_args)...);
+        return run_(static_cast< file& >(_io), _buf, std::forward< _Args_ >(_args)...);
     default:
-        return UV_EBADF;
+        return uv_status(UV_EBADF);
     }
   }
 
