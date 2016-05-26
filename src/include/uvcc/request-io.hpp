@@ -22,7 +22,11 @@ namespace uv
 
 /*! \ingroup doxy_group_request
     \brief Generic write/send request type for I/O endpoints (files, TCP/UDP sockets, pipes, TTYs).
-    \details Virtually it appears to be a one of the request: `uv::fs::write`, or `uv::write`, or `uv::udp_send`
+    \details Virtually it appears to be a one of the request:
+    - `uv::fs::write`
+    - `uv::write`
+    - `uv::udp_send`
+    .
     depending on the actual type of the `io` argument passed to the `run()` member function. */
 class output : public request
 {
@@ -125,7 +129,17 @@ public: /*interface*/
   }
 
   /*! \brief Run the request
-      \sa `uv::fs::write::run()`, `uv::write::run()`, `uv::udp_send::run()` */
+      \details Depending on the actual object type of the `_io` argument the call should conform to the one of
+      the signatures of the _request_`::run()` functions available for the corresponding write/send _request_
+      for that object, i.e.:
+      - `uv::fs::write::run()`, or
+      - `uv::write::run()`, or
+      - `uv::udp_send::run()`.
+      .
+      A proper _request_`::run()` function is deduced for any `io` subclasses and the corresponding _request_ at
+      compile time. If that deduction fails, the function returns `UV_EINVAL` status at run time. To prevent this
+      the user code should take care that the arguments being passed would match the _request_`::run()` available
+      signatures according to the actual `_io` object type gotten at run time. */
   template< typename... _Args_ > int run(io _io, const buffer &_buf, _Args_&&... _args)
   {
     switch (_io.type())
