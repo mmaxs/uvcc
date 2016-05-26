@@ -148,11 +148,12 @@ public: /*constructors*/
       ``` */
   buffer() : uv_buf(instance::create())  {}
 
-  /*! \brief Create an array of `uv_buf_t` effectively initialized buffer structures.
-      \details Each structure in the array is effectively initialized with an allocated memory chunk
-      of the specified length. The number of structures in array is equal to the number of elements
-      in the initializer list. The value of the `.len` field and the length of the each allocated
-      chunk pointed by the `.base` field is equal to the corresponding value from the initializer list.
+  /*! \brief Create an array of initialized `uv_buf_t` buffer describing structures.
+      \details Each `uv_buf_t` structure in the array is effectively initialized with an allocated
+      memory chunk of the specified length. The number of structures in the array is equal to the
+      number of elements in the initializer list. The value of the `.len` field and the length of
+      the each allocated chunk pointed by the `.base` field is equal to the corresponding value
+      from the initializer list.
 
       All chunks are located seamlessly one after the next within a single continuous memory block.
       Therefore the `.base` field of the next buffer just points to the byte following the end
@@ -163,7 +164,7 @@ public: /*constructors*/
       Instead it keeps pointing inside the continuous memory block and is considered as a zero-length chunk.
 
       All of the initializing values being zeros results in creating an array of _null-initialized_
-      `uv_buf_t` buffer structures. */
+      `uv_buf_t` structures. */
   explicit buffer(const std::initializer_list< std::size_t > &_len_values) : uv_buf(instance::create(_len_values))  {}
 
   buffer(const buffer &_that) : buffer(_that.uv_buf)  {}

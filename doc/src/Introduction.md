@@ -179,16 +179,16 @@ These libuv functions can be directly applied to uvcc handle objects
 uvcc sources are accompanied with several illustrative example programs the source code of which can be found in the
 /example subdirectory.
 
-* \subpage doxy_page_example_lxjs2012 "lxjs2012-demo" - an example used by Bert Belder at LXJS 2012 to demonstrate the libuv basics. \n
-                               It shows how uvcc simplifies the code.
+* \subpage doxy_page_example_lxjs2012 "lxjs2012-demo" - an example used by Bert Belder at LXJS 2012 to demonstrate the libuv basics.\n
+                                      It shows how uvcc simplifies the code.
 
-* \subpage doxy_page_example_cpio "cpio" - a simple program that copies its `stdin` to `stdout`. \n
-                           It shows some essential points that one comes across with when beginning to develop
-                           programs using libuv and how uvcc address them.
+* \subpage doxy_page_example_cpio "cpio" - a simple program that copies its `stdin` to `stdout`.\n
+                                  It shows some essential points that one comes across with when beginning to develop
+                                  programs using libuv and how uvcc address them.
 
-* \subpage doxy_page_example_tee  "tee" - a simple program that copies its `stdin` to `stdout` and also to each file specified as a program argument. \n
-                           It demonstrates simple versions of the buffer and request pools that can avoid intense memory allocation requests
-                           and some side effects of the C/C++ memory allocator appearing thereat.
+* \subpage doxy_page_example_tee "tee" - a program that copies its `stdin` to `stdout` and also to each file specified as a program argument.\n
+                                 It demonstrates uvcc features and simple version of the buffer pool that can avoid intense memory
+                                 allocation requests.
 
 
 \page doxy_page_example_lxjs2012 lxjs2012-demo
@@ -258,18 +258,24 @@ The following is the above program being rewritten using uvcc. All the considere
 
 \page doxy_page_example_tee tee
 
-A simple program that copies its `stdin` to `stdout` and also to each file specified as a program argument.
+A full-fledged simple program that copies its `stdin` to `stdout` and also to each file specified as a program argument.
 
-It demonstrates two points: 1) the very same uvcc buffer can be easily dispatched to different asynchronous operations and its lifetime
-will continue until the last operation has completed, and 2) the example for a simple version of the buffer and request pool implementation.
+It demonstrates the following points:
 
-Pools help avoid intense memory allocation requests.
+1. Different I/O endpoints and common input/output operations for them can be handled in a generic uniform manner.
+The program can deal with `stdin`, `stdout` handles that can be system descriptors of any sort of supported I/O endpoints:
+a file, TCP/UDP socket, pipe, or TTY. Minimal changes need to be made in source code to get a full-fledged application.
+
+2. The very same uvcc buffer can be easily dispatched to several asynchronous operations and its lifetime
+will continue until the last operation has completed.
+
+3. An example for a simple version of the buffer pool implementation.
+The pool helps avoid intense memory allocation requests. Note that it may actually decrease the performance.
 The provided simple implementation is an auto-growing pool that is not thread-safe, so either only one dedicated thread might acquire an item
 from the pool in multi-thread environment or such acquire requests from different threads shall not interleave with each other.
+As far as this program is a typical single-thread libuv application these requirements are fulfilled.
 The condition of item's `(nrefs() == 1)` indicates that no more references are left anywhere at the runtime other than in the pool
 container itself and thus this spare item can be returned on an acquire request.
-As far as this program is a typical single-thread libuv application these conditions are fulfilled.
-
 
 In debug build some diagnostic messages are printed out.
 
