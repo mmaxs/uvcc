@@ -44,14 +44,14 @@ public: /*types*/
 private: /*types*/
   using instance = request::instance< output >;
 
-  template< class _T_, typename... _Args_ >
+  template< class _T_, typename _Res_, typename... _Args_ >
   struct has_run_method
   {
-    template< typename _U_, typename = int >
+    template< typename _U_, typename = _Res_ >
     struct test
     { static constexpr const bool value = false; };
     template< typename _U_ >
-    struct test< _U_, decltype(std::declval< _U_ >().run(std::declval< _Args_&& >()...)) >
+    struct test< _U_, decltype(std::declval< _U_ >().run(std::declval< _Args_ >()...)) >
     { static constexpr const bool value = true; };
 
     static constexpr const bool value = test< _T_ >::value;
@@ -66,35 +66,31 @@ private: /*constructors*/
 
 private: /*functions*/
   template< typename... _Args_ >
-  std::enable_if_t< has_run_method< write, pipe, const buffer&, _Args_&&... >::value, int >
+  std::enable_if_t< has_run_method< write, int, pipe, const buffer&, _Args_... >::value, int >
   run_(pipe &_io, const buffer &_buf, _Args_&&... _args)
   { return reinterpret_cast< write* >(this)->run(_io, _buf, std::forward< _Args_ >(_args)...); }
 
   template< typename... _Args_ >
-  std::enable_if_t< has_run_method< write, tcp, const buffer&, _Args_&&... >::value, int >
-  run(tcp &_io, const buffer &_buf, _Args_&&... _args)
+  std::enable_if_t< has_run_method< write, int, tcp, const buffer&, _Args_... >::value, int >
+  run_(tcp &_io, const buffer &_buf, _Args_&&... _args)
   { return reinterpret_cast< write* >(this)->run(_io, _buf, std::forward< _Args_ >(_args)...); }
 
   template< typename... _Args_ >
-  std::enable_if_t< has_run_method< write, tty, const buffer&, _Args_&&... >::value, int >
-  run(tty &_io, const buffer &_buf, _Args_&&... _args)
+  std::enable_if_t< has_run_method< write, int, tty, const buffer&, _Args_... >::value, int >
+  run_(tty &_io, const buffer &_buf, _Args_&&... _args)
   { return reinterpret_cast< write* >(this)->run(_io, _buf, std::forward< _Args_ >(_args)...); }
 
   template< typename... _Args_ >
-  std::enable_if_t< has_run_method< udp_send, udp, const buffer&, _Args_&&... >::value, int >
-  run(udp &_io, const buffer &_buf, _Args_&&... _args)
+  std::enable_if_t< has_run_method< udp_send, int, udp, const buffer&, _Args_... >::value, int >
+  run_(udp &_io, const buffer &_buf, _Args_&&... _args)
   { return reinterpret_cast< udp_send* >(this)->run(_io, _buf, std::forward< _Args_ >(_args)...); }
 
   template< typename... _Args_ >
-  std::enable_if_t< has_run_method< fs::write, file, const buffer&, _Args_&&... >::value, int >
-  run(file &_io, const buffer &_buf, _Args_&&... _args)
+  std::enable_if_t< has_run_method< fs::write, int, file, const buffer&, _Args_... >::value, int >
+  run_(file &_io, const buffer &_buf, _Args_&&... _args)
   { return reinterpret_cast< fs::write* >(this)->run(_io, _buf, std::forward< _Args_ >(_args)...); }
 
-  template< typename... _Args_ > int run_(_Args_&&... _args)
-  {
-    // static_assert(false, "no matching function for call");
-    return uv_status(UV_EINVAL);
-  }
+  template< typename... _Args_ > int run_(_Args_&&... _args)  { return uv_status(UV_EINVAL); }
 
 public: /*constructors*/
   ~output() = default;
@@ -150,14 +146,14 @@ public: /*interface*/
   }
 
 public: /*conversion operators*/
-  explicit operator const fs::write() const noexcept  { return *reinterpret_cast< const fs::write* >(this); }
-  explicit operator       fs::write()       noexcept  { return *reinterpret_cast<       fs::write* >(this); }
+  explicit operator const fs::write&() const noexcept  { return *reinterpret_cast< const fs::write* >(this); }
+  explicit operator       fs::write&()       noexcept  { return *reinterpret_cast<       fs::write* >(this); }
 
-  explicit operator const write() const noexcept  { return *reinterpret_cast< const write* >(this); }
-  explicit operator       write()       noexcept  { return *reinterpret_cast<       write* >(this); }
+  explicit operator const write&() const noexcept  { return *reinterpret_cast< const write* >(this); }
+  explicit operator       write&()       noexcept  { return *reinterpret_cast<       write* >(this); }
 
-  explicit operator const udp_send() const noexcept  { return *reinterpret_cast< const udp_send* >(this); }
-  explicit operator       udp_send()       noexcept  { return *reinterpret_cast<       udp_send* >(this); }
+  explicit operator const udp_send&() const noexcept  { return *reinterpret_cast< const udp_send* >(this); }
+  explicit operator       udp_send&()       noexcept  { return *reinterpret_cast<       udp_send* >(this); }
 };
 
 
