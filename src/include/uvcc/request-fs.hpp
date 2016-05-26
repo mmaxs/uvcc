@@ -108,7 +108,7 @@ protected: /*types*/
   //! \cond
   struct properties
   {
-    uv::file::uv_t *uv_handle = nullptr;
+    file::uv_t *uv_handle = nullptr;
     buffer::uv_t *uv_buf = nullptr;
     int64_t offset = -1;
   };
@@ -143,7 +143,7 @@ public: /*interface*/
 
   /*! \brief The file which this read request is running on.
       \details It is guaranteed that it will be a valid instance at least within the request callback. */
-  uv::file handle() const noexcept  { return uv::file(instance::from(uv_req)->properties().uv_handle); }
+  file handle() const noexcept  { return file(instance::from(uv_req)->properties().uv_handle); }
 
   /*! \brief The offset this read request has been performed at. */
   int64_t offset() const noexcept  { return instance::from(uv_req)->properties().offset; }
@@ -155,7 +155,7 @@ public: /*interface*/
       (and the `_loop` parameter is ignored).
       In this case the function returns a number of bytes read or relevant
       [libuv error constant](http://docs.libuv.org/en/v1.x/errors.html#error-constants).*/
-  int run(uv::file _file, buffer &_buf, int64_t _offset = -1)
+  int run(file _file, buffer &_buf, int64_t _offset = -1)
   {
     auto instance_ptr = instance::from(uv_req);
 
@@ -177,7 +177,7 @@ public: /*interface*/
 
     uv_status(0);
     int ret = ::uv_fs_read(
-        static_cast< uv::file::uv_t* >(_file)->loop, static_cast< uv_t* >(uv_req),
+        static_cast< file::uv_t* >(_file)->loop, static_cast< uv_t* >(uv_req),
         _file.fd(),
         static_cast< const buffer::uv_t* >(_buf), _buf.count(),
         _offset,
@@ -227,7 +227,7 @@ protected: /*types*/
   //! \cond
   struct properties
   {
-    uv::file::uv_t *uv_handle = nullptr;
+    file::uv_t *uv_handle = nullptr;
     buffer::uv_t *uv_buf = nullptr;
     int64_t offset = -1;
   };
@@ -262,7 +262,7 @@ public: /*interface*/
 
   /*! \brief The file which this write request has been running on.
       \details It is guaranteed that it will be a valid instance at least within the request callback. */
-  uv::file handle() const noexcept  { return uv::file(instance::from(uv_req)->properties().uv_handle); }
+  file handle() const noexcept  { return file(instance::from(uv_req)->properties().uv_handle); }
 
   /*! \brief The offset this write request has been performed at. */
   int64_t offset() const noexcept  { return instance::from(uv_req)->properties().offset; }
@@ -274,7 +274,7 @@ public: /*interface*/
       (and the `_loop` parameter is ignored).
       In this case the function returns a number of bytes written or relevant
       [libuv error constant](http://docs.libuv.org/en/v1.x/errors.html#error-constants).*/
-  int run(uv::file _file, const buffer &_buf, int64_t _offset = -1)
+  int run(file _file, const buffer &_buf, int64_t _offset = -1)
   {
     auto instance_ptr = instance::from(uv_req);
 
@@ -300,7 +300,7 @@ public: /*interface*/
 
     uv_status(0);
     int ret = ::uv_fs_write(
-        static_cast< uv::file::uv_t* >(_file)->loop, static_cast< uv_t* >(uv_req),
+        static_cast< file::uv_t* >(_file)->loop, static_cast< uv_t* >(uv_req),
         _file.fd(),
         static_cast< const buffer::uv_t* >(_buf), _buf.count(),
         _offset,
