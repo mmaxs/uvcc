@@ -54,7 +54,7 @@ public: /*types*/
 
 protected: /*types*/
   //! \cond
-  enum class rdcmd  { NOP, STOP, START, PAUSE };
+  enum class rdcmd  { NOP, STOP, START, CONTINUE, PAUSE };
 
   struct properties
   {
@@ -182,14 +182,15 @@ public: /*interface*/
     {
     case rdcmd::NOP:
     case rdcmd::STOP:
-        properties.rdcmd_state = rdcmd::START;
         break;
     case rdcmd::START:
+    case rdcmd::CONTINUE:
     case rdcmd::PAUSE:
         uv_status(instance_ptr->uv_interface()->read_stop(uv_handle));
         instance_ptr->unref();  // release the excess reference from the repeated read_start()
         break;
     }
+    properties.rdcmd_state = rdcmd::START;
 
     if (_alloc_cb)  properties.alloc_cb = _alloc_cb;
     if (_read_cb)  properties.read_cb = _read_cb;
@@ -227,14 +228,15 @@ public: /*interface*/
     {
     case rdcmd::NOP:
     case rdcmd::STOP:
-        properties.rdcmd_state = rdcmd::START;
         break;
     case rdcmd::START:
+    case rdcmd::CONTINUE:
     case rdcmd::PAUSE:
         uv_status(instance_ptr->uv_interface()->read_stop(uv_handle));
         instance_ptr->unref();
         break;
     }
+    properties.rdcmd_state = rdcmd::START;
 
     properties.rdsize = _size;
 
@@ -269,6 +271,7 @@ public: /*interface*/
     case rdcmd::STOP:
         break;
     case rdcmd::START:
+    case rdcmd::CONTINUE:
     case rdcmd::PAUSE:
         properties.rdcmd_state = rdcmd::STOP;
         instance_ptr->unref();  // release the reference from read_start()
@@ -278,6 +281,30 @@ public: /*interface*/
     properties.rdsize = 0;
 
     return ret;
+  }
+
+  int read_pause(bool _toggle_switch) const
+  {
+    auto instance_ptr = instance::from(uv_handle);
+    auto &properties = instance_ptr->properties();
+
+    std::lock_guard< decltype(properties.rdstate_switch) > lk(properties.rdstate_switch);
+
+    switch (properties.rdcmd_state)
+    {
+    case rdcmd::NOP:
+    case rdcmd::STOP:
+        break;
+    case rdcmd::START:
+    case rdcmd::CONTINUE:
+        if (_toggle_switch)  properties.rdcmd_state = rdcmd::PAUSE;
+        break;
+    case rdcmd::PAUSE:
+        if (!_toggle_switch)  properties.rdcmd_state = rdcmd::CONTINUE;
+        break;
+    }
+
+    return 0;
   }
 
   /*! \brief Create an `io` handle object which actual type is derived from an existing file descriptor.

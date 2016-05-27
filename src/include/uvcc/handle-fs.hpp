@@ -210,6 +210,7 @@ void file::read_cb(::uv_fs_t *_uv_req)
   case rdcmd::STOP:
       break;
   case rdcmd::START:
+  case rdcmd::CONTINUE:
       {
         if (properties.rd.offset >= 0 and nread > 0)  properties.rd.offset += nread;
 
