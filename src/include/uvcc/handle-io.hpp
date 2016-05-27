@@ -252,7 +252,7 @@ public: /*interface*/
       - Unicies: pipe, tty, file, tcp/udp socket
       .
       \sa [`uv_guess_handle()`](http://docs.libuv.org/en/v1.x/misc.html#c.uv_guess_handle). */
-  static io guess_handle(uv::loop, ::uv_file);
+  static io guess_handle(uv::loop&, ::uv_file);
 
 public: /*conversion operators*/
   explicit operator const uv_t*() const noexcept  { return static_cast< const uv_t* >(uv_handle); }
@@ -272,7 +272,7 @@ namespace uv
 {
 
 
-inline io io::guess_handle(uv::loop _loop, ::uv_file _fd)
+inline io io::guess_handle(uv::loop &_loop, ::uv_file _fd)
 {
   io ret;
 

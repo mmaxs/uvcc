@@ -90,7 +90,7 @@ public: /*constructors*/
       The file descriptor will be closed automatically when the file handle reference count has became zero. */
   //! \{
   /*! \brief Open and possibly create a file _synchronously_. */
-  file(uv::loop _loop, const char *_path, int _flags, int _mode)
+  file(uv::loop &_loop, const char *_path, int _flags, int _mode)
   {
     uv_handle = instance::create();
     uv_status(::uv_fs_open(
@@ -101,7 +101,7 @@ public: /*constructors*/
   }
   /*! \brief Open and possibly create a file _asynchronously_.
       \note If the `_open_cb` callback is empty the operation is completed _synchronously_. */
-  file(uv::loop _loop, const char *_path, int _flags, int _mode, const on_open_t &_open_cb)
+  file(uv::loop &_loop, const char *_path, int _flags, int _mode, const on_open_t &_open_cb)
   {
     if (!_open_cb)
     {
@@ -123,7 +123,7 @@ public: /*constructors*/
     if (!ret)  uv_status(ret);
   }
   /*! \brief Create a file object from an existing file descriptor. */
-  file(uv::loop _loop, ::uv_file _fd)
+  file(uv::loop &_loop, ::uv_file _fd)
   {
     uv_handle = instance::create();
     static_cast< uv_t* >(uv_handle)->loop = static_cast< uv::loop::uv_t* >(_loop);

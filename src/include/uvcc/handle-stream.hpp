@@ -177,7 +177,7 @@ public: /*constructors*/
       \note With `AF_UNSPEC` flag no socket is actually created on the system.
       \sa libuv API documentation: [`uv_tcp_init_ex()`](http://docs.libuv.org/en/v1.x/tcp.html#c.uv_tcp_init_ex).
       \sa libuv enhancement proposals: <https://github.com/libuv/leps/blob/master/003-create-sockets-early.md>. */
-  tcp(uv::loop _loop, unsigned int _flags = AF_UNSPEC)
+  tcp(uv::loop &_loop, unsigned int _flags = AF_UNSPEC)
   {
     uv_handle = instance::create();
     uv_status(::uv_tcp_init_ex(static_cast< uv::loop::uv_t* >(_loop), static_cast< uv_t* >(uv_handle), _flags));
@@ -185,7 +185,7 @@ public: /*constructors*/
   /*! \brief Create a handle object from an existing native platform depended TCP socket descriptor.
       \sa libuv API documentation: [`uv_tcp_open()`](http://docs.libuv.org/en/v1.x/tcp.html#c.uv_tcp_open),
                                    [`uv_tcp_init()`](http://docs.libuv.org/en/v1.x/tcp.html#c.uv_tcp_init). */
-  tcp(uv::loop _loop, ::uv_os_sock_t _socket, bool _set_blocking)
+  tcp(uv::loop &_loop, ::uv_os_sock_t _socket, bool _set_blocking)
   {
     uv_handle = instance::create();
     if (uv_status(::uv_tcp_init(static_cast< uv::loop::uv_t* >(_loop), static_cast< uv_t* >(uv_handle))) != 0)  return;
@@ -287,7 +287,7 @@ public: /*constructors*/
   /*! \brief Create a pipe bound to a file path (Unix domain socket) or a name (Windows named pipe).
       \sa libuv API documentation: [`uv_pipe_init()`](http://docs.libuv.org/en/v1.x/pipe.html#c.uv_pipe_init),
                                    [`uv_pipe_bind()`](http://docs.libuv.org/en/v1.x/pipe.html#c.uv_pipe_bind). */
-  pipe(uv::loop _loop, const char* _name, bool _ipc = false)
+  pipe(uv::loop &_loop, const char* _name, bool _ipc = false)
   {
     uv_handle = instance::create();
     if (uv_status(::uv_pipe_init(static_cast< uv::loop::uv_t* >(_loop), static_cast< uv_t* >(uv_handle), _ipc)) != 0)  return;
@@ -295,7 +295,7 @@ public: /*constructors*/
   }
   /*! \brief Create a pipe object from an existing OS native pipe descriptor.
       \sa libuv API documentation: [`uv_pipe_open()`](http://docs.libuv.org/en/v1.x/pipe.html#c.uv_pipe_open). */
-  pipe(uv::loop _loop, ::uv_file _fd, bool _ipc = false, bool _set_blocking = false)
+  pipe(uv::loop &_loop, ::uv_file _fd, bool _ipc = false, bool _set_blocking = false)
   {
     uv_handle = instance::create();
     if (uv_status(::uv_pipe_init(static_cast< uv::loop::uv_t* >(_loop), static_cast< uv_t* >(uv_handle), _ipc)) != 0)  return;
@@ -388,7 +388,7 @@ public: /*constructors*/
 
   /*! \brief Create a tty object from the given TTY file descriptor.
       \sa libuv API documentation: [`uv_tty_init()`](http://docs.libuv.org/en/v1.x/tty.html#c.uv_tty_init). */
-  tty(uv::loop _loop, ::uv_file _fd, bool _readable, bool _set_blocking = false)
+  tty(uv::loop &_loop, ::uv_file _fd, bool _readable, bool _set_blocking = false)
   {
     uv_handle = instance::create();
     if (uv_status(::uv_tty_init(static_cast< uv::loop::uv_t* >(_loop), static_cast< uv_t* >(uv_handle), _fd, _readable)) != 0)  return;

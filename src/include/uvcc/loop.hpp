@@ -156,7 +156,7 @@ public: /*interface*/
       [`uv_default_loop()`](http://docs.libuv.org/en/v1.x/loop.html#c.uv_default_loop)
       to create, initialize, and get the default loop instance as far as that one is just an ordinary loop
       instance stored in the global static variable. */
-  static loop Default() noexcept
+  static loop& Default() noexcept
   {
     static loop default_loop;
     return default_loop;

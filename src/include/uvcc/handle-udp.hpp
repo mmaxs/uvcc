@@ -84,7 +84,7 @@ public: /*constructors*/
       \note With `AF_UNSPEC` flag no socket is actually created on the system.
       \sa libuv API documentation: [`uv_udp_init_ex()`](http://docs.libuv.org/en/v1.x/udp.html#c.uv_udp_init_ex).
       \sa libuv enhancement proposals: <https://github.com/libuv/leps/blob/master/003-create-sockets-early.md>. */
-  udp(uv::loop _loop, unsigned int _flags = AF_UNSPEC)
+  udp(uv::loop &_loop, unsigned int _flags = AF_UNSPEC)
   {
     uv_handle = instance::create();
     uv_status(::uv_udp_init_ex(static_cast< uv::loop::uv_t* >(_loop), static_cast< uv_t* >(uv_handle), _flags));
@@ -92,7 +92,7 @@ public: /*constructors*/
   /*! \details Create a handle object from an existing native platform depended datagram socket descriptor.
       \sa libuv API documentation: [`uv_udp_open()`](http://docs.libuv.org/en/v1.x/udp.html#c.uv_udp_open),
                                    [`uv_udp_init()`](http://docs.libuv.org/en/v1.x/udp.html#c.uv_udp_init). */
-  udp(uv::loop _loop, ::uv_os_sock_t _socket)
+  udp(uv::loop &_loop, ::uv_os_sock_t _socket)
   {
     uv_handle = instance::create();
     if (uv_status(::uv_udp_init(static_cast< uv::loop::uv_t* >(_loop), static_cast< uv_t* >(uv_handle))) != 0)  return;

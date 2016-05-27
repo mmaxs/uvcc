@@ -8,7 +8,6 @@
 
 #include <uv.h>
 #include <functional>   // function
-#include <utility>      // move()
 #include <type_traits>  // enable_if_t
 
 
@@ -68,7 +67,7 @@ public: /*constructors*/
 private: /*functions*/
   template< typename = void > static void getaddrinfo_cb(::uv_getaddrinfo_t*, int, ::addrinfo*);
 
-  int run_(uv::loop _loop, const char *_hostname, const char *_service, const ::addrinfo *_hints)
+  int run_(uv::loop &_loop, const char *_hostname, const char *_service, const ::addrinfo *_hints)
   {
     auto instance_ptr = instance::from(uv_req);
 
@@ -103,14 +102,14 @@ public: /*interface*/
       \sa libuv API documentation: [`uv_getaddrinfo()`](http://docs.libuv.org/en/v1.x/dns.html#c.uv_getaddrinfo).
       \note If the request callback is empty (has not been set), the request runs _synchronously_
       (and `_loop` parameter is ignored). */
-  int run(uv::loop _loop, const char *_hostname, const char *_service, const ::addrinfo &_hints)
+  int run(uv::loop &_loop, const char *_hostname, const char *_service, const ::addrinfo &_hints)
   {
-    return run_(std::move(_loop), _hostname, _service, &_hints);
+    return run_(_loop, _hostname, _service, &_hints);
   }
   /*! \brief Idem with empty `_hints`. */
-  int run(uv::loop _loop, const char *_hostname, const char *_service)
+  int run(uv::loop &_loop, const char *_hostname, const char *_service)
   {
-    return run_(std::move(_loop), _hostname, _service, nullptr);
+    return run_(_loop, _hostname, _service, nullptr);
   }
 
 public: /*conversion operators*/
@@ -197,7 +196,7 @@ public: /*interface*/
       \sa Linux: [`getnameinfo()`](http://man7.org/linux/man-pages/man3/getnameinfo.3.html).
           Windows: [`getnameinfo()`](https://msdn.microsoft.com/en-us/library/ms738532(v=vs.85).aspx). */
   template< typename _T_, typename = std::enable_if_t< is_one_of< _T_, ::sockaddr, ::sockaddr_in, ::sockaddr_in6, ::sockaddr_storage >::value > >
-  int run(uv::loop _loop, const _T_ &_sa, int _NI_FLAGS = 0)
+  int run(uv::loop &_loop, const _T_ &_sa, int _NI_FLAGS = 0)
   {
     auto instance_ptr = instance::from(uv_req);
 
