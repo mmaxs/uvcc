@@ -155,7 +155,7 @@ public: /*interface*/
       (and the `_loop` parameter is ignored).
       In this case the function returns a number of bytes read or relevant
       [libuv error constant](http://docs.libuv.org/en/v1.x/errors.html#error-constants).*/
-  int run(file _file, buffer &_buf, int64_t _offset = -1)
+  int run(file &_file, buffer &_buf, int64_t _offset = -1)
   {
     int ret = 0;
     auto instance_ptr = instance::from(uv_req);
@@ -289,7 +289,7 @@ public: /*interface*/
       (and the `_loop` parameter is ignored).
       In this case the function returns a number of bytes written or relevant
       [libuv error constant](http://docs.libuv.org/en/v1.x/errors.html#error-constants).*/
-  int run(file _file, const buffer &_buf, int64_t _offset = -1)
+  int run(file &_file, const buffer &_buf, int64_t _offset = -1)
   {
     int ret = 0;
     auto instance_ptr = instance::from(uv_req);
@@ -343,7 +343,7 @@ public: /*interface*/
       \returns A number of bytes written, or relevant
       [libuv error constant](http://docs.libuv.org/en/v1.x/errors.html#error-constants),
       or `UV_EAGAIN` error code when the data can’t be written immediately. */
-  int try_write(file _file, const buffer &_buf, int64_t _offset = -1)
+  int try_write(file &_file, const buffer &_buf, int64_t _offset = -1)
   {
     if (_file.write_queue_size() != 0)  return uv_status(UV_EAGAIN);
 

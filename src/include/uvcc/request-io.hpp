@@ -181,7 +181,7 @@ public: /*interface*/
       compile time. If that deduction fails, a substituted stub function returns `UV_EINVAL` status at run time.
       To prevent this the user code should take care that the arguments being passed would match the
       _request_`::run()` available signatures according to the actual `_io` object type gotten at run time. */
-  template< typename... _Args_ > int run(io _io, const buffer &_buf, _Args_&&... _args)
+  template< typename... _Args_ > int run(io &_io, const buffer &_buf, _Args_&&... _args)
   {
     switch (_io.type())
     {
@@ -209,7 +209,7 @@ public: /*interface*/
       .
       If a set of arguments being passed does't match the signature of the corresponding function,
       a substituted stub returns `UV_EINVAL` status at run time. */
-  template< typename... _Args_ > int try_output(io _io, const buffer &_buf, _Args_&&... _args)
+  template< typename... _Args_ > int try_output(io &_io, const buffer &_buf, _Args_&&... _args)
   {
     switch (_io.type())
     {

@@ -70,7 +70,7 @@ public: /*interface*/
       typename _T_,
       typename = std::enable_if_t< is_one_of< _T_, ::sockaddr, ::sockaddr_in, ::sockaddr_in6, ::sockaddr_storage >::value >
   >
-  int run(tcp _tcp, const _T_ &_sockaddr)
+  int run(tcp &_tcp, const _T_ &_sockaddr)
   {
     tcp::instance::from(_tcp.uv_handle)->ref();
     instance::from(uv_req)->ref();
@@ -86,7 +86,7 @@ public: /*interface*/
   }
   /*! \brief Run the request for `uv::pipe` stream.
       \sa libuv API documentation: [`uv_pipe_connect()`](http://docs.libuv.org/en/v1.x/pipe.html#c.uv_pipe_connect). */
-  void run(pipe _pipe, const char *_name)
+  void run(pipe &_pipe, const char *_name)
   {
     pipe::instance::from(_pipe.uv_handle)->ref();
     instance::from(uv_req)->ref();
@@ -171,7 +171,7 @@ public: /*interface*/
 
   /*! \brief Run the request.
       \sa libuv API documentation: [`uv_write()`](http://docs.libuv.org/en/v1.x/stream.html#c.uv_write). */
-  int run(stream _stream, const buffer &_buf)
+  int run(stream &_stream, const buffer &_buf)
   {
     auto instance_ptr = instance::from(uv_req);
 
@@ -197,7 +197,7 @@ public: /*interface*/
   }
   /*! \brief The overload for sending handles over a pipe.
       \sa libuv API documentation: [`uv_write2()`](http://docs.libuv.org/en/v1.x/stream.html#c.uv_write2). */
-  int run(pipe _pipe, const buffer &_buf, stream _send_handle)
+  int run(pipe &_pipe, const buffer &_buf, stream _send_handle)
   {
     auto instance_ptr = instance::from(uv_req);
 
@@ -226,7 +226,7 @@ public: /*interface*/
   /*! \details The wrapper for a corresponding libuv function.
       \note It tries to execute and complete immediately and does not call the request callback.
       \sa libuv API documentation: [`uv_try_write()`](http://docs.libuv.org/en/v1.x/stream.html#c.uv_try_write). */
-  int try_write(stream _stream, const buffer &_buf)
+  int try_write(stream &_stream, const buffer &_buf)
   {
     return uv_status(
         ::uv_try_write(static_cast< stream::uv_t* >(_stream), static_cast< const buffer::uv_t* >(_buf), _buf.count())
@@ -308,7 +308,7 @@ public: /*interface*/
   stream handle() const noexcept  { return stream(static_cast< uv_t* >(uv_req)->handle); }
 
   /*! \brief Run the request. */
-  int run(stream _stream)
+  int run(stream &_stream)
   {
     stream::instance::from(_stream.uv_handle)->ref();
     instance::from(uv_req)->ref();

@@ -93,7 +93,7 @@ public: /*interface*/
       typename _T_,
       typename = std::enable_if_t< is_one_of< _T_, ::sockaddr, ::sockaddr_in, ::sockaddr_in6, ::sockaddr_storage >::value >
   >
-  int run(udp _udp, const buffer &_buf, const _T_ &_sockaddr)
+  int run(udp &_udp, const buffer &_buf, const _T_ &_sockaddr)
   {
     auto instance_ptr = instance::from(uv_req);
 
@@ -126,7 +126,7 @@ public: /*interface*/
       typename _T_,
       typename = std::enable_if_t< is_one_of< _T_, ::sockaddr, ::sockaddr_in, ::sockaddr_in6, ::sockaddr_storage >::value >
   >
-  int try_send(udp _udp, const buffer &_buf, const _T_ &_sockaddr)
+  int try_send(udp &_udp, const buffer &_buf, const _T_ &_sockaddr)
   {
     return uv_status(::uv_udp_try_send(
         static_cast< udp::uv_t* >(_udp),
