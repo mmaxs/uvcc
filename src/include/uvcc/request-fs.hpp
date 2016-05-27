@@ -157,31 +157,44 @@ public: /*interface*/
       [libuv error constant](http://docs.libuv.org/en/v1.x/errors.html#error-constants).*/
   int run(file _file, buffer &_buf, int64_t _offset = -1)
   {
+    int ret = 0;
     auto instance_ptr = instance::from(uv_req);
 
     auto &request_cb = instance_ptr->request_cb_storage.value();
-    if (request_cb)
+    if (!request_cb)
     {
-      file::instance::from(_file.uv_handle)->ref();
-      buffer::instance::from(_buf.uv_buf)->ref();
-      instance_ptr->ref();
+      ret = uv_status(::uv_fs_read(
+          static_cast< file::uv_t* >(_file)->loop, static_cast< uv_t* >(uv_req),
+          _file.fd(),
+          static_cast< const buffer::uv_t* >(_buf), _buf.count(),
+          _offset,
+          nullptr
+      ));
 
-      // instance_ptr->properties() = {static_cast< file::uv_t* >(_file), _buf.uv_buf, _offset};
-      {
-        auto &properties = instance_ptr->properties();
-        properties.uv_handle = static_cast< file::uv_t* >(_file);
-        properties.uv_buf = _buf.uv_buf;
-        properties.offset = _offset;
-      }
+      ::uv_fs_req_cleanup(static_cast< uv_t* >(uv_req));
+      return ret;
     };
 
+
+    file::instance::from(_file.uv_handle)->ref();
+    buffer::instance::from(_buf.uv_buf)->ref();
+    instance_ptr->ref();
+
+    // instance_ptr->properties() = {static_cast< file::uv_t* >(_file), _buf.uv_buf, _offset};
+    {
+      auto &properties = instance_ptr->properties();
+      properties.uv_handle = static_cast< file::uv_t* >(_file);
+      properties.uv_buf = _buf.uv_buf;
+      properties.offset = _offset;
+    }
+
     uv_status(0);
-    int ret = ::uv_fs_read(
+    ret = ::uv_fs_read(
         static_cast< file::uv_t* >(_file)->loop, static_cast< uv_t* >(uv_req),
         _file.fd(),
         static_cast< const buffer::uv_t* >(_buf), _buf.count(),
         _offset,
-        request_cb ? static_cast< ::uv_fs_cb >(read_cb) : nullptr
+        read_cb
     );
     if (!ret)  uv_status(ret);
     return ret;
@@ -208,6 +221,8 @@ void fs::read::read_cb(::uv_fs_t *_uv_req)
     read_cb(read(_uv_req), buffer(properties.uv_buf, adopt_ref));
   else
     buffer::instance::from(properties.uv_buf)->unref();
+
+  ::uv_fs_req_cleanup(_uv_req);
 }
 
 
@@ -276,37 +291,71 @@ public: /*interface*/
       [libuv error constant](http://docs.libuv.org/en/v1.x/errors.html#error-constants).*/
   int run(file _file, const buffer &_buf, int64_t _offset = -1)
   {
+    int ret = 0;
     auto instance_ptr = instance::from(uv_req);
 
     auto &request_cb = instance_ptr->request_cb_storage.value();
-    if (request_cb)
+    if (!request_cb)
     {
-      file::instance::from(_file.uv_handle)->ref();
-      buffer::instance::from(_buf.uv_buf)->ref();
-      instance_ptr->ref();
+      ret = uv_status(::uv_fs_write(
+          static_cast< file::uv_t* >(_file)->loop, static_cast< uv_t* >(uv_req),
+          _file.fd(),
+          static_cast< const buffer::uv_t* >(_buf), _buf.count(),
+          _offset,
+          nullptr
+      ));
 
-      // instance_ptr->properties() = {static_cast< file::uv_t* >(_file), _buf.uv_buf, _offset};
-      {
-        auto &properties = instance_ptr->properties();
-        properties.uv_handle = static_cast< file::uv_t* >(_file);
-        properties.uv_buf = _buf.uv_buf;
-        properties.offset = _offset;
-      }
-
-      std::size_t wr_size = 0;
-      for (std::size_t i = 0, buf_count = _buf.count(); i < buf_count; ++i)  wr_size += _buf.len(i);
-      file::instance::from(_file.uv_handle)->properties().write_queue_size += wr_size;
+      ::uv_fs_req_cleanup(static_cast< uv_t* >(uv_req));
+      return ret;
     };
 
+
+    file::instance::from(_file.uv_handle)->ref();
+    buffer::instance::from(_buf.uv_buf)->ref();
+    instance_ptr->ref();
+
+    // instance_ptr->properties() = {static_cast< file::uv_t* >(_file), _buf.uv_buf, _offset};
+    {
+      auto &properties = instance_ptr->properties();
+      properties.uv_handle = static_cast< file::uv_t* >(_file);
+      properties.uv_buf = _buf.uv_buf;
+      properties.offset = _offset;
+    }
+
+    std::size_t wr_size = 0;
+    for (std::size_t i = 0, buf_count = _buf.count(); i < buf_count; ++i)  wr_size += _buf.len(i);
+    file::instance::from(_file.uv_handle)->properties().write_queue_size += wr_size;
+
     uv_status(0);
-    int ret = ::uv_fs_write(
+    ret = ::uv_fs_write(
         static_cast< file::uv_t* >(_file)->loop, static_cast< uv_t* >(uv_req),
         _file.fd(),
         static_cast< const buffer::uv_t* >(_buf), _buf.count(),
         _offset,
-        request_cb ? static_cast< ::uv_fs_cb >(write_cb) : nullptr
+        write_cb
     );
     if (!ret)  uv_status(ret);
+    return ret;
+  }
+
+  /*! \brief Try to execute the request _synchronously_ if it can be completed immediately...
+      \details ...i.e. if `(_file.write_queue_size() == 0)` and without calling the request callback.
+      \returns A number of bytes written, or relevant
+      [libuv error constant](http://docs.libuv.org/en/v1.x/errors.html#error-constants),
+      or `UV_EAGAIN` error code when the data can’t be written immediately. */
+  int try_write(file _file, const buffer &_buf, int64_t _offset = -1)
+  {
+    if (_file.write_queue_size() != 0)  return uv_status(UV_EAGAIN);
+
+    int ret = uv_status(::uv_fs_write(
+        static_cast< file::uv_t* >(_file)->loop, static_cast< uv_t* >(uv_req),
+        _file.fd(),
+        static_cast< const buffer::uv_t* >(_buf), _buf.count(),
+        _offset,
+        nullptr
+    ));
+
+    ::uv_fs_req_cleanup(static_cast< uv_t* >(uv_req));
     return ret;
   }
 
@@ -334,6 +383,8 @@ void fs::write::write_cb(::uv_fs_t *_uv_req)
     write_cb(write(_uv_req), buffer(properties.uv_buf, adopt_ref));
   else
     buffer::instance::from(properties.uv_buf)->unref();
+
+  ::uv_fs_req_cleanup(_uv_req);
 }
 
 
