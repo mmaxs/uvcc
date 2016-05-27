@@ -68,7 +68,7 @@ public: /*constructors*/
 private: /*functions*/
   template< typename = void > static void getaddrinfo_cb(::uv_getaddrinfo_t*, int, ::addrinfo*);
 
-  int run(uv::loop _loop, const char *_hostname, const char *_service, const ::addrinfo *_hints)
+  int run_(uv::loop _loop, const char *_hostname, const char *_service, const ::addrinfo *_hints)
   {
     auto instance_ptr = instance::from(uv_req);
 
@@ -105,12 +105,12 @@ public: /*interface*/
       (and `_loop` parameter is ignored). */
   int run(uv::loop _loop, const char *_hostname, const char *_service, const ::addrinfo &_hints)
   {
-    return run(std::move(_loop), _hostname, _service, &_hints);
+    return run_(std::move(_loop), _hostname, _service, &_hints);
   }
   /*! \brief Idem with empty `_hints`. */
   int run(uv::loop _loop, const char *_hostname, const char *_service)
   {
-    return run(std::move(_loop), _hostname, _service, nullptr);
+    return run_(std::move(_loop), _hostname, _service, nullptr);
   }
 
 public: /*conversion operators*/
@@ -185,7 +185,7 @@ public: /*interface*/
 
   /*! \brief Run the request.
       \sa libuv API documentation: [`uv_getnameinfo()`](http://docs.libuv.org/en/v1.x/dns.html#c.uv_getnameinfo).
-      \note If the request callback is empty, the request runs _synchronously_.
+      \note If the request callback is empty (has not been set), the request runs _synchronously_.
 
       Available `_NI_FLAGS` are:
       - NI_DGRAM
