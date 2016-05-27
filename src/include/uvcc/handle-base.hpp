@@ -41,7 +41,7 @@ public: /*types*/
 protected: /*types*/
   //! \cond
   using properties = empty_t;
-  constexpr static const std::size_t MAX_PROPERTY_SIZE = 128 + sizeof(::uv_buf_t) + sizeof(::uv_fs_t);
+  constexpr static const std::size_t MAX_PROPERTY_SIZE = 136 + sizeof(::uv_buf_t) + sizeof(::uv_fs_t);
   constexpr static const std::size_t MAX_PROPERTY_ALIGN = 8;
 
   struct uv_interface
@@ -53,6 +53,8 @@ protected: /*types*/
     virtual ::uv_loop_t* loop(void*) const noexcept = 0;
     virtual void*& data(void*) noexcept = 0;
     virtual int fileno(void*, ::uv_os_fd_t&) const noexcept = 0;
+    virtual int is_active(void*) const noexcept = 0;
+    virtual int is_closing(void*) const noexcept = 0;
   };
   struct uv_handle_interface;
   struct uv_fs_interface;
@@ -211,15 +213,18 @@ public: /*interface*/
   /*! \brief The pointer to the user-defined arbitrary data. libuv and uvcc does not use this field. */
   void* const& data() const noexcept  { return instance< handle >::from(uv_handle)->uv_interface()->data(uv_handle); }
   void*      & data()       noexcept  { return instance< handle >::from(uv_handle)->uv_interface()->data(uv_handle); }
-#if 0
-  /*! \details Check if the handle is active.
-      \sa libuv API documentation: [`uv_is_active()`](http://docs.libuv.org/en/v1.x/handle.html#c.uv_is_active). */
-  int is_active() const noexcept  { return uv_status(::uv_is_active(static_cast< uv_t* >(uv_handle))); }
-  /*! \details Check if the handle is closing or closed.
-      \sa libuv API documentation: [`uv_is_closing()`](http://docs.libuv.org/en/v1.x/handle.html#c.uv_is_closing). */
-  int is_closing() const noexcept { return uv_status(::uv_is_closing(static_cast< uv_t* >(uv_handle))); }
 
-  /*! \details _Get_ the size of the send buffer that the operating system uses for the socket.
+  /*! \brief Check if the handle is active.
+      \sa libuv API documentation: [`uv_is_active()`](http://docs.libuv.org/en/v1.x/handle.html#c.uv_is_active). */
+  int is_active() const noexcept
+  { return uv_status(instance< handle >::from(uv_handle)->uv_interface()->is_active(uv_handle)); }
+  /*! \brief Check if the handle is closing or closed.
+      \sa libuv API documentation: [`uv_is_closing()`](http://docs.libuv.org/en/v1.x/handle.html#c.uv_is_closing). */
+  int is_closing() const noexcept
+  { return uv_status(instance< handle >::from(uv_handle)->uv_interface()->is_closing(uv_handle)); }
+
+#if 0
+  /*! \brief _Get_ the size of the send buffer that the operating system uses for the socket.
       \sa libuv API documentation: [`uv_send_buffer_size()`](http://docs.libuv.org/en/v1.x/handle.html#c.uv_send_buffer_size). */
   unsigned int send_buffer_size() const noexcept
   {
@@ -227,11 +232,11 @@ public: /*interface*/
     uv_status(::uv_send_buffer_size(static_cast< uv_t* >(uv_handle), (int*)&v));
     return v;
   }
-  /*! \details _Set_ the size of the send buffer that the operating system uses for the socket.
+  /*! \brief _Set_ the size of the send buffer that the operating system uses for the socket.
       \sa libuv API documentation: [`uv_send_buffer_size()`](http://docs.libuv.org/en/v1.x/handle.html#c.uv_send_buffer_size). */
   void send_buffer_size(const unsigned int _value) noexcept  { uv_status(::uv_send_buffer_size(static_cast< uv_t* >(uv_handle), (int*)&_value)); }
 
-  /*! \details _Get_ the size of the receive buffer that the operating system uses for the socket.
+  /*! \brief _Get_ the size of the receive buffer that the operating system uses for the socket.
       \sa libuv API documentation: [`uv_recv_buffer_size()`](http://docs.libuv.org/en/v1.x/handle.html#c.uv_recv_buffer_size). */
   unsigned int recv_buffer_size() const noexcept
   {
@@ -239,11 +244,12 @@ public: /*interface*/
     uv_status(::uv_recv_buffer_size(static_cast< uv_t* >(uv_handle), (int*)&v));
     return v;
   }
-  /*! \details _Set_ the size of the receive buffer that the operating system uses for the socket.
+  /*! \brief _Set_ the size of the receive buffer that the operating system uses for the socket.
       \sa libuv API documentation: [`uv_recv_buffer_size()`](http://docs.libuv.org/en/v1.x/handle.html#c.uv_recv_buffer_size). */
   void recv_buffer_size(const unsigned int _value) noexcept  { uv_status(::uv_recv_buffer_size(static_cast< uv_t* >(uv_handle), (int*)&_value)); }
 #endif
-  /*! \details Get the platform dependent handle/file descriptor.
+
+  /*! \brief Get the platform dependent handle/file descriptor.
       \sa libuv API documentation: [`uv_fileno()`](http://docs.libuv.org/en/v1.x/handle.html#c.uv_fileno). */
   ::uv_os_fd_t fileno() const noexcept
   {
@@ -290,6 +296,11 @@ struct handle::uv_handle_interface : virtual uv_interface
 #endif
     return ::uv_fileno(static_cast< ::uv_handle_t* >(_uv_handle), &_h);
   }
+
+  int is_active(void *_uv_handle) const noexcept override
+  { return ::uv_is_active(static_cast< ::uv_handle_t* >(_uv_handle)); }
+  int is_closing(void *_uv_handle) const noexcept override
+  { return ::uv_is_closing(static_cast< ::uv_handle_t* >(_uv_handle)); }
 };
 
 template< typename >
@@ -344,6 +355,8 @@ struct handle::uv_fs_interface : virtual uv_interface
     return _h == -1 ? UV_EBADF : 0;
 #endif
   }
+
+  int is_active(void *_uv_fs) const noexcept override  { return 0; }
 };
 //! \endcond
 

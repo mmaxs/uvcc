@@ -41,10 +41,14 @@ protected: /*types*/
       int64_t offset = -1;
     } rd;
     std::size_t write_queue_size = 0;
+    int is_closing = 0;
   };
 
   struct uv_interface : uv_fs_interface, io::uv_interface
   {
+    int is_closing(void *_uv_fs) const noexcept override
+    { return instance::from(_uv_fs)->properties().is_closing; }
+
     std::size_t write_queue_size(void *_uv_handle) const noexcept override
     { return instance::from(_uv_handle)->properties().write_queue_size; }
 
