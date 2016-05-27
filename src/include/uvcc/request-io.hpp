@@ -93,27 +93,27 @@ private: /*constructors*/
 
 private: /*functions*/
   template< typename... _Args_ >
-  std::enable_if_t< has_run_method< write, int, pipe, const buffer&, _Args_... >::value, int >
+  std::enable_if_t< has_run_method< write, int, pipe&, const buffer&, _Args_... >::value, int >
   run_(pipe &_io, const buffer &_buf, _Args_&&... _args)
   { return reinterpret_cast< write* >(this)->run(_io, _buf, std::forward< _Args_ >(_args)...); }
 
   template< typename... _Args_ >
-  std::enable_if_t< has_run_method< write, int, tcp, const buffer&, _Args_... >::value, int >
+  std::enable_if_t< has_run_method< write, int, tcp&, const buffer&, _Args_... >::value, int >
   run_(tcp &_io, const buffer &_buf, _Args_&&... _args)
   { return reinterpret_cast< write* >(this)->run(_io, _buf, std::forward< _Args_ >(_args)...); }
 
   template< typename... _Args_ >
-  std::enable_if_t< has_run_method< write, int, tty, const buffer&, _Args_... >::value, int >
+  std::enable_if_t< has_run_method< write, int, tty&, const buffer&, _Args_... >::value, int >
   run_(tty &_io, const buffer &_buf, _Args_&&... _args)
   { return reinterpret_cast< write* >(this)->run(_io, _buf, std::forward< _Args_ >(_args)...); }
 
   template< typename... _Args_ >
-  std::enable_if_t< has_run_method< udp_send, int, udp, const buffer&, _Args_... >::value, int >
+  std::enable_if_t< has_run_method< udp_send, int, udp&, const buffer&, _Args_... >::value, int >
   run_(udp &_io, const buffer &_buf, _Args_&&... _args)
   { return reinterpret_cast< udp_send* >(this)->run(_io, _buf, std::forward< _Args_ >(_args)...); }
 
   template< typename... _Args_ >
-  std::enable_if_t< has_run_method< fs::write, int, file, const buffer&, _Args_... >::value, int >
+  std::enable_if_t< has_run_method< fs::write, int, file&, const buffer&, _Args_... >::value, int >
   run_(file &_io, const buffer &_buf, _Args_&&... _args)
   { return reinterpret_cast< fs::write* >(this)->run(_io, _buf, std::forward< _Args_ >(_args)...); }
 
@@ -121,17 +121,17 @@ private: /*functions*/
 
 
   template< typename... _Args_ >
-  std::enable_if_t< has_try_write_method< write, int, stream, const buffer&, _Args_... >::value, int >
+  std::enable_if_t< has_try_write_method< write, int, stream&, const buffer&, _Args_... >::value, int >
   try_output_(stream &_io, const buffer &_buf, _Args_&&... _args)
   { return reinterpret_cast< write* >(this)->try_write(_io, _buf, std::forward< _Args_ >(_args)...); }
 
   template< typename... _Args_ >
-  std::enable_if_t< has_try_send_method< udp_send, int, udp, const buffer&, _Args_... >::value, int >
+  std::enable_if_t< has_try_send_method< udp_send, int, udp&, const buffer&, _Args_... >::value, int >
   try_output_(udp &_io, const buffer &_buf, _Args_&&... _args)
   { return reinterpret_cast< udp_send* >(this)->try_send(_io, _buf, std::forward< _Args_ >(_args)...); }
 
   template< typename... _Args_ >
-  std::enable_if_t< has_try_write_method< fs::write, int, file, const buffer&, _Args_... >::value, int >
+  std::enable_if_t< has_try_write_method< fs::write, int, file&, const buffer&, _Args_... >::value, int >
   try_output_(file &_io, const buffer &_buf, _Args_&&... _args)
   { return reinterpret_cast< fs::write* >(this)->try_write(_io, _buf, std::forward< _Args_ >(_args)...); }
 
