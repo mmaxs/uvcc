@@ -9,7 +9,6 @@
 
 #include <uv.h>
 #include <functional>   // function
-#include <utility>      // move()
 #include <type_traits>  // enable_if_t
 
 
@@ -166,7 +165,7 @@ public: /*interface*/
 
   /*! \brief The stream which this write request has been running on. */
   stream handle() const noexcept  { return stream(static_cast< uv_t* >(uv_req)->handle); }
-  /*! \brief The handle of the stream being sent over a pipe using this write request. */
+  /*! \brief The handle of the stream to be sent over a pipe using this write request. */
   stream send_handle() const noexcept  { return stream(static_cast< uv_t* >(uv_req)->send_handle); }
 
   /*! \brief Run the request.

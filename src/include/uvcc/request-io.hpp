@@ -179,7 +179,7 @@ public: /*interface*/
       .
       A proper _request_`::run()` function is deduced for any `io` subclasses and the corresponding _request_ at
       compile time. If that deduction fails, a substituted stub function returns `UV_EINVAL` status at run time.
-      To prevent this the user code should take care that the arguments being passed would match the
+      To prevent this the user code should take care that the arguments to be passed would match the
       _request_`::run()` available signatures according to the actual `_io` object type gotten at run time. */
   template< typename... _Args_ > int run(io &_io, const buffer &_buf, _Args_&&... _args)
   {
@@ -207,7 +207,7 @@ public: /*interface*/
       - `uv::write::try_write()`, or
       - `uv::udp_send::try_send()`.
       .
-      If a set of arguments being passed does't match the signature of the corresponding function,
+      If a set of arguments to be passed does't match the signature of the corresponding function,
       a substituted stub returns `UV_EINVAL` status at run time. */
   template< typename... _Args_ > int try_output(io &_io, const buffer &_buf, _Args_&&... _args)
   {

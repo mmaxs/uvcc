@@ -14,7 +14,7 @@
 namespace uv
 {
 /*! \defgroup doxy_group_utility Utility structures and definitions
-    \brief The utility definitions being used throughout the library. */
+    \brief The utility definitions to be used throughout the library. */
 //! \{
 
 
@@ -150,8 +150,8 @@ template< std::size_t _index_, typename _T_, typename... _Ts_ > struct type_at< 
 template< typename _T_ > constexpr const _T_& greatest(const _T_& _v)  { return _v; }
 //! \endcond
 /*! \brief Intended to be used instead of `constexpr T max(std::initializer_list<T>)`...
-    \details ...if the latter is not defined being `constexpr` in the current STL version and therefore
-    cannot be employed at compile-time. Does not require the arguments being of the same type and using
+    \details ...if the latter is not defined of being `constexpr` in the current STL version and therefore
+    cannot be employed at compile-time. Does not require the arguments to be of the same type and using
     the `std::initializer_list` curly braces when there are more than two arguments. */
 template< typename _T_, typename... _Ts_ > constexpr const _T_& greatest(const _T_& _v, const _Ts_&... _vs)
 { return _v < greatest(_vs...) ? greatest(_vs...) : _v; }
@@ -260,7 +260,7 @@ public: /*constructors*/
   ~ref_guard()  { t.unref(); }
 
   explicit ref_guard(target_type &_t) : t(_t)  { t.ref(); }
-  explicit ref_guard(target_type &_t, const adopt_ref_t) : t(_t)  {}  /*!< \brief The constructor for being used with `uv::adopt_ref` tag. */
+  explicit ref_guard(target_type &_t, const adopt_ref_t) : t(_t)  {}  /*!< \brief The constructor to be used with `uv::adopt_ref` tag. */
 
   ref_guard(const ref_guard&) = delete;
   ref_guard& operator =(const ref_guard&) = delete;
