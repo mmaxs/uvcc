@@ -54,10 +54,12 @@ public: /*types*/
 
 protected: /*types*/
   //! \cond
+  enum class rdcmd  { NOP, STOP, START, PAUSE };
+
   struct properties
   {
     spinlock rdstate_switch;
-    bool rdstate_flag = false;
+    rdcmd rdcmd_state = rdcmd::NOP;
     std::size_t rdsize = 0;
     on_buffer_alloc_t alloc_cb;
     on_read_t read_cb;
@@ -176,12 +178,18 @@ public: /*interface*/
 
     instance_ptr->ref();  // first, make sure it would exist for the future _read_cb() calls until read_stop()
 
-    if (properties.rdstate_flag)
+    switch (properties.rdcmd_state)
     {
-      uv_status(instance_ptr->uv_interface()->read_stop(uv_handle));
-      instance_ptr->unref();  // release the excess reference from the repeated read_start()
+    case rdcmd::NOP:
+    case rdcmd::STOP:
+        properties.rdcmd_state = rdcmd::START;
+        break;
+    case rdcmd::START:
+    case rdcmd::PAUSE:
+        uv_status(instance_ptr->uv_interface()->read_stop(uv_handle));
+        instance_ptr->unref();  // release the excess reference from the repeated read_start()
+        break;
     }
-    else properties.rdstate_flag = true;
 
     if (_alloc_cb)  properties.alloc_cb = _alloc_cb;
     if (_read_cb)  properties.read_cb = _read_cb;
@@ -190,6 +198,13 @@ public: /*interface*/
     uv_status(0);
     int ret = instance_ptr->uv_interface()->read_start(uv_handle, _offset);
     if (!ret)  uv_status(ret);
+
+    if (ret < 0)
+    {
+      properties.rdcmd_state = rdcmd::NOP;
+      instance_ptr->unref();  // release the reference on start failure
+    };
+
     return ret;
   }
   /*! \brief Restart reading incoming data from the I/O endpoint using `_alloc_cb` and `_read_cb`
@@ -208,18 +223,31 @@ public: /*interface*/
 
     instance_ptr->ref();
 
-    if (properties.rdstate_flag)
+    switch (properties.rdcmd_state)
     {
-      uv_status(instance_ptr->uv_interface()->read_stop(uv_handle));
-      instance_ptr->unref();
+    case rdcmd::NOP:
+    case rdcmd::STOP:
+        properties.rdcmd_state = rdcmd::START;
+        break;
+    case rdcmd::START:
+    case rdcmd::PAUSE:
+        uv_status(instance_ptr->uv_interface()->read_stop(uv_handle));
+        instance_ptr->unref();
+        break;
     }
-    else properties.rdstate_flag = true;
 
     properties.rdsize = _size;
 
     uv_status(0);
     int ret = instance_ptr->uv_interface()->read_start(uv_handle, _offset);
     if (!ret)  uv_status(ret);
+
+    if (ret < 0)
+    {
+      properties.rdcmd_state = rdcmd::NOP;
+      instance_ptr->unref();
+    };
+
     return ret;
   }
 
@@ -233,17 +261,23 @@ public: /*interface*/
 
     std::lock_guard< decltype(properties.rdstate_switch) > lk(properties.rdstate_switch);
 
-    uv_status(instance_ptr->uv_interface()->read_stop(uv_handle));
+    int ret = uv_status(instance_ptr->uv_interface()->read_stop(uv_handle));
 
-    if (properties.rdstate_flag)
+    switch (properties.rdcmd_state)
     {
-      properties.rdstate_flag = false;
-      instance_ptr->unref();  // release the excess reference from read_start()
-    };
+    case rdcmd::NOP:
+    case rdcmd::STOP:
+        break;
+    case rdcmd::START:
+    case rdcmd::PAUSE:
+        properties.rdcmd_state = rdcmd::STOP;
+        instance_ptr->unref();  // release the reference from read_start()
+        break;
+    }
 
     properties.rdsize = 0;
 
-    return uv_status();
+    return ret;
   }
 
   /*! \brief Create an `io` handle object which actual type is derived from an existing file descriptor.

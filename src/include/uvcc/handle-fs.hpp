@@ -194,7 +194,7 @@ void file::read_cb(::uv_fs_t *_uv_req)
   auto &properties = instance_ptr->properties();
 
   ssize_t nread = _uv_req->result == 0 ? UV_EOF : _uv_req->result;
-  if (nread < 0)  // on error or EOF release the unused buffer and replace it with null-initialized structure
+  if (nread < 0)  // on error or EOF release the unused buffer and replace it with a null-initialized structure
   {
     buffer::instance::from(buffer::instance::uv_buf::from(properties.rd.uv_buf_struct.base))->unref();
     properties.rd.uv_buf_struct = ::uv_buf_init(nullptr, 0);
@@ -204,14 +204,23 @@ void file::read_cb(::uv_fs_t *_uv_req)
 
   ::uv_fs_req_cleanup(_uv_req);
 
-  if (properties.rdstate_flag)
+  switch (properties.rdcmd_state)
   {
-    if (properties.rd.offset >= 0 and nread > 0)  properties.rd.offset += nread;
+  case rdcmd::NOP:
+  case rdcmd::STOP:
+      break;
+  case rdcmd::START:
+      {
+        if (properties.rd.offset >= 0 and nread > 0)  properties.rd.offset += nread;
 
-    instance_ptr->uv_error = 0;
-    int ret = file_read_start(instance_ptr);
-    if (!ret)  instance_ptr->uv_error = ret;
-  };
+        instance_ptr->uv_error = 0;
+        int ret = file_read_start(instance_ptr);
+        if (!ret)  instance_ptr->uv_error = ret;
+      }
+      break;
+  case rdcmd::PAUSE:
+      break;
+  }
 }
 
 
