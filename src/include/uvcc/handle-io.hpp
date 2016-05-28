@@ -20,7 +20,7 @@ namespace uv
 /*! \ingroup doxy_group_handle
     \brief The base class for handles representing I/O endpoints: a file, TCP/UDP socket, pipe, TTY.
     \details Encapsulates common I/O functions and properties.
-    \note `read_start()` and `read_stop()` functions are mutually exclusive and thread-safe. */
+    \note `read_start()`/`read_stop()` and `read_pause()`/`read_continue()` functions are mutually exclusive and thread-safe. */
 class io : public handle
 {
   //! \cond
