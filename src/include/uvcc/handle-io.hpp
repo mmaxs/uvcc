@@ -283,6 +283,31 @@ public: /*interface*/
     return ret;
   }
 
+  /*! \brief A toggle switch to pause/continue reading data from the I/O endpoint.
+      \details
+      \arg `read_pause(true)` - the "pause" command that is functionally equivalent to `read_stop()`.
+      \arg `read_pause(false)` - the "continue" command that is functionally equivalent to `read_start()`
+      except that it cannot "start" and is refused if the previous control command was not "pause".
+
+      This facility is intended for temporary pausing the read process for example in such a cases when a
+      consumer becomes overwhelmed with incoming data and its input queue has been considerably increased.
+
+      The different control command interoperating semantics is described as follows:
+      \verbatim
+                           ║ The command having been executed previously                                 
+         The command to    ╟─────────┬──────────────┬───────────────────┬─────────────┬──────────────────
+         be currently      ║ No      │ read_start() │ read_pause(false) │ read_stop() │ read_pause(true) 
+         executed          ║ command │              │ "continue"        │             │ "pause"          
+        ═══════════════════╬═════════╪══════════════╪═══════════════════╪═════════════╪══════════════════
+         read_start()      ║ "start" │ "restart"    │ "restart"         │ "start"     │ "start"          
+         read_pause(false) ║ -       │ -            │ -                 │ -           │ "continue"       
+         read_stop()       ║ -       │ "stop"       │ "stop"            │ -           │ -                
+         read_pause(true)  ║ -       │ "pause"      │ "pause"           │ -           │ -                
+
+        "continue" is functionally equivalent to "start"
+        "pause" is functionally equivalent to "stop"
+        "restart" is functionally equivalent to "stop" followed by "start"
+      \endverbatim */
   int read_pause(bool _toggle_switch) const
   {
     auto instance_ptr = instance::from(uv_handle);
