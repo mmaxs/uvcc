@@ -54,12 +54,12 @@ public: /*types*/
 
 protected: /*types*/
   //! \cond
-  enum class rdcmd  { NOP, STOP, PAUSE, START, CONTINUE };
+  enum class rdcmd  { UNKNOWN, STOP, PAUSE, START, CONTINUE };
 
   struct properties
   {
     spinlock rdstate_switch;
-    rdcmd rdcmd_state = rdcmd::NOP;
+    rdcmd rdcmd_state = rdcmd::UNKNOWN;
     std::size_t rdsize = 0;
     on_buffer_alloc_t alloc_cb;
     on_read_t read_cb;
@@ -148,8 +148,8 @@ public: /*interface*/
       \arg `_size` parameter can be set to specify suggested length of the read buffer.
       \arg `_offset` - the starting offset for reading (intended for `uv::file` I/O endpoint).
 
-      \note This function adds an extra reference to the handle instance, which is released when the
-      counterpart function `read_stop()` is called.
+      \note On successful start this function adds an extra reference to the handle instance,
+      which is released when the counterpart function `read_stop()` is called.
 
       For `uv::stream` and `uv::udp` endpoints the function is just a wrapper around
       [`uv_read_start()`](http://docs.libuv.org/en/v1.x/stream.html#c.uv_read_start) and
@@ -176,21 +176,21 @@ public: /*interface*/
     if (!_alloc_cb and !properties.alloc_cb)  return uv_status(UV_EINVAL);
     if (!_read_cb and !properties.read_cb)  return uv_status(UV_EINVAL);
 
-    instance_ptr->ref();  // first, make sure it would exist for the future _read_cb() calls until read_stop()
+    auto rdcmd_state = properties.rdcmd_state;
+    properties.rdcmd_state = rdcmd::START;
 
-    switch (properties.rdcmd_state)
+    switch (rdcmd_state)
     {
-    case rdcmd::NOP:
+    case rdcmd::UNKNOWN:
     case rdcmd::STOP:
     case rdcmd::PAUSE:
+        instance_ptr->ref();  // make sure it will exist for the future _read_cb() calls until read_stop()/read_pause()
         break;
     case rdcmd::START:
     case rdcmd::CONTINUE:
         uv_status(instance_ptr->uv_interface()->read_stop(uv_handle));
-        instance_ptr->unref();  // release the excess reference from the repeated read_start()
         break;
     }
-    properties.rdcmd_state = rdcmd::START;
 
     if (_alloc_cb)  properties.alloc_cb = _alloc_cb;
     if (_read_cb)  properties.read_cb = _read_cb;
@@ -202,7 +202,7 @@ public: /*interface*/
 
     if (ret < 0)
     {
-      properties.rdcmd_state = rdcmd::NOP;
+      properties.rdcmd_state = rdcmd::UNKNOWN;
       instance_ptr->unref();  // release the reference on start failure
     };
 
@@ -211,8 +211,8 @@ public: /*interface*/
   /*! \brief Restart reading incoming data from the I/O endpoint using `_alloc_cb` and `_read_cb`
       functions having been explicitly set before or provided with the previous `read_start()` call.
       Repeated call to this function results in the automatic call to `read_stop()` firstly.
-      \note This function adds an extra reference to the handle instance, which is released when the
-      counterpart function `read_stop()` is called. */
+      \note On successful restart this function adds an extra reference to the handle instance,
+      which is released when the counterpart function `read_stop()` is called. */
   int read_start(std::size_t _size = 0, int64_t _offset = -1) const
   {
     auto instance_ptr = instance::from(uv_handle);
@@ -222,21 +222,21 @@ public: /*interface*/
 
     if (!properties.alloc_cb or !properties.read_cb)  return uv_status(UV_EINVAL);
 
-    instance_ptr->ref();
+    auto rdcmd_state = properties.rdcmd_state;
+    properties.rdcmd_state = rdcmd::START;
 
-    switch (properties.rdcmd_state)
+    switch (rdcmd_state)
     {
-    case rdcmd::NOP:
+    case rdcmd::UNKNOWN:
     case rdcmd::STOP:
     case rdcmd::PAUSE:
+        instance_ptr->ref();
         break;
     case rdcmd::START:
     case rdcmd::CONTINUE:
         uv_status(instance_ptr->uv_interface()->read_stop(uv_handle));
-        instance_ptr->unref();
         break;
     }
-    properties.rdcmd_state = rdcmd::START;
 
     properties.rdsize = _size;
 
@@ -246,14 +246,14 @@ public: /*interface*/
 
     if (ret < 0)
     {
-      properties.rdcmd_state = rdcmd::NOP;
+      properties.rdcmd_state = rdcmd::UNKNOWN;
       instance_ptr->unref();
     };
 
     return ret;
   }
 
-  /*! \brief Stop reading data from the I/O endpoint.
+  /*! \brief Stop reading data from the I/O endpoint and clear all read parameters.
       \sa libuv API documentation: [`uv_read_stop()`](http://docs.libuv.org/en/v1.x/stream.html#c.uv_read_stop),
                                    [`uv_udp_recv_stop()`](http://docs.libuv.org/en/v1.x/udp.html#c.uv_udp_recv_stop). */
   int read_stop() const
@@ -263,29 +263,32 @@ public: /*interface*/
 
     std::lock_guard< decltype(properties.rdstate_switch) > lk(properties.rdstate_switch);
 
+    auto rdcmd_state = properties.rdcmd_state;
+    properties.rdcmd_state = rdcmd::STOP;
+
     int ret = uv_status(instance_ptr->uv_interface()->read_stop(uv_handle));
 
-    switch (properties.rdcmd_state)
+    properties.rdsize = 0;
+
+    switch (rdcmd_state)
     {
-    case rdcmd::NOP:
+    case rdcmd::UNKNOWN:
     case rdcmd::STOP:
     case rdcmd::PAUSE:
         break;
     case rdcmd::START:
     case rdcmd::CONTINUE:
-        properties.rdcmd_state = rdcmd::STOP;
-        instance_ptr->unref();  // release the reference from read_start()
+        instance_ptr->unref();  // release the reference from read_start()/read_continue()
         break;
     }
-
-    properties.rdsize = 0;
 
     return ret;
   }
 
   /*! \brief Pause reading data from the I/O endpoint.
       \details
-      \arg `read_pause(true)` - a \e "pause" command that is functionally equivalent to `read_stop()`.
+      \arg `read_pause(true)` - a \e "pause" command that is functionally equivalent to `read_stop()`
+      without clearing read parameters.
       \arg `read_pause(false)` - a _no op_ command that returns immediately.
 
       To be used in conjunction with `read_continue()` control command.
@@ -299,19 +302,21 @@ public: /*interface*/
 
     std::lock_guard< decltype(properties.rdstate_switch) > lk(properties.rdstate_switch);
 
+    int ret = 0;
     switch (properties.rdcmd_state)
     {
-    case rdcmd::NOP:
+    case rdcmd::UNKNOWN:
     case rdcmd::STOP:
     case rdcmd::PAUSE:
-        return 0;
+        break;
     case rdcmd::START:
     case rdcmd::CONTINUE:
         properties.rdcmd_state = rdcmd::PAUSE;
+        ret = uv_status(instance_ptr->uv_interface()->read_stop(uv_handle));
+        instance_ptr->unref();
         break;
     }
-
-    return 0;
+    return ret;
   }
 
   /*! \brief Continue reading data from the I/O endpoint after having been paused.
@@ -335,11 +340,11 @@ public: /*interface*/
         ═════════════════════╬═════════╪══════════════╪═════════════════════╪═════════════╪══════════════════
          read_start()        ║ "start" │ "restart"    │ "restart"           │ "start"     │ "start"          
          read_continue(true) ║ -       │ -            │ -                   │ -           │ "continue"       
-         read_stop()         ║ -       │ "stop"       │ "stop"              │ -           │ -                
+         read_stop()         ║ "stop"  │ "stop"       │ "stop"              │ "stop"      │ "stop"           
          read_pause(true)    ║ -       │ "pause"      │ "pause"             │ -           │ -                
 
         "continue" is functionally equivalent to "start"
-        "pause" is functionally equivalent to "stop"
+        "pause" is functionally equivalent to "stop" without clearing read parameters
         "restart" is functionally equivalent to "stop" followed by "start"
       \endverbatim */
   int read_continue(bool _trigger_condition)
@@ -351,20 +356,33 @@ public: /*interface*/
 
     std::lock_guard< decltype(properties.rdstate_switch) > lk(properties.rdstate_switch);
 
+    int ret = 0;
     switch (properties.rdcmd_state)
     {
-    case rdcmd::NOP:
+    case rdcmd::UNKNOWN:
     case rdcmd::STOP:
-        return 0;
+        break;
     case rdcmd::PAUSE:
         properties.rdcmd_state = rdcmd::CONTINUE;
+
+        instance_ptr->ref();
+
+        uv_status(0);
+        ret = instance_ptr->uv_interface()->read_start(uv_handle, -1);
+        if (!ret)  uv_status(ret);
+
+        if (ret < 0)
+        {
+          properties.rdcmd_state = rdcmd::UNKNOWN;
+          instance_ptr->unref();
+        };
+
         break;
     case rdcmd::START:
     case rdcmd::CONTINUE:
-        return 0;
+        break;
     }
-
-    return 0;
+    return ret;
   }
 
   /*! \brief Create an `io` handle object which actual type is derived from an existing file descriptor.

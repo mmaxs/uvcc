@@ -55,10 +55,21 @@ protected: /*types*/
     int read_start(void *_uv_handle, int64_t _offset) const noexcept override
     {
       auto instance_ptr = instance::from(_uv_handle);
-      auto &rd = instance_ptr->properties().rd;
+      auto &properties = instance_ptr->properties();
 
-      rd.uv_req_struct.data = instance_ptr;
-      rd.offset = _offset;
+      properties.rd.uv_req_struct.data = instance_ptr;
+
+      switch (properties.rdcmd_state)
+      {
+      case rdcmd::UNKNOWN:
+      case rdcmd::STOP:
+      case rdcmd::PAUSE:
+      case rdcmd::START:
+          properties.rd.offset = _offset;
+          break;
+      case rdcmd::CONTINUE:
+          break;
+      }
 
       return file_read_start(instance_ptr);
     }
@@ -206,7 +217,7 @@ void file::read_cb(::uv_fs_t *_uv_req)
 
   switch (properties.rdcmd_state)
   {
-  case rdcmd::NOP:
+  case rdcmd::UNKNOWN:
   case rdcmd::STOP:
   case rdcmd::PAUSE:
       break;
