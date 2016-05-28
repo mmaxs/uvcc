@@ -54,7 +54,7 @@ public: /*types*/
 
 protected: /*types*/
   //! \cond
-  enum class rdcmd  { NOP, STOP, START, CONTINUE, PAUSE };
+  enum class rdcmd  { NOP, STOP, PAUSE, START, CONTINUE };
 
   struct properties
   {
@@ -182,10 +182,10 @@ public: /*interface*/
     {
     case rdcmd::NOP:
     case rdcmd::STOP:
+    case rdcmd::PAUSE:
         break;
     case rdcmd::START:
     case rdcmd::CONTINUE:
-    case rdcmd::PAUSE:
         uv_status(instance_ptr->uv_interface()->read_stop(uv_handle));
         instance_ptr->unref();  // release the excess reference from the repeated read_start()
         break;
@@ -228,10 +228,10 @@ public: /*interface*/
     {
     case rdcmd::NOP:
     case rdcmd::STOP:
+    case rdcmd::PAUSE:
         break;
     case rdcmd::START:
     case rdcmd::CONTINUE:
-    case rdcmd::PAUSE:
         uv_status(instance_ptr->uv_interface()->read_stop(uv_handle));
         instance_ptr->unref();
         break;
@@ -269,10 +269,10 @@ public: /*interface*/
     {
     case rdcmd::NOP:
     case rdcmd::STOP:
+    case rdcmd::PAUSE:
         break;
     case rdcmd::START:
     case rdcmd::CONTINUE:
-    case rdcmd::PAUSE:
         properties.rdcmd_state = rdcmd::STOP;
         instance_ptr->unref();  // release the reference from read_start()
         break;
@@ -283,33 +283,17 @@ public: /*interface*/
     return ret;
   }
 
-  /*! \brief A toggle switch to pause/continue reading data from the I/O endpoint.
+  /*! \brief Pause reading data from the I/O endpoint.
       \details
-      \arg `read_pause(true)` - the "pause" command that is functionally equivalent to `read_stop()`.
-      \arg `read_pause(false)` - the "continue" command that is functionally equivalent to `read_start()`
-      except that it cannot "start" and is refused if the previous control command was not "pause".
+      \arg `read_pause(true)` - a \e "pause" command that is functionally equivalent to `read_stop()`.
+      \arg `read_pause(false)` - a _no op_ command that returns immediately.
 
-      This facility is intended for temporary pausing the read process for example in such a cases when a
-      consumer becomes overwhelmed with incoming data and its input queue has been considerably increased.
-
-      The different control command interoperating semantics is described as follows:
-      \verbatim
-                           ║ The command having been executed previously                                 
-         The command to    ╟─────────┬──────────────┬───────────────────┬─────────────┬──────────────────
-         be currently      ║ No      │ read_start() │ read_pause(false) │ read_stop() │ read_pause(true) 
-         executed          ║ command │              │ "continue"        │             │ "pause"          
-        ═══════════════════╬═════════╪══════════════╪═══════════════════╪═════════════╪══════════════════
-         read_start()      ║ "start" │ "restart"    │ "restart"         │ "start"     │ "start"          
-         read_pause(false) ║ -       │ -            │ -                 │ -           │ "continue"       
-         read_stop()       ║ -       │ "stop"       │ "stop"            │ -           │ -                
-         read_pause(true)  ║ -       │ "pause"      │ "pause"           │ -           │ -                
-
-        "continue" is functionally equivalent to "start"
-        "pause" is functionally equivalent to "stop"
-        "restart" is functionally equivalent to "stop" followed by "start"
-      \endverbatim */
-  int read_pause(bool _toggle_switch) const
+      To be used in conjunction with `read_continue()` control command.
+      \sa `read_continue()` */
+  int read_pause(bool _trigger_condition) const
   {
+    if (!_trigger_condition)  return 0;
+
     auto instance_ptr = instance::from(uv_handle);
     auto &properties = instance_ptr->properties();
 
@@ -319,14 +303,65 @@ public: /*interface*/
     {
     case rdcmd::NOP:
     case rdcmd::STOP:
+    case rdcmd::PAUSE:
+        return 0;
+    case rdcmd::START:
+    case rdcmd::CONTINUE:
+        properties.rdcmd_state = rdcmd::PAUSE;
+        break;
+    }
+
+    return 0;
+  }
+
+  /*! \brief Continue reading data from the I/O endpoint after having been paused.
+      \details
+      \arg `read_continue(true)` - a \e "continue" command that is functionally equivalent to `read_start()` except
+      that it cannot \e "start" and is refused if the previous control command was not \e "pause" (i.e. `read_pause()`).
+      \arg `read_continue(false)` - a _no op_ command that returns immediately.
+
+      To be used in conjunction with `read_pause()` control command.
+
+      \note `read_pause()`/`read_continue()` commands are intended for temporary pausing the read process for example in
+      such a cases when a consumer which the data being read is sent to becomes overwhelmed with them and its input queue
+      (and/or a sender output queue) has been considerably increased.
+
+      The different control command interoperating semantics is described as follows:
+      \verbatim
+                             ║ The command having been executed previously                                   
+         The command to      ╟─────────┬──────────────┬─────────────────────┬─────────────┬──────────────────
+         be currently        ║ No      │ read_start() │ read_continue(true) │ read_stop() │ read_pause(true) 
+         executed            ║ command │              │                     │             │                  
+        ═════════════════════╬═════════╪══════════════╪═════════════════════╪═════════════╪══════════════════
+         read_start()        ║ "start" │ "restart"    │ "restart"           │ "start"     │ "start"          
+         read_continue(true) ║ -       │ -            │ -                   │ -           │ "continue"       
+         read_stop()         ║ -       │ "stop"       │ "stop"              │ -           │ -                
+         read_pause(true)    ║ -       │ "pause"      │ "pause"             │ -           │ -                
+
+        "continue" is functionally equivalent to "start"
+        "pause" is functionally equivalent to "stop"
+        "restart" is functionally equivalent to "stop" followed by "start"
+      \endverbatim */
+  int read_continue(bool _trigger_condition)
+  {
+    if (!_trigger_condition)  return 0;
+
+    auto instance_ptr = instance::from(uv_handle);
+    auto &properties = instance_ptr->properties();
+
+    std::lock_guard< decltype(properties.rdstate_switch) > lk(properties.rdstate_switch);
+
+    switch (properties.rdcmd_state)
+    {
+    case rdcmd::NOP:
+    case rdcmd::STOP:
+        return 0;
+    case rdcmd::PAUSE:
+        properties.rdcmd_state = rdcmd::CONTINUE;
         break;
     case rdcmd::START:
     case rdcmd::CONTINUE:
-        if (_toggle_switch)  properties.rdcmd_state = rdcmd::PAUSE;
-        break;
-    case rdcmd::PAUSE:
-        if (!_toggle_switch)  properties.rdcmd_state = rdcmd::CONTINUE;
-        break;
+        return 0;
     }
 
     return 0;

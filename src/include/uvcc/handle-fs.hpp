@@ -208,6 +208,7 @@ void file::read_cb(::uv_fs_t *_uv_req)
   {
   case rdcmd::NOP:
   case rdcmd::STOP:
+  case rdcmd::PAUSE:
       break;
   case rdcmd::START:
   case rdcmd::CONTINUE:
@@ -218,8 +219,6 @@ void file::read_cb(::uv_fs_t *_uv_req)
         int ret = file_read_start(instance_ptr);
         if (!ret)  instance_ptr->uv_error = ret;
       }
-      break;
-  case rdcmd::PAUSE:
       break;
   }
 }
