@@ -213,13 +213,14 @@ void file::read_cb(::uv_fs_t *_uv_req)
 
   io_read_cb(&instance_ptr->uv_handle_struct, nread , &properties.rd.uv_buf_struct, &properties.rd.offset);
 
-  ::uv_fs_req_cleanup(_uv_req);
-
   switch (properties.rdcmd_state)
   {
   case rdcmd::UNKNOWN:
   case rdcmd::STOP:
+      break;
   case rdcmd::PAUSE:
+      // save read parameters for resuming from right place
+      if (properties.rd.offset >= 0 and nread > 0)  properties.rd.offset += nread;
       break;
   case rdcmd::START:
   case rdcmd::RESUME:
@@ -232,6 +233,8 @@ void file::read_cb(::uv_fs_t *_uv_req)
       }
       break;
   }
+
+  ::uv_fs_req_cleanup(_uv_req);
 }
 
 
