@@ -14,14 +14,19 @@
 uv::pipe in(uv::loop::Default(), fileno(stdin)),
          out(uv::loop::Default(), fileno(stdout));
 
+constexpr const std::size_t WRITE_QUEUE_SIZE_UPPER_LIMIT = 500*1024*1024,
+                            WRITE_QUEUE_SIZE_LOWER_LIMIT =  10*1024*1024;
+
 
 int main(int _argc, char *_argv[])
 {
-  if (!in)  {
+  if (!in)
+  {
     PRINT_UV_ERR("stdin open", in.uv_status());
     return in.uv_status();
   };
-  if (!out)  {
+  if (!out)
+  {
     PRINT_UV_ERR("stdout open", out.uv_status());
     return out.uv_status();
   };
@@ -50,8 +55,12 @@ int main(int _argc, char *_argv[])
               PRINT_UV_ERR("write", _wr.uv_status());
               in.read_stop();
             };
+
+            in.read_resume(out.write_queue_size() <= WRITE_QUEUE_SIZE_LOWER_LIMIT);
           };
           wr.run(out, _buffer);
+
+          in.read_pause(out.write_queue_size() >= WRITE_QUEUE_SIZE_UPPER_LIMIT);
         }
       }
   );

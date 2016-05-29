@@ -239,10 +239,13 @@ There are some points that should be mentioned:
       using manual packaging/embedding the request and the buffer description structures into some sort of operational context
       enclosing structure, or using [`uv_req_t.data`](http://docs.libuv.org/en/v1.x/request.html#c.uv_req_t.data) pointer member
       to the user-defined arbitrary data.
-      \sa Discussions at _github.com/joyent/libuv/issues_: ["Preserve uv_write_t->bufs in uv_write() #1059"](https://github.com/joyent/libuv/issues/1059),
-      ["Please expose bufs in uv_fs_t's result for uv_fs_read operations. #1557"](https://github.com/joyent/libuv/issues/1557).
-- [3] Be sure that things stay valid until some conditions in the future.
+      \sa Discussions at _github.com/joyent/libuv/issues_:\n
+      \arg ["Preserve uv_write_t->bufs in uv_write() #1059"](https://github.com/joyent/libuv/issues/1059),
+      \arg ["Please expose bufs in uv_fs_t's result for uv_fs_read operations. #1557"](https://github.com/joyent/libuv/issues/1557).
+- [3] Be sure that things stay valid until some conditions in the future to perform asynchronous operations.
       \sa Discussion at _github.com/joyent/libuv/issues_: ["Lifetime of buffers on uv_write #344"](https://github.com/joyent/libuv/issues/344).
+- [4] Be prepared to run into high memory consumption for libuv I/O queues in some cases.
+      \sa Discussion on libuv mailing list at _groups.google.com/group/libuv_: ["memory issue with a simple libuv program"](https://groups.google.com/forum/#!topic/libuv/2mg16dbd2yU).
 
 .
 
@@ -252,6 +255,32 @@ There are some points that should be mentioned:
 The following is the above program being rewritten using uvcc. All the considered points are taken into account by design of uvcc.
 \verbatim example/cpio-uvcc.cpp \endverbatim
 \includelineno cpio-uvcc.cpp
+- - -
+Here is a performance comparison between the two variants:
+\verbatim
+[mike@u250 /mnt/sda3/wroot/libuv/uvcc/uvcc.git]
+$ cat /dev/zero | build/example/cpio-uv | dd of=/dev/null iflag=fullblock bs=1M count=10000
+10000+0 records in
+10000+0 records out
+10485760000 bytes (10 GB) copied, 47.909 s, 219 MB/s
+[mike@u250 /mnt/sda3/wroot/libuv/uvcc/uvcc.git]
+$ cat /dev/zero | build/example/cpio-uv | dd of=/dev/null iflag=fullblock bs=1M count=10000
+10000+0 records in
+10000+0 records out
+10485760000 bytes (10 GB) copied, 48.0284 s, 218 MB/s
+
+[mike@u250 /mnt/sda3/wroot/libuv/uvcc/uvcc.git]
+$ cat /dev/zero | build/example/cpio-uvcc | dd of=/dev/null iflag=fullblock bs=1M count=10000
+10000+0 records in
+10000+0 records out
+10485760000 bytes (10 GB) copied, 56.0083 s, 187 MB/s
+[mike@u250 /mnt/sda3/wroot/libuv/uvcc/uvcc.git]
+$ cat /dev/zero | build/example/cpio-uvcc | dd of=/dev/null iflag=fullblock bs=1M count=10000
+10000+0 records in
+10000+0 records out
+10485760000 bytes (10 GB) copied, 56.0129 s, 187 MB/s
+\endverbatim
+Obviously there is an impact of reference counting operations and other C++ related overheads that slightly reduce the performance.
 
 
 
