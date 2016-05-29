@@ -20,7 +20,7 @@ namespace uv
 /*! \ingroup doxy_group_handle
     \brief The base class for handles representing I/O endpoints: a file, TCP/UDP socket, pipe, TTY.
     \details Encapsulates common I/O functions and properties.
-    \note `read_start()`/`read_stop()` and `read_pause()`/`read_continue()` functions are mutually exclusive and thread-safe. */
+    \note `read_start()`/`read_stop()` and `read_pause()`/`read_resume()` functions are mutually exclusive and thread-safe. */
 class io : public handle
 {
   //! \cond
@@ -54,7 +54,7 @@ public: /*types*/
 
 protected: /*types*/
   //! \cond
-  enum class rdcmd  { UNKNOWN, STOP, PAUSE, START, CONTINUE };
+  enum class rdcmd  { UNKNOWN, STOP, PAUSE, START, RESUME };
 
   struct properties
   {
@@ -187,7 +187,7 @@ public: /*interface*/
         instance_ptr->ref();  // make sure it will exist for the future _read_cb() calls until read_stop()/read_pause()
         break;
     case rdcmd::START:
-    case rdcmd::CONTINUE:
+    case rdcmd::RESUME:
         uv_status(instance_ptr->uv_interface()->read_stop(uv_handle));
         break;
     }
@@ -233,7 +233,7 @@ public: /*interface*/
         instance_ptr->ref();
         break;
     case rdcmd::START:
-    case rdcmd::CONTINUE:
+    case rdcmd::RESUME:
         uv_status(instance_ptr->uv_interface()->read_stop(uv_handle));
         break;
     }
@@ -277,8 +277,8 @@ public: /*interface*/
     case rdcmd::PAUSE:
         break;
     case rdcmd::START:
-    case rdcmd::CONTINUE:
-        instance_ptr->unref();  // release the reference from read_start()/read_continue()
+    case rdcmd::RESUME:
+        instance_ptr->unref();  // release the reference from read_start()/read_resume()
         break;
     }
 
@@ -291,8 +291,8 @@ public: /*interface*/
       without clearing read parameters.
       \arg `read_pause(false)` - a _no op_ command that returns immediately.
 
-      To be used in conjunction with `read_continue()` control command.
-      \sa `read_continue()` */
+      To be used in conjunction with `read_resume()` control command.
+      \sa `read_resume()` */
   int read_pause(bool _trigger_condition) const
   {
     if (!_trigger_condition)  return 0;
@@ -310,7 +310,7 @@ public: /*interface*/
     case rdcmd::PAUSE:
         break;
     case rdcmd::START:
-    case rdcmd::CONTINUE:
+    case rdcmd::RESUME:
         properties.rdcmd_state = rdcmd::PAUSE;
         ret = uv_status(instance_ptr->uv_interface()->read_stop(uv_handle));
         instance_ptr->unref();
@@ -319,35 +319,35 @@ public: /*interface*/
     return ret;
   }
 
-  /*! \brief Continue reading data from the I/O endpoint after having been paused.
+  /*! \brief Resume reading data from the I/O endpoint after having been paused.
       \details
-      \arg `read_continue(true)` - a \e "continue" command that is functionally equivalent to `read_start()` except
+      \arg `read_resume(true)` - a \e "resume" command that is functionally equivalent to `read_start()` except
       that it cannot \e "start" and is refused if the previous control command was not \e "pause" (i.e. `read_pause()`).
-      \arg `read_continue(false)` - a _no op_ command that returns immediately.
+      \arg `read_resume(false)` - a _no op_ command that returns immediately.
 
       To be used in conjunction with `read_pause()` control command.
 
-      \note `read_pause()`/`read_continue()` commands are intended for temporary pausing the read process for example in
+      \note `read_pause()`/`read_resume()` commands are intended for temporary pausing the read process for example in
       such a cases when a consumer which the data being read is sent to becomes overwhelmed with them and its input queue
       (and/or a sender output queue) has been considerably increased.
 
       The different control command interoperating semantics is described as follows:
       \verbatim
-                             ║ The command having been executed previously                                   
-         The command to      ╟─────────┬──────────────┬─────────────────────┬─────────────┬──────────────────
-         be currently        ║ No      │ read_start() │ read_continue(true) │ read_stop() │ read_pause(true) 
-         executed            ║ command │              │                     │             │                  
-        ═════════════════════╬═════════╪══════════════╪═════════════════════╪═════════════╪══════════════════
-         read_start()        ║ "start" │ "restart"    │ "restart"           │ "start"     │ "start"          
-         read_continue(true) ║ -       │ -            │ -                   │ -           │ "continue"       
-         read_stop()         ║ "stop"  │ "stop"       │ "stop"              │ "stop"      │ "stop"           
-         read_pause(true)    ║ -       │ "pause"      │ "pause"             │ -           │ -                
+                           ║ The command having been executed previously                                 
+         The command to    ╟─────────┬──────────────┬───────────────────┬─────────────┬──────────────────
+         be currently      ║ No      │ read_start() │ read_resume(true) │ read_stop() │ read_pause(true) 
+         executed          ║ command │              │                   │             │                  
+        ═══════════════════╬═════════╪══════════════╪═══════════════════╪═════════════╪══════════════════
+         read_start()      ║ "start" │ "restart"    │ "restart"         │ "start"     │ "start"          
+         read_resume(true) ║ -       │ -            │ -                 │ -           │ "resume"         
+         read_stop()       ║ "stop"  │ "stop"       │ "stop"            │ "stop"      │ "stop"           
+         read_pause(true)  ║ -       │ "pause"      │ "pause"           │ -           │ -                
 
-        "continue" is functionally equivalent to "start"
+        "resume" is functionally equivalent to "start"
         "pause" is functionally equivalent to "stop" without clearing read parameters
         "restart" is functionally equivalent to "stop" followed by "start"
       \endverbatim */
-  int read_continue(bool _trigger_condition)
+  int read_resume(bool _trigger_condition)
   {
     if (!_trigger_condition)  return 0;
 
@@ -363,7 +363,7 @@ public: /*interface*/
     case rdcmd::STOP:
         break;
     case rdcmd::PAUSE:
-        properties.rdcmd_state = rdcmd::CONTINUE;
+        properties.rdcmd_state = rdcmd::RESUME;
 
         instance_ptr->ref();
 
@@ -379,7 +379,7 @@ public: /*interface*/
 
         break;
     case rdcmd::START:
-    case rdcmd::CONTINUE:
+    case rdcmd::RESUME:
         break;
     }
     return ret;
