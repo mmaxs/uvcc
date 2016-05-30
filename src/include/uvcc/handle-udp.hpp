@@ -32,11 +32,11 @@ public: /*types*/
   /*! \brief Supplemental data passed as the last argument to `io::on_read_t` callback function
       called by `recv_start()`.
       \sa libuv API documentation: [`uv_udp_recv_cb`](http://docs.libuv.org/en/v1.x/udp.html#c.uv_udp_recv_cb). */
-  struct recv_info
+  struct io_info
   {
     /*! \brief The address of the remote peer. Can be `nullptr`. The pointer is valid for the duration of the callback only.
-        \note If the receive callback is called with zero number of bytes that have been received then `(udp_sender == nullptr)`
-        indicates that there is nothing to read, and `(udp_sender != nullptr)` indicates an empty UDP packet is received. */
+        \note If the receive callback is called with zero number of bytes that have been received, then `(peer == nullptr)`
+        indicates that there is nothing to read, and `(peer != nullptr)` indicates an empty UDP packet is received. */
     const ::sockaddr *peer;
     /*! \brief One or more or’ed [`uv_udp_flags`](http://docs.libuv.org/en/v1.x/udp.html#c.uv_udp_flags) constants.
         \sa libuv API documentation: [`uv_udp_recv_cb`](http://docs.libuv.org/en/v1.x/udp.html#c.uv_udp_recv_cb),
@@ -192,8 +192,8 @@ void udp::alloc_cb(::uv_handle_t *_uv_handle, std::size_t _suggested_size, ::uv_
 template< typename >
 void udp::recv_cb(::uv_udp_t *_uv_handle, ssize_t _nread, const ::uv_buf_t *_uv_buf, const ::sockaddr *_sockaddr, unsigned int _flags)
 {
-  recv_info t = {_sockaddr, _flags};
-  io_read_cb(_uv_handle, _nread, _uv_buf, &t);
+  io_info supplemental_data = {_sockaddr, _flags};
+  io_read_cb(_uv_handle, _nread, _uv_buf, &supplemental_data);
 }
 
 

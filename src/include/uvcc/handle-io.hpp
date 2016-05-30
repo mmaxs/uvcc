@@ -34,11 +34,11 @@ public: /*types*/
   /*!< \brief The function type of the callback called by `read_start()` when data was read from an I/O endpoint.
        \details The `_info` pointer is valid for the duration of the callback only and refers to the following
        supplemental data:
-        I/O endpoint  | `_info`                      | Description
-       :--------------|:-----------------------------|:----------------------------------------------------------
-        `uv::file`    | `int64_t*`                   | the offset the read operation has been performed at
-        `uv::stream`  | `nullptr`                    | no additional data
-        `uv::udp`     | `struct uv::udp::recv_info*` | information on sender address and received message status
+        I/O endpoint  | `_info`                    | Description
+       :--------------|:---------------------------|:--------------------------------------------------------------
+        `uv::file`    | `int64_t*`                 | the offset the read operation has been performed at
+        `uv::stream`  | `nullptr`                  | no additional data
+        `uv::udp`     | `struct uv::udp::io_info*` | information on remote peer address and received message flags
 
        \sa libuv API documentation: [`uv_read_cb`](http://docs.libuv.org/en/v1.x/stream.html#c.uv_read_cb),
                                     [`uv_udp_recv_cb`](http://docs.libuv.org/en/v1.x/udp.html#c.uv_udp_recv_cb).
