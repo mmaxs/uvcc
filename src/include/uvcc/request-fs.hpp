@@ -15,6 +15,11 @@
 #include <functional>   // function
 #include <memory>       // addressof() unique_ptr
 #include <utility>      // forward()
+#ifdef _WIN32
+#include <io.h>         // _telli64()
+#else
+#include <unistd.h>     // lseek64()
+#endif
 
 
 namespace uv
@@ -158,11 +163,26 @@ public: /*interface*/
   int run(file &_file, buffer &_buf, int64_t _offset = -1)
   {
     int ret = 0;
+
+    if (_offset < 0)
+    {
+#ifdef _WIN32
+      /*! \sa Windows: [`_tell()`, `_telli64()`](https://msdn.microsoft.com/en-us/library/c3kc5e7a.aspx). */
+      _offset = _telli64(_file.fd());
+#else
+      _offset = lseek64(_file.fd(), 0, SEEK_CUR);
+#endif
+    };
+
     auto instance_ptr = instance::from(uv_req);
 
     auto &request_cb = instance_ptr->request_cb_storage.value();
     if (!request_cb)
     {
+      auto &properties = instance_ptr->properties();
+      properties.uv_handle = static_cast< file::uv_t* >(_file);
+      properties.offset = _offset;
+
       ret = uv_status(::uv_fs_read(
           static_cast< file::uv_t* >(_file)->loop, static_cast< uv_t* >(uv_req),
           _file.fd(),
@@ -292,11 +312,26 @@ public: /*interface*/
   int run(file &_file, const buffer &_buf, int64_t _offset = -1)
   {
     int ret = 0;
+
+    if (_offset < 0)
+    {
+#ifdef _WIN32
+      /*! \sa Windows: [`_tell()`, `_telli64()`](https://msdn.microsoft.com/en-us/library/c3kc5e7a.aspx). */
+      _offset = _telli64(_file.fd());
+#else
+      _offset = lseek64(_file.fd(), 0, SEEK_CUR);
+#endif
+    };
+
     auto instance_ptr = instance::from(uv_req);
 
     auto &request_cb = instance_ptr->request_cb_storage.value();
     if (!request_cb)
     {
+      auto &properties = instance_ptr->properties();
+      properties.uv_handle = static_cast< file::uv_t* >(_file);
+      properties.offset = _offset;
+
       ret = uv_status(::uv_fs_write(
           static_cast< file::uv_t* >(_file)->loop, static_cast< uv_t* >(uv_req),
           _file.fd(),

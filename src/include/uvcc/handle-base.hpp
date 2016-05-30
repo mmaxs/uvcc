@@ -347,7 +347,7 @@ struct handle::uv_fs_interface : virtual uv_interface
     auto fd = static_cast< ::uv_file >(static_cast< ::uv_fs_t* >(_uv_fs)->result);
     
 #ifdef _WIN32
-    /*! \sa Windows: [`_get_osfhandle()`](https://msdn.microsoft.com/en-us/library/ks2530z6.aspx) */
+    /*! \sa Windows: [`_get_osfhandle()`](https://msdn.microsoft.com/en-us/library/ks2530z6.aspx). */
     _h = fd >= 0 ? (HANDLE)::_get_osfhandle(fd) : INVALID_HANDLE_VALUE;
     return _h == INVALID_HANDLE_VALUE ? UV_EBADF : 0;
 #else

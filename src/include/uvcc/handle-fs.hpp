@@ -9,6 +9,11 @@
 
 #include <uv.h>
 #include <functional>   // function
+#ifdef _WIN32
+#include <io.h>         // _telli64()
+#else
+#include <unistd.h>     // lseek64()
+#endif
 
 
 namespace uv
@@ -65,13 +70,22 @@ protected: /*types*/
       case rdcmd::STOP:
       case rdcmd::PAUSE:
       case rdcmd::START:
+          if (_offset < 0)
+          {
+#ifdef _WIN32
+            /*! \sa Windows: [`_tell()`, `_telli64()`](https://msdn.microsoft.com/en-us/library/c3kc5e7a.aspx). */
+            _offset = _telli64(instance_ptr->uv_handle_struct.result);
+#else
+            _offset = lseek64(instance_ptr->uv_handle_struct.result, 0, SEEK_CUR);
+#endif
+          };
           properties.rd.offset = _offset;
           break;
       case rdcmd::RESUME:
           break;
       }
 
-      return file_read_start(instance_ptr);
+      return file_read(instance_ptr);
     }
 
     int read_stop(void *_uv_handle) const noexcept override  { return 0; }
@@ -151,7 +165,7 @@ private: /*functions*/
   template< typename = void > static void open_cb(::uv_fs_t*);
   template< typename = void > static void read_cb(::uv_fs_t*);
 
-  static int file_read_start(instance *_instance_ptr)
+  static int file_read(instance *_instance_ptr)
   {
     auto &rd = _instance_ptr->properties().rd;
 
@@ -228,7 +242,7 @@ void file::read_cb(::uv_fs_t *_uv_req)
         if (properties.rd.offset >= 0 and nread > 0)  properties.rd.offset += nread;
 
         instance_ptr->uv_error = 0;
-        int ret = file_read_start(instance_ptr);
+        int ret = file_read(instance_ptr);
         if (!ret)  instance_ptr->uv_error = ret;
       }
       break;
