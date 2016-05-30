@@ -78,7 +78,7 @@ int main(int _argc, char *_argv[])
         return buf_pool.back();
       }, */
       [](uv::handle, std::size_t _suggested_size) -> uv::buffer  { return uv::buffer{_suggested_size}; },
-      [](uv::io _io, ssize_t _nread, uv::buffer _buf, void*) -> void
+      [](uv::io _io, ssize_t _nread, uv::buffer _buf, void *_info) -> void
       {
         if (_nread < 0)
         {
@@ -101,7 +101,7 @@ int main(int _argc, char *_argv[])
             //all_write_queues_size -= _buf.len();
             //in.read_resume(all_write_queues_size <= WRITE_QUEUE_SIZE_LOWER_LIMIT);
           };
-          wr.run(out, _buf);
+          wr.run(out, _buf, _info);
           if (!wr)  PRINT_UV_ERR("output::run", wr.uv_status());
 
           //all_write_queues_size = out.write_queue_size();
