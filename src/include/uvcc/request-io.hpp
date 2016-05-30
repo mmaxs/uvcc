@@ -169,6 +169,23 @@ public: /*interface*/
     }
   }
 
+  int run(io &_io, const buffer &_buf, void *_info)
+  {
+    switch (_io.type())
+    {
+    case UV_NAMED_PIPE:
+    case UV_TCP:
+    case UV_TTY:
+        return reinterpret_cast< write* >(this)->run(static_cast< stream& >(_io), _buf);
+    case UV_UDP:
+        return reinterpret_cast< udp_send* >(this)->run(static_cast< udp& >(_io), _buf, *static_cast< udp::io_info* >(_info)->peer);
+    case UV_FILE:
+        return reinterpret_cast< fs::write* >(this)->run(static_cast< file& >(_io), _buf, *static_cast< int64_t* >(_info));
+    default:
+        return uv_status(UV_EBADF);
+    }
+  }
+
   /*! \brief Run the request
       \details Depending on the actual object type of the `_io` argument the call should conform to the one of
       the signatures of the _request_`::run()` functions available for the corresponding write/send _request_
