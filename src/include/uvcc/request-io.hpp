@@ -35,12 +35,14 @@ class output : public request
   //! \endcond
 
 public: /*types*/
+  //! \cond
   union uv_t
   {
     fs::write::uv_t uv_file_write_req;
     write::uv_t uv_stream_write_req;
     udp_send::uv_t uv_udp_send_req;
   };
+  //! \endcond
   using on_request_t = std::function< void(output _request, buffer _buffer) >;
   /*!< \brief The function type of the callback called after data was written/sent to I/O endpoint.
        \sa `uv::fs::write::on_request_t`,\n `uv::write::on_request_t`,\n `uv::udp_send::on_request_t`. */
@@ -48,6 +50,7 @@ public: /*types*/
 private: /*types*/
   using instance = request::instance< output >;
 
+  //! \cond
   template< class _T_, typename _Res_, typename... _Args_ > struct has_run_method
   {
     template< typename _U_, typename = _Res_ >
@@ -83,6 +86,7 @@ private: /*types*/
 
     static constexpr const bool value = test< _T_ >::value;
   };
+  //! \endcond
 
 private: /*constructors*/
   explicit output(uv_t *_uv_req)

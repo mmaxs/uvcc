@@ -155,6 +155,7 @@ public: /*interface*/
       For `uv::stream` and `uv::udp` endpoints the function is just a wrapper around
       [`uv_read_start()`](http://docs.libuv.org/en/v1.x/stream.html#c.uv_read_start) and
       [`uv_udp_recv_start()`](http://docs.libuv.org/en/v1.x/udp.html#c.uv_udp_recv_start) libuv facilities.
+
       For `uv::file` endpoint it implements a chain of calls for
       [`uv_fs_read()`](http://docs.libuv.org/en/v1.x/fs.html#c.uv_fs_read) libuv API function with the user provided
       callback function. If the user callback does not stop the read loop by calling `read_stop()` function,

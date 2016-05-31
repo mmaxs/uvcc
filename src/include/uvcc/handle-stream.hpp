@@ -21,8 +21,7 @@ namespace uv
 
 /*! \ingroup doxy_group_handle
     \brief Stream handle type.
-    \sa libuv API documentation: [`uv_stream_t — Stream handle`](http://docs.libuv.org/en/v1.x/stream.html#uv-stream-t-stream-handle).
-    \note `read_start()` and `read_stop()` functions are mutually exclusive and thread-safe. */
+    \sa libuv API documentation: [`uv_stream_t — Stream handle`](http://docs.libuv.org/en/v1.x/stream.html#uv-stream-t-stream-handle). */
 class stream : public io
 {
   //! \cond
