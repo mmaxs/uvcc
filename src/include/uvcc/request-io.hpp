@@ -200,7 +200,7 @@ public: /*interface*/
     }
   }
 
-  /*! \brief Run the request interpreting `_info` argument as an additional parameter for actual call signature.
+  /*! \brief Run the request with interpreting `_info` argument as an additional parameter for actual call signature.
       \details This form can be practical for using within a `io::on_read_t` callback as far as the `_info` pointer
       is interpreted in the same way as it is passed into the `io::on_read_t` callback but for determining output
       supplemental parameters. I.e. if the `_io` endpoint is:

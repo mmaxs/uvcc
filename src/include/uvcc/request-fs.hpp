@@ -159,7 +159,9 @@ public: /*interface*/
       \note If the request callback is empty (has not been set), the request runs _synchronously_
       (and the `_loop` parameter is ignored).
       In this case the function returns a number of bytes read or relevant
-      [libuv error constant](http://docs.libuv.org/en/v1.x/errors.html#error-constants).*/
+      [libuv error constant](http://docs.libuv.org/en/v1.x/errors.html#error-constants).
+
+      The `_offset` value of < 0 means using of the current file position. */
   int run(file &_file, buffer &_buf, int64_t _offset = -1)
   {
     int ret = 0;
@@ -308,7 +310,9 @@ public: /*interface*/
       \note If the request callback is empty (has not been set), the request runs _synchronously_
       (and the `_loop` parameter is ignored).
       In this case the function returns a number of bytes written or relevant
-      [libuv error constant](http://docs.libuv.org/en/v1.x/errors.html#error-constants).*/
+      [libuv error constant](http://docs.libuv.org/en/v1.x/errors.html#error-constants).
+
+      The `_offset` value of < 0 means using of the current file position. */
   int run(file &_file, const buffer &_buf, int64_t _offset = -1)
   {
     int ret = 0;
@@ -374,7 +378,8 @@ public: /*interface*/
   }
 
   /*! \brief Try to execute the request _synchronously_ if it can be completed immediately...
-      \details ...i.e. if `(_file.write_queue_size() == 0)` and without calling the request callback.
+      \details ...i.e. if `(_file.write_queue_size() == 0)` and without calling the request callback.\n
+      The `_offset` value of < 0 means using of the current file position.
       \returns A number of bytes written, or relevant
       [libuv error constant](http://docs.libuv.org/en/v1.x/errors.html#error-constants),
       or `UV_EAGAIN` error code when the data can’t be written immediately. */

@@ -146,7 +146,8 @@ public: /*interface*/
       In the repeated calls `_alloc_cb` and/or `_read_cb` functions may be empty values, which means that
       they aren't changed from the previous call.
       \arg `_size` parameter can be set to specify suggested length of the read buffer.
-      \arg `_offset` - the starting offset for reading (intended for `uv::file` I/O endpoint).
+      \arg `_offset` - the starting offset for reading (intended for `uv::file` I/O endpoint);
+                       the default value of \b -1 means using of the current file position.
 
       \note On successful start this function adds an extra reference to the handle instance,
       which is released when the counterpart function `read_stop()` is called.
