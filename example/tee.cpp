@@ -25,11 +25,12 @@
 uv::io in = uv::io::guess_handle(uv::loop::Default(), fileno(stdin)),
        out = uv::io::guess_handle(uv::loop::Default(), fileno(stdout));
 
-constexpr const std::size_t WRITE_QUEUE_SIZE_UPPER_LIMIT =  4*8192/*500*1024*1024*/,
-                            WRITE_QUEUE_SIZE_LOWER_LIMIT =  3*8192/*10*1024*1024*/;
+constexpr const std::size_t WRITE_QUEUE_SIZE_UPPER_LIMIT =  48*8192,
+                            WRITE_QUEUE_SIZE_LOWER_LIMIT =  4*8192;
 std::size_t all_write_queues_size = 0;
 
 std::vector< uv::file > files;
+int64_t file_offset = 0;
 
 
 int main(int _argc, char *_argv[])
@@ -102,7 +103,8 @@ int main(int _argc, char *_argv[])
                 in.read_resume(all_write_queues_size <= WRITE_QUEUE_SIZE_LOWER_LIMIT) == 0
             ) DEBUG_LOG("[read resumed]: all_write_queues_size=%zu\n", all_write_queues_size);
           };
-          wr.run(out, _buf, _info);
+
+          wr.run(out, _buf, &file_offset);  // UDP connected sockets are not supported by libuv
           if (!wr)  PRINT_UV_ERR("output::run", wr.uv_status());
 
           all_write_queues_size = out.write_queue_size();
@@ -119,10 +121,11 @@ int main(int _argc, char *_argv[])
                   in.read_resume(all_write_queues_size <= WRITE_QUEUE_SIZE_LOWER_LIMIT) == 0
               ) DEBUG_LOG("[read resumed]: all_write_queues_size=%zu\n", all_write_queues_size);
             };
-            file_wr.run(file, _buf);
+            file_wr.run(file, _buf, file_offset);
 
             all_write_queues_size += file.write_queue_size();
           }
+          file_offset += _nread;
 
           if (
               in.read_pause(all_write_queues_size >= WRITE_QUEUE_SIZE_UPPER_LIMIT) == 0
