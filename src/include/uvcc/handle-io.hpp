@@ -290,21 +290,22 @@ public: /*interface*/
   /*! \brief Pause reading data from the I/O endpoint.
       \details
       \arg `read_pause(true)` - a \e "pause" command that is functionally equivalent to `read_stop()`
-      without clearing read parameters.
-      \arg `read_pause(false)` - a _no op_ command that returns immediately.
+      without clearing read parameters. Returns `0` or relevant libuv error code. Exit code of `2` is
+      returned if the handle is not currently in reading state.
+      \arg `read_pause(false)` - a _no op_ command that returns immediately with exit code of `1`.
 
       To be used in conjunction with `read_resume()` control command.
       \sa `read_resume()` */
   int read_pause(bool _trigger_condition) const
   {
-    if (!_trigger_condition)  return 0;
+    if (!_trigger_condition)  return 1;
 
     auto instance_ptr = instance::from(uv_handle);
     auto &properties = instance_ptr->properties();
 
     std::lock_guard< decltype(properties.rdstate_switch) > lk(properties.rdstate_switch);
 
-    int ret = 0;
+    int ret = 2;
     switch (properties.rdcmd_state)
     {
     case rdcmd::UNKNOWN:
@@ -325,7 +326,8 @@ public: /*interface*/
       \details
       \arg `read_resume(true)` - a \e "resume" command that is functionally equivalent to `read_start()` except
       that it cannot \e "start" and is refused if the previous control command was not \e "pause" (i.e. `read_pause()`).
-      \arg `read_resume(false)` - a _no op_ command that returns immediately.
+      Returns `0` or relevant libuv error code. Exit code of `2` is returned if the handle is not in read pause state.
+      \arg `read_resume(false)` - a _no op_ command that returns immediately with exit code of `1`.
 
       To be used in conjunction with `read_pause()` control command.
 
@@ -351,14 +353,14 @@ public: /*interface*/
       \endverbatim */
   int read_resume(bool _trigger_condition)
   {
-    if (!_trigger_condition)  return 0;
+    if (!_trigger_condition)  return 1;
 
     auto instance_ptr = instance::from(uv_handle);
     auto &properties = instance_ptr->properties();
 
     std::lock_guard< decltype(properties.rdstate_switch) > lk(properties.rdstate_switch);
 
-    int ret = 0;
+    int ret = 2;
     switch (properties.rdcmd_state)
     {
     case rdcmd::UNKNOWN:
