@@ -204,10 +204,12 @@ public: /*interface*/
     }
   }
 
-  /*! \brief Run the request with interpreting `_info` argument as an additional parameter for actual call signature.
-      \details This form can be practical for using within a `io::on_read_t` callback as far as the `_info` pointer
-      is interpreted in the same way as it is passed into the `io::on_read_t` callback but for determining output
-      supplemental parameters. I.e. if the `_io` endpoint is:
+  /*! \brief Run the request with interpreting `_info` argument as an additional parameter for actual write/send
+      request's `run()` function signature.
+      \details This form can be practical for using within a `io::on_read_t` callback <em>when the type of the I/O
+      endpoint that output request is going to be run on is of the same type as one the `io::on_read_t` callback
+      is called for</em>. This is because the `_info` pointer is interpreted in the same way as it is passed into
+      the `io::on_read_t` callback but for determining output supplemental parameters. I.e. if the `_io` type is:
       - <em>`uv::file`:</em>
         The `_info` pointer is interpreted as `int64_t*`, and if it's not a `nullptr`, the referenced value is used
         as the offset the output operation is performed at (or \b -1 is used otherwise).
@@ -221,8 +223,10 @@ public: /*interface*/
         + The actual output request  call signature is `uv::udp_send::run(udp&, const buffer&, const _T_&)` with `_T_ = ::sockaddr`.\n
           If `(_info == nullptr)` the `UV_EINVAL` error code is returned.
       . */
-  int run(io &_io, const buffer &_buf, void *_info)
+  template< typename _T_ >
+  int run(io &_io, const buffer &_buf, _T_ *_info)
   {
+    fprintf(stderr, "_io.type=%s\n", _io.type_name()); fflush(stderr);
     switch (_io.type())
     {
     case UV_NAMED_PIPE:
@@ -231,13 +235,16 @@ public: /*interface*/
         return reinterpret_cast< write* >(this)->run(static_cast< stream& >(_io), _buf);
     case UV_UDP:
         return _info ?
-            reinterpret_cast< udp_send* >(this)->run(static_cast< udp& >(_io), _buf, *static_cast< udp::io_info* >(_info)->peer)
+            reinterpret_cast< udp_send* >(this)->run(
+                static_cast< udp& >(_io), _buf,
+                *reinterpret_cast< const udp::io_info* >(_info)->peer
+            )
           :
             uv_status(UV_EINVAL);
     case UV_FILE:
         return reinterpret_cast< fs::write* >(this)->run(
             static_cast< file& >(_io), _buf,
-            _info ? *static_cast< int64_t* >(_info) : -1
+            _info ? *reinterpret_cast< const int64_t* >(_info) : -1
         );
     default:
         return uv_status(UV_EBADF);

@@ -28,7 +28,14 @@ namespace uv
 
 /*! \ingroup doxy_group_request
     \brief The base calss for filesystem requests.
-    \sa libuv API documentation: [Filesystem operations](http://docs.libuv.org/en/v1.x/fs.html#filesystem-operations). */
+    \sa libuv API documentation: [Filesystem operations](http://docs.libuv.org/en/v1.x/fs.html#filesystem-operations).
+
+    \warning As far as all file operations in libuv are run on the threadpool, i.e. in a separate threads, pay attention
+    when running a series of file read/write _asynchronous_ requests with the `_offset` value specified as of < 0 which means
+    using of the "current file position". When the next read/write request on a file is scheduled after the previous one has
+    completed and its callback has been called, everything will be OK. If a sequence of _asynchronous_ requests is scheduled
+    as a series of unchained operations or in one go, all of them can be actually preformed simultaneously in parallel
+    threads and the result will most probably turn out to be not what was expected. */
 class fs : public request
 {
   //! \cond
@@ -161,7 +168,7 @@ public: /*interface*/
       In this case the function returns a number of bytes read or relevant libuv error code.
 
       The `_offset` value of < 0 means using of the current file position. */
-  int run(file &_file, buffer &_buf, int64_t _offset = -1)
+  int run(file &_file, buffer &_buf, int64_t _offset)
   {
     int ret = 0;
 
@@ -311,7 +318,7 @@ public: /*interface*/
       In this case the function returns a number of bytes written or relevant libuv error code.
 
       The `_offset` value of < 0 means using of the current file position. */
-  int run(file &_file, const buffer &_buf, int64_t _offset = -1)
+  int run(file &_file, const buffer &_buf, int64_t _offset)
   {
     int ret = 0;
 
@@ -380,7 +387,7 @@ public: /*interface*/
       The `_offset` value of < 0 means using of the current file position.
       \returns A number of bytes written, or relevant libuv error code, or `UV_EAGAIN` error code when
       the data can’t be written immediately. */
-  int try_write(file &_file, const buffer &_buf, int64_t _offset = -1)
+  int try_write(file &_file, const buffer &_buf, int64_t _offset)
   {
     if (_file.write_queue_size() != 0)  return uv_status(UV_EAGAIN);
 
