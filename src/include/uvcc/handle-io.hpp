@@ -30,19 +30,21 @@ class io : public handle
 
 public: /*types*/
   using uv_t = void;
-  using on_read_t = std::function< void(io _handle, ssize_t _nread, buffer _buffer, void *_info) >;
+  using on_read_t = std::function< void(io _handle, ssize_t _nread, buffer _buffer, int64_t _offset, void *_info) >;
   /*!< \brief The function type of the callback called by `read_start()` when data was read from an I/O endpoint.
-       \details The `_info` pointer is valid for the duration of the callback only and refers to the following
-       supplemental data:
-        I/O endpoint  | `_info`                    | Description
-       :--------------|:---------------------------|:--------------------------------------------------------------
-        `uv::file`    | `int64_t*`                 | the offset the read operation has been performed at
-        `uv::stream`  | `nullptr`                  | no additional data
-        `uv::udp`     | `struct uv::udp::io_info*` | information on remote peer address and received message flags
+       \details
+       The `_offset` parameter is the file offset the read operation has been performed at. For I/O endpoints that
+       are not of `uv::file` type this appears to be an artificial value which is being properly calculated basing
+       on the starting offset value from the `read_start()` call and summing the amount of all bytes previously read
+       since that `read_start()` call.
+
+       The `_info` pointer is valid for the duration of the callback only and for `uv::udp` endpoint refers to the
+       `struct uv::udp::io_info` supplemental data, containing information on remote peer address and received
+       message flags. For other I/O endpoint types it is a `nullptr`.
 
        \sa libuv API documentation: [`uv_read_cb`](http://docs.libuv.org/en/v1.x/stream.html#c.uv_read_cb),
                                     [`uv_udp_recv_cb`](http://docs.libuv.org/en/v1.x/udp.html#c.uv_udp_recv_cb).
-       \note On error and EOF state the this callback is supplied with a dummy _null-initialized_ `_buffer`.
+       \note On error and EOF state this callback is supplied with a dummy _null-initialized_ `_buffer`.
 
        On error and EOF state the libuv API calls the user provided
        [`uv_read_cb`](http://docs.libuv.org/en/v1.x/stream.html#c.uv_read_cb) or
@@ -61,6 +63,7 @@ protected: /*types*/
     spinlock rdstate_switch;
     rdcmd rdcmd_state = rdcmd::UNKNOWN;
     std::size_t rdsize = 0;
+    int64_t rdoffset = 0;
     on_buffer_alloc_t alloc_cb;
     on_read_t read_cb;
   };
@@ -111,16 +114,33 @@ protected: /*functions*/
   static void io_read_cb(uv_t *_uv_handle, ssize_t _nread, const ::uv_buf_t *_uv_buf, void *_info)
   {
     auto instance_ptr = instance::from(_uv_handle);
+    auto &properties = instance_ptr->properties();
+
     instance_ptr->uv_error = _nread;
 
-    auto &read_cb = instance_ptr->properties().read_cb;
+    auto &read_cb = properties.read_cb;
     if (_uv_buf->base)
-      read_cb(io(_uv_handle), _nread, buffer(buffer::instance::uv_buf::from(_uv_buf->base), adopt_ref), _info);
+      read_cb(io(_uv_handle), _nread, buffer(buffer::instance::uv_buf::from(_uv_buf->base), adopt_ref), properties.rdoffset, _info);
       // don't forget to specify adopt_ref flag when using ref_guard to unref the object
       // don't use ref_guard unless it really needs to hold on the object until the scope end
       // use move/transfer semantics instead if you need just pass the object to another function for further processing
     else
-      read_cb(io(_uv_handle), _nread, buffer(), _info);
+      read_cb(io(_uv_handle), _nread, buffer(), properties.rdoffset, _info);
+
+    switch (properties.rdcmd_state)
+    {
+    case rdcmd::UNKNOWN:
+    case rdcmd::STOP:
+        break;
+    case rdcmd::PAUSE:
+        // save read parameters for resuming from the right place
+        if (_nread > 0)  properties.rdoffset += _nread;
+        break;
+    case rdcmd::START:
+    case rdcmd::RESUME:
+        if (_nread > 0)  properties.rdoffset += _nread;
+        break;
+    }
   }
 
 #if 0
@@ -145,9 +165,15 @@ public: /*interface*/
       Repeated call to this function results in the automatic call to `read_stop()` firstly.
       In the repeated calls `_alloc_cb` and/or `_read_cb` functions may be empty values, which means that
       they aren't changed from the previous call.
-      \arg `_size` parameter can be set to specify suggested length of the read buffer.
-      \arg `_offset` - the starting offset for reading (intended for `uv::file` I/O endpoint);
-                       the default value of \b -1 means using of the current file position.
+
+      Additional parameters are:
+      \arg `_size` - can be set to specify suggested length of the read buffer.
+      \arg `_offset` - the starting offset for reading from. It is primarily intended for `uv::file` I/O endpoints
+                       and the default value of \b -1 means using of the current file position. For other I/O endpoint
+                       types it is used as a starting value for the artificial calculated offset argument passed to
+                       `io::on_read_t` callback function, and the default value of \b -1 means to continue calculating
+                       from the currently stored offset (or, if the callback has never been called yet, from the initial
+                       value of \b 0).
 
       \note On successful start this function adds an extra reference to the handle instance,
       which is released when the counterpart function `read_stop()` is called.
@@ -372,7 +398,7 @@ public: /*interface*/
         instance_ptr->ref();
 
         uv_status(0);
-        ret = instance_ptr->uv_interface()->read_start(uv_handle, -1);
+        ret = instance_ptr->uv_interface()->read_start(uv_handle, properties.rdoffset);
         if (!ret)  uv_status(ret);
 
         if (ret < 0)

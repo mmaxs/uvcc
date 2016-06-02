@@ -50,8 +50,11 @@ protected: /*types*/
     std::size_t write_queue_size(void *_uv_handle) const noexcept override
     { return static_cast< ::uv_stream_t* >(_uv_handle)->write_queue_size; }
 
-    int read_start(void *_uv_handle, int64_t) const noexcept override
-    { return ::uv_read_start(static_cast< ::uv_stream_t* >(_uv_handle), alloc_cb, read_cb); }
+    int read_start(void *_uv_handle, int64_t _offset) const noexcept override
+    {
+      if (_offset >= 0)  instance::from(_uv_handle)->properties().rdoffset = _offset;
+      return ::uv_read_start(static_cast< ::uv_stream_t* >(_uv_handle), alloc_cb, read_cb);
+    }
 
     int read_stop(void *_uv_handle) const noexcept override
     { return ::uv_read_stop(static_cast< ::uv_stream_t* >(_uv_handle)); }

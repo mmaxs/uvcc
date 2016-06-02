@@ -43,7 +43,6 @@ protected: /*types*/
     {
       ::uv_buf_t uv_buf_struct = { 0,};
       ::uv_fs_t  uv_req_struct = { 0,};
-      int64_t offset = -1;
     } rd;
     std::size_t write_queue_size = 0;
     int is_closing = 0;
@@ -64,26 +63,16 @@ protected: /*types*/
 
       properties.rd.uv_req_struct.data = instance_ptr;
 
-      switch (properties.rdcmd_state)
+      if (_offset < 0)
       {
-      case rdcmd::UNKNOWN:
-      case rdcmd::STOP:
-      case rdcmd::PAUSE:
-      case rdcmd::START:
-          if (_offset < 0)
-          {
 #ifdef _WIN32
-            /*! \sa Windows: [`_tell()`, `_telli64()`](https://msdn.microsoft.com/en-us/library/c3kc5e7a.aspx). */
-            _offset = _telli64(instance_ptr->uv_handle_struct.result);
+        /*! \sa Windows: [`_tell()`, `_telli64()`](https://msdn.microsoft.com/en-us/library/c3kc5e7a.aspx). */
+        _offset = _telli64(instance_ptr->uv_handle_struct.result);
 #else
-            _offset = lseek64(instance_ptr->uv_handle_struct.result, 0, SEEK_CUR);
+        _offset = lseek64(instance_ptr->uv_handle_struct.result, 0, SEEK_CUR);
 #endif
-          };
-          properties.rd.offset = _offset;
-          break;
-      case rdcmd::RESUME:
-          break;
       }
+      properties.rdoffset = _offset;
 
       return file_read(instance_ptr);
     }
@@ -167,15 +156,15 @@ private: /*functions*/
 
   static int file_read(instance *_instance_ptr)
   {
-    auto &rd = _instance_ptr->properties().rd;
+    auto &properties = _instance_ptr->properties();
 
-    io_alloc_cb(&_instance_ptr->uv_handle_struct, 65536, &rd.uv_buf_struct);
+    io_alloc_cb(&_instance_ptr->uv_handle_struct, 65536, &properties.rd.uv_buf_struct);
 
     return ::uv_fs_read(
-      _instance_ptr->uv_handle_struct.loop, &rd.uv_req_struct,
+      _instance_ptr->uv_handle_struct.loop, &properties.rd.uv_req_struct,
       _instance_ptr->uv_handle_struct.result,
-      &rd.uv_buf_struct, 1,
-      rd.offset,
+      &properties.rd.uv_buf_struct, 1,
+      properties.rdoffset,
       read_cb
     );
   }
@@ -225,30 +214,25 @@ void file::read_cb(::uv_fs_t *_uv_req)
     properties.rd.uv_buf_struct = ::uv_buf_init(nullptr, 0);
   };
 
-  io_read_cb(&instance_ptr->uv_handle_struct, nread , &properties.rd.uv_buf_struct, &properties.rd.offset);
+  io_read_cb(&instance_ptr->uv_handle_struct, nread , &properties.rd.uv_buf_struct, nullptr);
+
+  ::uv_fs_req_cleanup(_uv_req);
 
   switch (properties.rdcmd_state)
   {
   case rdcmd::UNKNOWN:
   case rdcmd::STOP:
-      break;
   case rdcmd::PAUSE:
-      // save read parameters for resuming from right place
-      if (properties.rd.offset >= 0 and nread > 0)  properties.rd.offset += nread;
       break;
   case rdcmd::START:
   case rdcmd::RESUME:
       {
-        if (properties.rd.offset >= 0 and nread > 0)  properties.rd.offset += nread;
-
         instance_ptr->uv_error = 0;
         int ret = file_read(instance_ptr);
         if (!ret)  instance_ptr->uv_error = ret;
       }
       break;
   }
-
-  ::uv_fs_req_cleanup(_uv_req);
 }
 
 
