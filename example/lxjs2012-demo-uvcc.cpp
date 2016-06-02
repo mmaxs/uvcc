@@ -43,7 +43,7 @@ int main(int _argc, char *_argv[])
           [](uv::handle, std::size_t _suggested_size)  { return uv::buffer{_suggested_size}; },
 
           // the callback function that will be called when data has been read from the stream
-          [](uv::io _io, ssize_t _nread, uv::buffer _buf, void*)
+          [](uv::io _io, ssize_t _nread, uv::buffer _buf, int64_t, void*)
           {
             if (_nread < 0)
             {

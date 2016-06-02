@@ -36,7 +36,7 @@ int main(int _argc, char *_argv[])
       {
         return uv::buffer{_suggested_size};
       },
-      [](uv::io _io, ssize_t _nread, uv::buffer _buffer, void*) -> void  // read_cb
+      [](uv::io _io, ssize_t _nread, uv::buffer _buffer, int64_t, void*) -> void  // read_cb
       {
         if (_nread < 0)
         {
