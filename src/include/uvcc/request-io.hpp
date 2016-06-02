@@ -239,7 +239,6 @@ public: /*interface*/
   template< typename _T_ >
   int run(io &_io, const buffer &_buf, _T_ *_info)
   {
-    fprintf(stderr, "_io.type=%s\n", _io.type_name()); fflush(stderr);
     switch (_io.type())
     {
     case UV_NAMED_PIPE:
