@@ -46,7 +46,7 @@ public: /*types*/
   //! \endcond
   using on_request_t = std::function< void(output _request, buffer _buffer) >;
   /*!< \brief The function type of the callback called after data was written/sent to I/O endpoint.
-       \sa `uv::fs::write::on_request_t`,\n `uv::write::on_request_t`,\n `uv::udp_send::on_request_t`. */
+       \sa `fs::write::on_request_t`,\n `write::on_request_t`,\n `udp_send::on_request_t`. */
 
 protected: /*types*/
   //! \cond
@@ -190,9 +190,9 @@ public: /*interface*/
       \details Depending on what I/O endpoint the `_io` argument is actually represent the call should conform to the
       one of the signatures of the _request_`::run()` functions available for the corresponding write/send _request_
       for that endpoint, i.e.:
-      - `uv::fs::write::run()`, or
-      - `uv::write::run()`, or
-      - `uv::udp_send::run()`.
+      - `fs::write::run()`, or
+      - `write::run()`, or
+      - `udp_send::run()`.
       .
       A proper _request_`::run()` function is deduced for any `io` subclasses and the corresponding _request_ at
       compile time. If that deduction fails, a substituted stub function returns `UV_EINVAL` status at run time.
@@ -226,14 +226,14 @@ public: /*interface*/
       - <em>`uv::file`:</em>
         The `_info` pointer is interpreted as `int64_t*`, and if it's not a `nullptr`, the referenced value is used
         as the offset the output operation is performed at (or \b -1 is used otherwise).
-        + The actual output request call signature is `uv::fs::write::run(file&, const buffer&, int64_t)`.
+        + The actual output request call signature is `fs::write::run(file&, const buffer&, int64_t)`.
       - <em>one of the `uv::stream` subtype:</em>
         The `_info` parameter is ignored.
-        + The actual output request  call signature is `uv::write::run(stream&, const buffer&)`.
+        + The actual output request  call signature is `write::run(stream&, const buffer&)`.
       - <em>`uv::udp`:</em>
-        The `_info` pointer is interpreted as `struct uv::udp::io_info*`, and having been dereferenced its `peer`
+        The `_info` pointer is interpreted as `struct udp::io_info*`, and having been dereferenced its `peer`
         field is used as an address of the remote peer the UDP datagram will be sent to.
-        + The actual output request  call signature is `uv::udp_send::run(udp&, const buffer&, const _T_&)` with `_T_ = ::sockaddr`.\n
+        + The actual output request  call signature is `udp_send::run(udp&, const buffer&, const _T_&)` with `_T_ = ::sockaddr`.\n
           If `(_info == nullptr)` the `UV_EINVAL` error code is returned.
       . */
   template< typename _T_ >
@@ -266,9 +266,9 @@ public: /*interface*/
   /*! \brief Same as `run()`, but won’t queue an output request if it can’t be completed immediately.
       \details Depending on the actual run-time type of the `_io` argument, the function appears to be an alias
       to the one of the following functon:
-      - `uv::fs::write::try_write()`, or
-      - `uv::write::try_write()`, or
-      - `uv::udp_send::try_send()`.
+      - `fs::write::try_write()`, or
+      - `write::try_write()`, or
+      - `udp_send::try_send()`.
       .
       If a set of arguments to be passed does't match the signature of the corresponding function,
       a substituted stub returns `UV_EINVAL` status at run time. */

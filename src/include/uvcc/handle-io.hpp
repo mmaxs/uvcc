@@ -39,7 +39,7 @@ public: /*types*/
        since that `read_start()` call.
 
        The `_info` pointer is valid for the duration of the callback only and for `uv::udp` endpoint refers to the
-       `struct uv::udp::io_info` supplemental data, containing information on remote peer address and received
+       `struct udp::io_info` supplemental data, containing information on remote peer address and received
        message flags. For other I/O endpoint types it is a `nullptr`.
 
        \sa libuv API documentation: [`uv_read_cb`](http://docs.libuv.org/en/v1.x/stream.html#c.uv_read_cb),
