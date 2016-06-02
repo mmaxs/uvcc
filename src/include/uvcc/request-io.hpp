@@ -11,6 +11,7 @@
 #include "uvcc/buffer.hpp"
 
 #include <uv.h>
+#include <cstring>      // memset()
 #include <functional>   // function
 #include <utility>      // forward(), declval
 #include <type_traits>  // enable_if_t
@@ -46,6 +47,18 @@ public: /*types*/
   using on_request_t = std::function< void(output _request, buffer _buffer) >;
   /*!< \brief The function type of the callback called after data was written/sent to I/O endpoint.
        \sa `uv::fs::write::on_request_t`,\n `uv::write::on_request_t`,\n `uv::udp_send::on_request_t`. */
+
+protected: /*types*/
+  //! \cond
+  union properties
+  {
+    fs::write::properties file_write_properties;
+    write::properties stream_write_properties;
+    udp_send::properties udp_send_properties;
+
+    properties()  { std::memset(this, 0, sizeof(*this)); }
+  };
+  //! \endcond
 
 private: /*types*/
   using instance = request::instance< output >;

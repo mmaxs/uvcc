@@ -119,6 +119,7 @@ class write : public request
 {
   //! \cond
   friend class request::instance< write >;
+  friend class output;
   //! \endcond
 
 public: /*types*/

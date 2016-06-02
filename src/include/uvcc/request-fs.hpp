@@ -9,12 +9,7 @@
 #include "uvcc/loop.hpp"
 
 #include <uv.h>
-#include <cstddef>      // offsetof
-#include <cstring>      // memset()
-#include <string>       // string
 #include <functional>   // function
-#include <memory>       // addressof() unique_ptr
-#include <utility>      // forward()
 #ifdef _WIN32
 #include <io.h>         // _telli64()
 #else
@@ -31,11 +26,13 @@ namespace uv
     \sa libuv API documentation: [Filesystem operations](http://docs.libuv.org/en/v1.x/fs.html#filesystem-operations).
 
     \warning As far as all file operations in libuv are run on the threadpool, i.e. in a separate threads, pay attention
-    when running a series of file read/write _asynchronous_ requests with the `_offset` value specified as of < 0 which means
-    using of the "current file position". When the next read/write request on a file is scheduled after the previous one has
-    completed and its callback has been called, everything will be OK. If a sequence of _asynchronous_ requests is scheduled
-    as a series of unchained operations or in one go, all of them can be actually preformed simultaneously in parallel
-    threads and the result will most probably turn out to be not what was expected. */
+    when running _asynchronous_ requests for sequential reading/writing from/to a file with the `_offset` value specified
+    as of < 0 which means using of the "current file position". When the next read/write request on a file is scheduled
+    after the previous one has completed and its callback has been called, everything will be OK. If _asynchronous_
+    requests intended for performing sequential input/output are scheduled as unchained operations or in one go,
+    some or all of them can be actually preformed simultaneously in parallel threads and the result will most probably
+    turn out to be not what was expected. Don't use the "current file position" dummy value in such a case, always
+    designate a real effective file offset for each request run. */
 class fs : public request
 {
   //! \cond
@@ -122,7 +119,7 @@ protected: /*types*/
   {
     file::uv_t *uv_handle = nullptr;
     buffer::uv_t *uv_buf = nullptr;
-    int64_t offset = -1;
+    int64_t offset = 0;
   };
   //! \endcond
 
@@ -260,6 +257,7 @@ class fs::write : public fs
 {
   //! \cond
   friend class request::instance< write >;
+  friend class output;
   //! \endcond
 
 public: /*types*/
@@ -272,7 +270,7 @@ protected: /*types*/
   {
     file::uv_t *uv_handle = nullptr;
     buffer::uv_t *uv_buf = nullptr;
-    int64_t offset = -1;
+    int64_t offset = 0;
   };
   //! \endcond
 

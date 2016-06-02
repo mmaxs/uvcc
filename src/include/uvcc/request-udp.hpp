@@ -24,6 +24,7 @@ class udp_send : public request
 {
   //! \cond
   friend class request::instance< udp_send >;
+  friend class output;
   //! \endcond
 
 public: /*types*/
