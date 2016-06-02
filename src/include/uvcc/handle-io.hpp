@@ -127,20 +127,7 @@ protected: /*functions*/
     else
       read_cb(io(_uv_handle), _nread, buffer(), properties.rdoffset, _info);
 
-    switch (properties.rdcmd_state)
-    {
-    case rdcmd::UNKNOWN:
-    case rdcmd::STOP:
-        break;
-    case rdcmd::PAUSE:
-        // save read parameters for resuming from the right place
-        if (_nread > 0)  properties.rdoffset += _nread;
-        break;
-    case rdcmd::START:
-    case rdcmd::RESUME:
-        if (_nread > 0)  properties.rdoffset += _nread;
-        break;
-    }
+    if (_nread > 0)  properties.rdoffset += _nread;
   }
 
 #if 0
@@ -172,7 +159,7 @@ public: /*interface*/
                        and the default value of \b -1 means using of the current file position. For other I/O endpoint
                        types it is used as a starting value for the artificial calculated offset argument passed to
                        `io::on_read_t` callback function, and the default value of \b -1 means to continue calculating
-                       from the currently stored offset (or, if the callback has never been called yet, from the initial
+                       from the offset stored after the last read (or, if it has never been started yet, from the initial
                        value of \b 0).
 
       \note On successful start this function adds an extra reference to the handle instance,
@@ -281,7 +268,7 @@ public: /*interface*/
     return ret;
   }
 
-  /*! \brief Stop reading data from the I/O endpoint and clear all read parameters.
+  /*! \brief Stop reading data from the I/O endpoint.
       \sa libuv API documentation: [`uv_read_stop()`](http://docs.libuv.org/en/v1.x/stream.html#c.uv_read_stop),
                                    [`uv_udp_recv_stop()`](http://docs.libuv.org/en/v1.x/udp.html#c.uv_udp_recv_stop). */
   int read_stop() const
@@ -295,8 +282,6 @@ public: /*interface*/
     properties.rdcmd_state = rdcmd::STOP;
 
     int ret = uv_status(instance_ptr->uv_interface()->read_stop(uv_handle));
-
-    properties.rdsize = 0;
 
     switch (rdcmd_state)
     {
@@ -315,9 +300,8 @@ public: /*interface*/
 
   /*! \brief Pause reading data from the I/O endpoint.
       \details
-      \arg `read_pause(true)` - a \e "pause" command that is functionally equivalent to `read_stop()`
-      without clearing read parameters. Returns `0` or relevant libuv error code. Exit code of `2` is
-      returned if the handle is not currently in reading state.
+      \arg `read_pause(true)` - a \e "pause" command that is functionally equivalent to `read_stop()`.  Returns `0`
+      or relevant libuv error code. Exit code of `2` is returned if the handle is not currently in reading state.
       \arg `read_pause(false)` - a _no op_ command that returns immediately with exit code of `1`.
 
       To be used in conjunction with `read_resume()` control command.
@@ -374,7 +358,7 @@ public: /*interface*/
          read_pause(true)  ║ -       │ "pause"      │ "pause"           │ -           │ -                
 
         "resume" is functionally equivalent to "start"
-        "pause" is functionally equivalent to "stop" without clearing read parameters
+        "pause" is functionally equivalent to "stop"
         "restart" is functionally equivalent to "stop" followed by "start"
       \endverbatim */
   int read_resume(bool _trigger_condition)
