@@ -63,96 +63,12 @@ protected: /*types*/
 private: /*types*/
   using instance = request::instance< output >;
 
-  //! \cond
-  template< class _T_, typename _Res_, typename... _Args_ > struct has_run_method
-  {
-    template< typename _U_, typename = _Res_ >
-    struct test
-    { static constexpr const bool value = false; };
-    template< typename _U_ >
-    struct test< _U_, decltype(std::declval< _U_ >().run(std::declval< _Args_ >()...)) >
-    { static constexpr const bool value = true; };
-
-    static constexpr const bool value = test< _T_ >::value;
-  };
-
-  template< class _T_, typename _Res_, typename... _Args_ > struct has_try_write_method
-  {
-    template< typename _U_, typename = _Res_ >
-    struct test
-    { static constexpr const bool value = false; };
-    template< typename _U_ >
-    struct test< _U_, decltype(std::declval< _U_ >().try_write(std::declval< _Args_ >()...)) >
-    { static constexpr const bool value = true; };
-
-    static constexpr const bool value = test< _T_ >::value;
-  };
-
-  template< class _T_, typename _Res_, typename... _Args_ > struct has_try_send_method
-  {
-    template< typename _U_, typename = _Res_ >
-    struct test
-    { static constexpr const bool value = false; };
-    template< typename _U_ >
-    struct test< _U_, decltype(std::declval< _U_ >().try_send(std::declval< _Args_ >()...)) >
-    { static constexpr const bool value = true; };
-
-    static constexpr const bool value = test< _T_ >::value;
-  };
-  //! \endcond
-
 private: /*constructors*/
   explicit output(uv_t *_uv_req)
   {
     if (_uv_req)  instance::from(_uv_req)->ref();
     uv_req = _uv_req;
   }
-
-private: /*functions*/
-  template< typename... _Args_ >
-  std::enable_if_t< has_run_method< write, int, pipe&, const buffer&, _Args_... >::value, int >
-  run_(pipe &_io, const buffer &_buf, _Args_&&... _args)
-  { return reinterpret_cast< write* >(this)->run(_io, _buf, std::forward< _Args_ >(_args)...); }
-
-  template< typename... _Args_ >
-  std::enable_if_t< has_run_method< write, int, tcp&, const buffer&, _Args_... >::value, int >
-  run_(tcp &_io, const buffer &_buf, _Args_&&... _args)
-  { return reinterpret_cast< write* >(this)->run(_io, _buf, std::forward< _Args_ >(_args)...); }
-
-  template< typename... _Args_ >
-  std::enable_if_t< has_run_method< write, int, tty&, const buffer&, _Args_... >::value, int >
-  run_(tty &_io, const buffer &_buf, _Args_&&... _args)
-  { return reinterpret_cast< write* >(this)->run(_io, _buf, std::forward< _Args_ >(_args)...); }
-
-  template< typename... _Args_ >
-  std::enable_if_t< has_run_method< udp_send, int, udp&, const buffer&, _Args_... >::value, int >
-  run_(udp &_io, const buffer &_buf, _Args_&&... _args)
-  { return reinterpret_cast< udp_send* >(this)->run(_io, _buf, std::forward< _Args_ >(_args)...); }
-
-  template< typename... _Args_ >
-  std::enable_if_t< has_run_method< fs::write, int, file&, const buffer&, _Args_... >::value, int >
-  run_(file &_io, const buffer &_buf, _Args_&&... _args)
-  { return reinterpret_cast< fs::write* >(this)->run(_io, _buf, std::forward< _Args_ >(_args)...); }
-
-  template< typename... _Args_ > int run_(_Args_&&...)  { return uv_status(UV_EINVAL); }
-
-
-  template< typename... _Args_ >
-  std::enable_if_t< has_try_write_method< write, int, stream&, const buffer&, _Args_... >::value, int >
-  try_output_(stream &_io, const buffer &_buf, _Args_&&... _args)
-  { return reinterpret_cast< write* >(this)->try_write(_io, _buf, std::forward< _Args_ >(_args)...); }
-
-  template< typename... _Args_ >
-  std::enable_if_t< has_try_send_method< udp_send, int, udp&, const buffer&, _Args_... >::value, int >
-  try_output_(udp &_io, const buffer &_buf, _Args_&&... _args)
-  { return reinterpret_cast< udp_send* >(this)->try_send(_io, _buf, std::forward< _Args_ >(_args)...); }
-
-  template< typename... _Args_ >
-  std::enable_if_t< has_try_write_method< fs::write, int, file&, const buffer&, _Args_... >::value, int >
-  try_output_(file &_io, const buffer &_buf, _Args_&&... _args)
-  { return reinterpret_cast< fs::write* >(this)->try_write(_io, _buf, std::forward< _Args_ >(_args)...); }
-
-  template< typename... _Args_ > int try_output_(_Args_&&...)  { return uv_status(UV_EINVAL); }
 
 public: /*constructors*/
   ~output() = default;
@@ -186,58 +102,24 @@ public: /*interface*/
     }
   }
 
-  /*! \brief Run the request
-      \details Depending on what I/O endpoint the `_io` argument is actually represent the call should conform to the
-      one of the signatures of the _request_`::run()` functions available for the corresponding write/send _request_
-      for that endpoint, i.e.:
-      - `fs::write::run()`, or
-      - `write::run()`, or
-      - `udp_send::run()`.
-      .
-      A proper _request_`::run()` function is deduced for any `io` subclasses and the corresponding _request_ at
-      compile time. If that deduction fails, a substituted stub function returns `UV_EINVAL` status at run time.
-      To prevent this the user code should take care that the arguments to be passed would match the
-      _request_`::run()` available signatures according to the actual `_io` object type gotten at run time. */
-  template< typename... _Args_ > int run(io &_io, const buffer &_buf, _Args_&&... _args)
-  {
-    switch (_io.type())
-    {
-    case UV_NAMED_PIPE:
-        return run_(static_cast< pipe& >(_io), _buf, std::forward< _Args_ >(_args)...);
-    case UV_TCP:
-        return run_(static_cast< tcp& >(_io), _buf, std::forward< _Args_ >(_args)...);
-    case UV_TTY:
-        return run_(static_cast< tty& >(_io), _buf, std::forward< _Args_ >(_args)...);
-    case UV_UDP:
-        return run_(static_cast< udp& >(_io), _buf, std::forward< _Args_ >(_args)...);
-    case UV_FILE:
-        return run_(static_cast< file& >(_io), _buf, std::forward< _Args_ >(_args)...);
-    default:
-        return uv_status(UV_EBADF);
-    }
-  }
+  /*! \brief Run the request with interpreting arguments as additional parameters for actual write/send
+      request performed depending on what I/O endpoint the `_io` argument actually represents.
+      \details
+      The `output` request instance is static-casted to the corresponding write/send request for that endpoint and
+      the following actual call is performed:
+       `_io` endpoint type             | Actual output function
+      :--------------------------------|:-----------------------
+       `uv::file`                      | `fs::write::run(static_cast< uv::file& >(_io), _buf, _offset)`
+       one of the `uv::stream` subtype | `write::run(static_cast< uv::stream& >(_io), _buf)`
+       `uv::udp`                       | `udp_send::run(static_cast< uv::udp& >(_io), _buf, *static_cast< const udp::io_info* >(_info)->peer)`
 
-  /*! \brief Run the request with interpreting `_info` argument as an additional parameter for actual write/send
-      request's `run()` function signature.
-      \details This form can be practical for using within a `io::on_read_t` callback <em>when the type of the I/O
-      endpoint that output request is going to be run on is of the same type as one the `io::on_read_t` callback
-      is called for</em>. This is because the `_info` pointer is interpreted in the same way as it is passed into
-      the `io::on_read_t` callback but for determining output supplemental parameters. I.e. if the `_io` type is:
-      - <em>`uv::file`:</em>
-        The `_info` pointer is interpreted as `int64_t*`, and if it's not a `nullptr`, the referenced value is used
-        as the offset the output operation is performed at (or \b -1 is used otherwise).
-        + The actual output request call signature is `fs::write::run(file&, const buffer&, int64_t)`.
-      - <em>one of the `uv::stream` subtype:</em>
-        The `_info` parameter is ignored.
-        + The actual output request  call signature is `write::run(stream&, const buffer&)`.
-      - <em>`uv::udp`:</em>
-        The `_info` pointer is interpreted as `struct udp::io_info*`, and having been dereferenced its `peer`
-        field is used as an address of the remote peer the UDP datagram will be sent to.
-        + The actual output request  call signature is `udp_send::run(udp&, const buffer&, const _T_&)` with `_T_ = ::sockaddr`.\n
-          If `(_info == nullptr)` the `UV_EINVAL` error code is returned.
-      . */
-  template< typename _T_ >
-  int run(io &_io, const buffer &_buf, _T_ *_info)
+      \note Employing this function can be practical within a `io::on_read_t` callback <em>when the type of the I/O
+      endpoint that output request is going to be run on is of the same type, as one the `io::on_read_t` callback
+      is called for</em> as far as the `_offset` and `_info` arguments are interpreted in the same way as they are
+      passed into the `io::on_read_t` callback but for determining supplemental parameters for output operation.
+      In any case the `output` request can be static-casted to the desired _request_ type corresponding to the output
+      I/O endpoint and then the one of the _request_`::run()` available functions can be used. */
+  int run(io &_io, const buffer &_buf, int64_t _offset = -1, void *_info = nullptr)
   {
     switch (_io.type())
     {
@@ -249,15 +131,12 @@ public: /*interface*/
         return _info ?
             reinterpret_cast< udp_send* >(this)->run(
                 static_cast< udp& >(_io), _buf,
-                *reinterpret_cast< const udp::io_info* >(_info)->peer
+                *static_cast< const udp::io_info* >(_info)->peer
             )
           :
             uv_status(UV_EINVAL);
     case UV_FILE:
-        return reinterpret_cast< fs::write* >(this)->run(
-            static_cast< file& >(_io), _buf,
-            _info ? *reinterpret_cast< const int64_t* >(_info) : -1
-        );
+        return reinterpret_cast< fs::write* >(this)->run(static_cast< file& >(_io), _buf, _offset);
     default:
         return uv_status(UV_EBADF);
     }
@@ -269,21 +148,25 @@ public: /*interface*/
       - `fs::write::try_write()`, or
       - `write::try_write()`, or
       - `udp_send::try_send()`.
-      .
-      If a set of arguments to be passed does't match the signature of the corresponding function,
-      a substituted stub returns `UV_EINVAL` status at run time. */
-  template< typename... _Args_ > int try_output(io &_io, const buffer &_buf, _Args_&&... _args)
+      . */
+  int try_output(io &_io, const buffer &_buf, int64_t _offset = -1, void *_info = nullptr)
   {
     switch (_io.type())
     {
     case UV_NAMED_PIPE:
     case UV_TCP:
     case UV_TTY:
-        return try_output_(static_cast< stream& >(_io), _buf, std::forward< _Args_ >(_args)...);
+        return reinterpret_cast< write* >(this)->try_write(static_cast< stream& >(_io), _buf);
     case UV_UDP:
-        return try_output_(static_cast< udp& >(_io), _buf, std::forward< _Args_ >(_args)...);
+        return _info ?
+            reinterpret_cast< udp_send* >(this)->try_send(
+                static_cast< udp& >(_io), _buf,
+                *static_cast< const udp::io_info* >(_info)->peer
+            )
+          :
+            uv_status(UV_EINVAL);
     case UV_FILE:
-        return try_output_(static_cast< file& >(_io), _buf, std::forward< _Args_ >(_args)...);
+        return reinterpret_cast< fs::write* >(this)->try_write(static_cast< file& >(_io), _buf, _offset);
     default:
         return uv_status(UV_EBADF);
     }
