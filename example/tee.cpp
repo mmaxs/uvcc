@@ -37,11 +37,13 @@ int main(int _argc, char *_argv[])
 
   if (!in)
   {
+    fprintf(stderr, "%s ", in.type_name());
     PRINT_UV_ERR("stdin open", in.uv_status());
     return in.uv_status();
   };
   if (!out)
   {
+    fprintf(stderr, "%s ", out.type_name());
     PRINT_UV_ERR("stdout open", out.uv_status());
     return out.uv_status();
   };
@@ -102,7 +104,7 @@ int main(int _argc, char *_argv[])
             if (ret == 0)  DEBUG_LOG("[read resumed]: all_write_queues_size=%zu\n", all_write_queues_size);
           };
 
-          io_wr.run(out, _buf, &_offset);  // UDP connected sockets are not supported by libuv
+          io_wr.run(out, _buf, _offset, _info);  // UDP connected sockets are not supported by libuv
           if (io_wr)
             all_write_queues_size += _buf.len();
           else
