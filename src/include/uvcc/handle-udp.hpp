@@ -85,8 +85,8 @@ public: /*constructors*/
 
   /*! \details Create a UDP socket with the specified flags.
       \note With `AF_UNSPEC` flag no socket is actually created on the system.
-      \sa libuv API documentation: [`uv_udp_init_ex()`](http://docs.libuv.org/en/v1.x/udp.html#c.uv_udp_init_ex).
-      \sa libuv enhancement proposals: <https://github.com/libuv/leps/blob/master/003-create-sockets-early.md>. */
+      \sa libuv API documentation: [`uv_udp_init_ex()`](http://docs.libuv.org/en/v1.x/udp.html#c.uv_udp_init_ex).\n
+          libuv enhancement proposals: <https://github.com/libuv/leps/blob/master/003-create-sockets-early.md>. */
   udp(uv::loop &_loop, unsigned int _flags = AF_UNSPEC)
   {
     uv_handle = instance::create();

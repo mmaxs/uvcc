@@ -102,7 +102,7 @@ public: /*constructors*/
 
   /*! \name File handle constructors - open and possibly create a file:
       \sa libuv API documentation: [`uv_fs_open()`](http://docs.libuv.org/en/v1.x/fs.html#c.uv_fs_open).
-      \sa Linux: [`open()`](http://man7.org/linux/man-pages/man2/open.2.html).
+      \sa Linux: [`open()`](http://man7.org/linux/man-pages/man2/open.2.html).\n
           Windows: [`_open()`](https://msdn.microsoft.com/en-us/library/z0kc8e3z.aspx).
 
       The file descriptor will be closed automatically when the file handle reference count has became zero. */

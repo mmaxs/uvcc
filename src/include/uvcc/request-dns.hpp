@@ -193,7 +193,7 @@ public: /*interface*/
       - NI_NUMERICHOST
       - NI_NUMERICSERV
       .
-      \sa Linux: [`getnameinfo()`](http://man7.org/linux/man-pages/man3/getnameinfo.3.html).
+      \sa Linux: [`getnameinfo()`](http://man7.org/linux/man-pages/man3/getnameinfo.3.html).\n
           Windows: [`getnameinfo()`](https://msdn.microsoft.com/en-us/library/ms738532(v=vs.85).aspx). */
   template< typename _T_, typename = std::enable_if_t< is_one_of< _T_, ::sockaddr, ::sockaddr_in, ::sockaddr_in6, ::sockaddr_storage >::value > >
   int run(uv::loop &_loop, const _T_ &_sa, int _NI_FLAGS = 0)

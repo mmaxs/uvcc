@@ -21,8 +21,8 @@ namespace uv
     \ingroup doxy_group_utility
     \sa Linux: [ip(7):`sockaddr_in`](http://man7.org/linux/man-pages/man7/ip.7.html),
                [ipv6(7):`sockaddr_in6`](http://man7.org/linux/man-pages/man7/ipv6.7.html),
-               [socket(7):`sockaddr_storage`](http://man7.org/linux/man-pages/man7/socket.7.html).
-    \sa Windows: [`sockaddr_in`](https://msdn.microsoft.com/en-us/library/ms740496(v=vs.85).aspx),
+               [socket(7):`sockaddr_storage`](http://man7.org/linux/man-pages/man7/socket.7.html).\n
+        Windows: [`sockaddr_in`](https://msdn.microsoft.com/en-us/library/ms740496(v=vs.85).aspx),
                  [`sockaddr_in6`](https://msdn.microsoft.com/en-us/library/ms740496(v=vs.85).aspx),
                  [`sockaddr_storage`](https://msdn.microsoft.com/en-us/library/ms740504(v=vs.85).aspx). */
 //! \{
@@ -40,7 +40,7 @@ inline int init(::sockaddr_in &_sin)
 /*! \brief Initialize a `sockaddr_in` structure from strings containing an IPv4 address and (optionally) a port.
     \sa libuv API documentation: [`uv_ip4_addr()`](http://docs.libuv.org/en/v1.x/misc.html#c.uv_ip4_addr),
                                  [`uv_inet_pton()`](http://docs.libuv.org/en/v1.x/misc.html#c.uv_inet_pton).
-    \sa Linux: [`inet_pton()`](http://man7.org/linux/man-pages/man3/inet_pton.3.html).
+    \sa Linux: [`inet_pton()`](http://man7.org/linux/man-pages/man3/inet_pton.3.html).\n
         Windows: [`RtlIpv4StringToAddressEx()`](https://msdn.microsoft.com/en-us/library/aa814459(v=vs.85).aspx),
                  [`InetPton()`](https://msdn.microsoft.com/en-us/library/cc805844(v=vs.85).aspx). */
 inline int init(::sockaddr_in &_sin, const char *_ip, const char *_port = nullptr)
@@ -65,7 +65,7 @@ inline int init(::sockaddr_in6 &_sin6)
 /*! \brief Initialize a `sockaddr_in6` structure from strings containing an IPv6 address and (optionally) a port.
     \sa libuv API documentation: [`uv_ip6_addr()`](http://docs.libuv.org/en/v1.x/misc.html#c.uv_ip6_addr),
                                  [`uv_inet_pton()`](http://docs.libuv.org/en/v1.x/misc.html#c.uv_inet_pton).
-    \sa Linux: [`inet_pton()`](http://man7.org/linux/man-pages/man3/inet_pton.3.html).
+    \sa Linux: [`inet_pton()`](http://man7.org/linux/man-pages/man3/inet_pton.3.html).\n
         Windows: [`RtlIpv6StringToAddressEx()`](https://msdn.microsoft.com/en-us/library/aa814463(v=vs.85).aspx),
                  [`InetPton()`](https://msdn.microsoft.com/en-us/library/cc805844(v=vs.85).aspx). */
 inline int init(::sockaddr_in6 &_sin6, const char *_ip, const char *_port = nullptr)
@@ -120,37 +120,37 @@ inline int init(::sockaddr_storage &_ss, const char *_ip, const char *_port = nu
 //! \name addrinfo
 //! \{
 
-/*! \details Initialize an `addrinfo` structure for to be used as a hints argument in `uv::getaddrinfo` request.
+/*! \brief Initialize an `addrinfo` structure for to be used as a hints argument in `uv::getaddrinfo` request.
+    \details
+    The `_family` argument might be AF_UNSPEC or AF_INET or AF_INET6 or AF_NETBIOS (Windows only) .
 
-The `_family` argument might be AF_UNSPEC or AF_INET or AF_INET6 or AF_NETBIOS (Windows only) .
+    The `_socktype` argument might be SOCK_DGRAM or SOCK_STREAM.
 
-The `_socktype` argument might be SOCK_DGRAM or SOCK_STREAM.
+    The `_flags` argument can be a combination of the following values:
+    - AI_ADDRCONFIG
+    - AI_ALL
+    - AI_CANONNAME
+    - AI_NUMERICHOST
+    - AI_NUMERICSERV
+    - AI_PASSIVE
+    - AI_V4MAPPED
 
-The `_flags` argument can be a combination of the following values:
-- AI_ADDRCONFIG
-- AI_ALL
-- AI_CANONNAME
-- AI_NUMERICHOST
-- AI_NUMERICSERV
-- AI_PASSIVE
-- AI_V4MAPPED
+    Linux only - extensions for Internationalized Domain Names:
+    - AI_CANONIDN
+    - AI_IDN
+    - AI_IDN_ALLOW_UNASSIGNED
+    - AI_IDN_USE_STD3_ASCII_RULES
 
-Linux only - extensions for Internationalized Domain Names:
-- AI_CANONIDN
-- AI_IDN
-- AI_IDN_ALLOW_UNASSIGNED
-- AI_IDN_USE_STD3_ASCII_RULES
-
-Windows only:
-- AI_DISABLE_IDN_ENCODING
-- AI_FILESERVER
-- AI_FLAGS
-- AI_FQDN
-- AI_NON_AUTHORITATIVE
-- AI_RETURN_PREFERRED_NAMES
-- AI_SECURE
-.
-    \sa Linux: [`getaddrinfo()`](http://man7.org/linux/man-pages/man3/getaddrinfo.3.html).
+    Windows only:
+    - AI_DISABLE_IDN_ENCODING
+    - AI_FILESERVER
+    - AI_FLAGS
+    - AI_FQDN
+    - AI_NON_AUTHORITATIVE
+    - AI_RETURN_PREFERRED_NAMES
+    - AI_SECURE
+    .
+    \sa Linux: [`getaddrinfo()`](http://man7.org/linux/man-pages/man3/getaddrinfo.3.html).\n
         Windows: [`addrinfo`](https://msdn.microsoft.com/en-us/library/ms737530(v=vs.85).aspx),
                  [`getaddrinfo()`](https://msdn.microsoft.com/en-us/library/ms738520(v=vs.85).aspx),
                  [`GetAddrInfoEx()`](https://msdn.microsoft.com/en-us/library/ms738518(v=vs.85).aspx). */
