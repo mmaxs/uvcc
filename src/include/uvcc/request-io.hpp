@@ -13,8 +13,6 @@
 #include <uv.h>
 #include <cstring>      // memset()
 #include <functional>   // function
-#include <utility>      // forward(), declval
-#include <type_traits>  // enable_if_t
 
 
 namespace uv

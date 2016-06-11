@@ -25,14 +25,14 @@ namespace uv
     \brief The base calss for filesystem requests.
     \sa libuv API documentation: [Filesystem operations](http://docs.libuv.org/en/v1.x/fs.html#filesystem-operations).
 
-    \warning As far as all file operations in libuv are run on the threadpool, i.e. in a separate threads, pay attention
-    when running _asynchronous_ requests for sequential reading/writing from/to a file with the `_offset` value specified
-    as of < 0 which means using of the "current file position". When the next read/write request on a file is scheduled
-    after the previous one has completed and its callback has been called, everything will be OK. If _asynchronous_
-    requests intended for performing sequential input/output are scheduled as unchained operations or in one go,
-    some or all of them can be actually preformed simultaneously in parallel threads and the result will most probably
-    turn out to be not what was expected. Don't use the "current file position" dummy value in such a case, always
-    designate a real effective file offset for each request run. */
+    \warning As far as all _asynchronous_ file operations in libuv are run on the threadpool, i.e. in separate threads,
+    pay attention when running _asynchronous_ requests for sequential reading/writing from/to a file with the `_offset`
+    value specified as of < 0 which means using of the "current file position". When the next read/write request on
+    a file is scheduled after the previous one has completed and its callback has been called, everything will be OK.
+    If _asynchronous_ requests intended for performing sequential input/output are scheduled as unchained operations or
+    in one go, some or all of them can be actually preformed simultaneously in parallel threads and the result will most
+    probably turn out to be not what was expected. Don't use the "current file position" dummy value in such a case,
+    always designate a real effective file offset for each request run. */
 class fs : public request
 {
   //! \cond
