@@ -11,6 +11,7 @@
 
 #include <uv.h>
 #include <functional>   // function
+#include <type_traits>  // enable_if_t is_convertible
 #ifdef _WIN32
 #include <io.h>         // _telli64()
 #else
@@ -421,7 +422,7 @@ void fs::write::write_cb(::uv_fs_t *_uv_req)
   ref_guard< file::instance > unref_file(*file_instance_ptr, adopt_ref);
   ref_guard< instance > unref_req(*instance_ptr, adopt_ref);
 
-  // if (_uv_req->result > 0)  file_instance_ptr->properties().write_queue_size -= _uv_req->result;
+  // if (_uv_req->result > 0)  file_instance_ptr->properties().write_queue_size -= _uv_req->result;  // don't mistakenly use the actual written bytes amount
   file_instance_ptr->properties().write_queue_size -= properties.pending_size;
 
   auto &write_cb = instance_ptr->request_cb_storage.value();
@@ -716,11 +717,21 @@ protected: /*types*/
     io::uv_t *uv_handle_out = nullptr;
     file::uv_t *uv_handle_in = nullptr;
     int64_t offset = 0;
+    std::size_t pending_size = 0;
   };
   //! \endcond
 
 private: /*types*/
   using instance = request::instance< sendfile >;
+
+  struct fd
+  {
+    static constexpr const bool is_convertible = std::is_convertible< ::uv_os_fd_t, ::uv_file >::value;
+    template< bool _b_ = is_convertible > static std::enable_if_t< !_b_, ::uv_file >
+      try_convert(::uv_os_fd_t)  { return -1; }
+    template< bool _b_ = is_convertible > static std::enable_if_t<  _b_, ::uv_file >
+      try_convert(::uv_os_fd_t _os_fd)  { return _os_fd; }
+  };
 
 private: /*constructors*/
   explicit sendfile(uv_t *_uv_req)
@@ -766,6 +777,9 @@ public: /*interface*/
       The `_offset` value of < 0 means using of the current file position. */
   int run(io &_out, file &_in, int64_t _offset, std::size_t _length)
   {
+    ::uv_file out = _out.type() == UV_FILE ? static_cast< file& >(_out).fd() : fd::try_convert(_out.fileno());
+    if (out == -1)  return UV_EBADF;
+
     int ret = 0;
 
     if (_offset < 0)
@@ -790,7 +804,7 @@ public: /*interface*/
 
       ret = uv_status(::uv_fs_sendfile(
           static_cast< file::uv_t* >(_in)->loop, static_cast< uv_t* >(uv_req),
-          _out.fileno(), _in.fd(),
+          out, _in.fd(),
           _offset, _length,
           nullptr
       ));
@@ -804,18 +818,21 @@ public: /*interface*/
     file::instance::from(_in.uv_handle)->ref();
     instance_ptr->ref();
 
-    // instance_ptr->properties() = {static_cast< io::uv_t* >(_out), static_cast< file::uv_t* >(_in), _offset};
+    // instance_ptr->properties() = {static_cast< io::uv_t* >(_out), static_cast< file::uv_t* >(_in), _offset, _length};
     {
       auto &properties = instance_ptr->properties();
       properties.uv_handle_out = static_cast< io::uv_t* >(_out);
       properties.uv_handle_in = static_cast< file::uv_t* >(_in);
       properties.offset = _offset;
+      properties.pending_size = _length;
     }
+
+    if (_out.type() == UV_FILE)  file::instance::from(_out.uv_handle)->properties().write_queue_size += _length;
 
     uv_status(0);
     ret = ::uv_fs_sendfile(
         static_cast< file::uv_t* >(_in)->loop, static_cast< uv_t* >(uv_req),
-        _out.fileno(), _in.fd(),
+        out, _in.fd(),
         _offset, _length,
         sendfile_cb
     );
@@ -830,26 +847,26 @@ public: /*conversion operators*/
 
 template< typename >
 void fs::sendfile::sendfile_cb(::uv_fs_t *_uv_req)
-{/*
+{
   auto instance_ptr = instance::from(_uv_req);
   instance_ptr->uv_error = _uv_req->result;
 
   auto &properties = instance_ptr->properties();
-  auto file_instance_ptr = file::instance::from(properties.uv_handle);
+  auto handle_out_instance_ptr = io::instance::from(properties.uv_handle_out);
+  auto handle_in_instance_ptr = file::instance::from(properties.uv_handle_in);
 
-  ref_guard< file::instance > unref_file(*file_instance_ptr, adopt_ref);
+  ref_guard< io::instance > unref_out(*handle_out_instance_ptr, adopt_ref);
+  ref_guard< file::instance > unref_in(*handle_in_instance_ptr, adopt_ref);
   ref_guard< instance > unref_req(*instance_ptr, adopt_ref);
 
-  if (_uv_req->result > 0)  file_instance_ptr->properties().write_queue_size -= _uv_req->result;
+  if (handle_out_instance_ptr->uv_interface()->type(properties.uv_handle_out) == UV_FILE)
+    reinterpret_cast< file::instance* >(handle_out_instance_ptr)->properties().write_queue_size -= properties.pending_size;
 
-  auto &write_cb = instance_ptr->request_cb_storage.value();
-  if (write_cb)
-    write_cb(write(_uv_req), buffer(properties.uv_buf, adopt_ref));
-  else
-    buffer::instance::from(properties.uv_buf)->unref();
+  auto &sendfile_cb = instance_ptr->request_cb_storage.value();
+  if (sendfile_cb)  sendfile_cb(sendfile(_uv_req));
 
   ::uv_fs_req_cleanup(_uv_req);
-*/}
+}
 
 
 }
