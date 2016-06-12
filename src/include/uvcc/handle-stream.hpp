@@ -29,6 +29,7 @@ class stream : public io
   friend class connect;
   friend class write;
   friend class shutdown;
+  friend class pipe;
   //! \endcond
 
 public: /*types*/
@@ -344,11 +345,12 @@ public: /*interface*/
   /*! \brief Set the number of pending pipe instances when this pipe server is waiting for connections. (_Windows only_) */
   void pending_instances(int _count) noexcept  { ::uv_pipe_pending_instances(static_cast< uv_t* >(uv_handle), _count); }
 
-  /*! \details Used in conjunction with `pending_type()`. */
-  int pending_count() const noexcept  { return ::uv_pipe_pending_count(static_cast< uv_t* >(uv_handle)); }
-  /*! \details Used to receive handles over IPC pipes.
+  /*! \brief The number of pending handles being sent over the IPC pipe.
+      \details Used in conjunction with `accept_pending_handle()`. */
+  int pending_handle_count() const noexcept  { return ::uv_pipe_pending_count(static_cast< uv_t* >(uv_handle)); }
+  /*! \brief Used to receive handles over the IPC pipe.
       \sa libuv API documentation: [`uv_pipe_pending_type()`](http://docs.libuv.org/en/v1.x/pipe.html#c.uv_pipe_pending_type). */
-  ::uv_handle_type pending_type() const noexcept  { return ::uv_pipe_pending_type(static_cast< uv_t* >(uv_handle)); }
+  stream accept_pending_handle() const;
 
 public: /*conversion operators*/
   explicit operator const uv_t*() const noexcept  { return static_cast< const uv_t* >(uv_handle); }
@@ -459,6 +461,41 @@ inline stream stream::accept() const
     client.uv_status(uv_status());
 
   return client;
+}
+
+
+inline stream pipe::accept_pending_handle() const
+{
+  stream fd;
+
+  switch (::uv_pipe_pending_type(static_cast< uv_t* >(uv_handle)))
+  {
+  case UV_NAMED_PIPE:
+      fd.uv_handle = handle::instance< pipe >::create();
+      fd.uv_status(::uv_pipe_init(
+          static_cast< uv_t* >(uv_handle)->loop,
+          static_cast< ::uv_pipe_t* >(fd.uv_handle),
+          static_cast< uv_t* >(uv_handle)->ipc
+      ));
+      break;
+  case UV_TCP:
+      fd.uv_handle = handle::instance< tcp >::create();
+      fd.uv_status(::uv_tcp_init(
+          static_cast< uv_t* >(uv_handle)->loop,
+          static_cast< ::uv_tcp_t* >(fd.uv_handle)
+      ));
+      break;
+  default:
+      fd.uv_status(UV_EBADF);
+      break;
+  }
+
+  if (!fd)
+    uv_status(fd.uv_status());
+  else if (uv_status(::uv_accept(static_cast< ::uv_stream_t* >(uv_handle), static_cast< ::uv_stream_t* >(fd))) < 0)
+    fd.uv_status(uv_status());
+
+  return fd;
 }
 
 
