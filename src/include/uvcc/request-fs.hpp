@@ -30,9 +30,9 @@ namespace uv
     pay attention when running _asynchronous_ requests for sequential reading/writing from/to a file with the `_offset`
     value specified as of < 0 which means using of the "current file position". When the next read/write request on
     a file is scheduled after the previous one has completed and its callback has been called, everything will be OK.
-    If _asynchronous_ requests intended for performing sequential input/output are scheduled as unchained operations or
-    in one go, some or all of them can be actually preformed simultaneously in parallel threads and the result will most
-    probably turn out to be not what was expected. Don't use the "current file position" dummy value in such a case,
+    If several _asynchronous_ requests intended for performing sequential input/output are scheduled as unchained
+    operations, some or all of them can be actually preformed simultaneously in parallel threads and the result will
+    most probably turn out to be not what was expected. Don't use the "current file position" dummy value in such a case,
     always designate a real effective file offset for each request run. */
 class fs : public request
 {
@@ -272,6 +272,7 @@ protected: /*types*/
     file::uv_t *uv_handle = nullptr;
     buffer::uv_t *uv_buf = nullptr;
     int64_t offset = 0;
+    std::size_t pending_size = 0;
   };
   //! \endcond
 
@@ -356,16 +357,18 @@ public: /*interface*/
     buffer::instance::from(_buf.uv_buf)->ref();
     instance_ptr->ref();
 
-    // instance_ptr->properties() = {static_cast< file::uv_t* >(_file), _buf.uv_buf, _offset};
+    std::size_t wr_size = 0;
+    for (std::size_t i = 0, buf_count = _buf.count(); i < buf_count; ++i)  wr_size += _buf.len(i);
+
+    // instance_ptr->properties() = {static_cast< file::uv_t* >(_file), _buf.uv_buf, _offset, wr_size};
     {
       auto &properties = instance_ptr->properties();
       properties.uv_handle = static_cast< file::uv_t* >(_file);
       properties.uv_buf = _buf.uv_buf;
       properties.offset = _offset;
+      properties.pending_size = wr_size;
     }
 
-    std::size_t wr_size = 0;
-    for (std::size_t i = 0, buf_count = _buf.count(); i < buf_count; ++i)  wr_size += _buf.len(i);
     file::instance::from(_file.uv_handle)->properties().write_queue_size += wr_size;
 
     uv_status(0);
@@ -418,7 +421,8 @@ void fs::write::write_cb(::uv_fs_t *_uv_req)
   ref_guard< file::instance > unref_file(*file_instance_ptr, adopt_ref);
   ref_guard< instance > unref_req(*instance_ptr, adopt_ref);
 
-  if (_uv_req->result > 0)  file_instance_ptr->properties().write_queue_size -= _uv_req->result;
+  // if (_uv_req->result > 0)  file_instance_ptr->properties().write_queue_size -= _uv_req->result;
+  file_instance_ptr->properties().write_queue_size -= properties.pending_size;
 
   auto &write_cb = instance_ptr->request_cb_storage.value();
   if (write_cb)
