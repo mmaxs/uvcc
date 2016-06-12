@@ -1,9 +1,9 @@
 
 uvcc is C++ bindings for libuv.
 
-\sa [libuv API documentation](http://docs.libuv.org/en/v1.x/) \n
-[An Introduction to libuv](http://nikhilm.github.io/uvbook) \n
-[Documenting types and methods of libuv, mostly by reading  uv.h](https://github.com/thlorenz/libuv-dox)
+\sa _docs.libuv.org_: [libuv API documentation](http://docs.libuv.org/en/v1.x/)\n
+    _nikhilm.github.io/uvbook_: [An Introduction to libuv](http://nikhilm.github.io/uvbook)\n
+    _github.com/thlorenz/libuv-dox_: [Documenting types and methods of libuv, mostly by reading  uv.h](https://github.com/thlorenz/libuv-dox)
 
 
 \page doxy_page_ref_counting Objects with reference counting semantics
@@ -25,7 +25,7 @@ the object instance is decreased. The count increase/decrease operations are ato
 The object instance by itself gets actually destroyed and the memory allocated for it
 is automatically released when the last variable referencing the object is destroyed and the reference count becomes zero.
 
-\sa Considerations on reference-counted objects in [libcxx](http://www.libcxx.org/refobj.html) documentation.
+\sa Considerations on reference-counted objects in [libcxx](http://www.libcxx.org/refobj.html) documentation on _www.libcxx.org_.
 
 
 
