@@ -2065,7 +2065,7 @@ SEARCH_INCLUDES        = YES
 # This tag requires that the tag SEARCH_INCLUDES is set to YES.
 
 INCLUDE_PATH           = /usr/include \
-                         libuv-x64-v1.9.0.build9/include
+                         libuv-x64-v1.9.1.build10/include
 
 # You can use the INCLUDE_FILE_PATTERNS tag to specify one or more wildcard
 # patterns (like *.h and *.hpp) to filter out the header-files in the
