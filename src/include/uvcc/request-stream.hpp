@@ -45,7 +45,11 @@ private: /*constructors*/
 
 public: /*constructors*/
   ~connect() = default;
-  connect()  { uv_req = instance::create(); }
+  connect()
+  {
+    uv_req = instance::create();
+    static_cast< uv_t* >(uv_req)->type = UV_CONNECT;
+  }
 
   connect(const connect&) = default;
   connect& operator =(const connect&) = default;
@@ -148,7 +152,11 @@ private: /*constructors*/
 
 public: /*constructors*/
   ~write() = default;
-  write()  { uv_req = instance::create(); }
+  write()
+  {
+    uv_req = instance::create();
+    static_cast< uv_t* >(uv_req)->type = UV_WRITE;
+  }
 
   write(const write&) = default;
   write& operator =(const write&) = default;
@@ -289,7 +297,11 @@ private: /*constructors*/
 
 public: /*constructors*/
   ~shutdown() = default;
-  shutdown()  { uv_req = instance::create(); }
+  shutdown()
+  {
+    uv_req = instance::create();
+    static_cast< uv_t* >(uv_req)->type = UV_SHUTDOWN;
+  }
 
   shutdown(const shutdown&) = default;
   shutdown& operator =(const shutdown&) = default;

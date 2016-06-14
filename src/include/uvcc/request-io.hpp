@@ -70,7 +70,11 @@ private: /*constructors*/
 
 public: /*constructors*/
   ~output() = default;
-  output()  { uv_req = instance::create(); }
+  output()
+  {
+    uv_req = instance::create();
+    static_cast< ::uv_req_t* >(uv_req)->type = UV_REQ;
+  }
 
   output(const output&) = default;
   output& operator =(const output&) = default;

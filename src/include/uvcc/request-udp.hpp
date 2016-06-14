@@ -54,7 +54,11 @@ private: /*constructors*/
 
 public: /*constructors*/
   ~udp_send() = default;
-  udp_send()  { uv_req = instance::create(); }
+  udp_send()
+  {
+    uv_req = instance::create();
+    static_cast< uv_t* >(uv_req)->type = UV_UDP_SEND;
+  }
 
   udp_send(const udp_send&) = default;
   udp_send& operator =(const udp_send&) = default;

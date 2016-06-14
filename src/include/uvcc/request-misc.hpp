@@ -31,6 +31,11 @@ private: /*types*/
 
 public: /*constructors*/
   ~work() = default;
+  work()
+  {
+    uv_req = instance::create();
+    static_cast< uv_t* >(uv_req)->type = UV_WORK;
+  }
 
   work(const work&) = default;
   work& operator =(const work&) = default;

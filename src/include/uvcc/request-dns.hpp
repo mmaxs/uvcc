@@ -54,6 +54,7 @@ public: /*constructors*/
   getaddrinfo()
   {
     uv_req = instance::create();
+    static_cast< uv_t* >(uv_req)->type = UV_GETADDRINFO;
     static_cast< uv_t* >(uv_req)->addrinfo = nullptr;  // ensure for desired initial value
     instance::from(uv_req)->properties().uv_req = static_cast< uv_t* >(uv_req);
   }
@@ -158,7 +159,11 @@ private: /*constructors*/
 
 public: /*constructors*/
   ~getnameinfo() = default;
-  getnameinfo()  { uv_req = instance::create(); }
+  getnameinfo()
+  {
+    uv_req = instance::create();
+    static_cast< uv_t* >(uv_req)->type = UV_GETNAMEINFO;
+  }
 
   getnameinfo(const getnameinfo&) = default;
   getnameinfo& operator =(const getnameinfo&) = default;

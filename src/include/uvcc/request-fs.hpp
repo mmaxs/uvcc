@@ -138,7 +138,12 @@ private: /*constructors*/
 
 public: /*constructors*/
   ~read() = default;
-  read()  { uv_req = instance::create(); }
+  read()
+  {
+    uv_req = instance::create();
+    static_cast< uv_t* >(uv_req)->type = UV_FS;
+    static_cast< uv_t* >(uv_req)->fs_type = UV_FS_READ;
+  }
 
   read(const read&) = default;
   read& operator =(const read&) = default;
@@ -289,7 +294,12 @@ private: /*constructors*/
 
 public: /*constructors*/
   ~write() = default;
-  write()  { uv_req = instance::create(); }
+  write()
+  {
+    uv_req = instance::create();
+    static_cast< uv_t* >(uv_req)->type = UV_FS;
+    static_cast< uv_t* >(uv_req)->fs_type = UV_FS_WRITE;
+  }
 
   write(const write&) = default;
   write& operator =(const write&) = default;
@@ -467,7 +477,12 @@ private: /*constructors*/
 
 public: /*constructors*/
   ~sync() = default;
-  sync()  { uv_req = instance::create(); }
+  sync()
+  {
+    uv_req = instance::create();
+    static_cast< uv_t* >(uv_req)->type = UV_FS;
+    static_cast< uv_t* >(uv_req)->fs_type = UV_FS_FSYNC;
+  }
 
   sync(const sync&) = default;
   sync& operator =(const sync&) = default;
@@ -590,7 +605,12 @@ private: /*constructors*/
 
 public: /*constructors*/
   ~truncate() = default;
-  truncate()  { uv_req = instance::create(); }
+  truncate()
+  {
+    uv_req = instance::create();
+    static_cast< uv_t* >(uv_req)->type = UV_FS;
+    static_cast< uv_t* >(uv_req)->fs_type = UV_FS_FTRUNCATE;
+  }
 
   truncate(const truncate&) = default;
   truncate& operator =(const truncate&) = default;
@@ -742,7 +762,12 @@ private: /*constructors*/
 
 public: /*constructors*/
   ~sendfile() = default;
-  sendfile()  { uv_req = instance::create(); }
+  sendfile()
+  {
+    uv_req = instance::create();
+    static_cast< uv_t* >(uv_req)->type = UV_FS;
+    static_cast< uv_t* >(uv_req)->fs_type = UV_FS_SENDFILE;
+  }
 
   sendfile(const sendfile&) = default;
   sendfile& operator =(const sendfile&) = default;
