@@ -105,6 +105,131 @@ public: /*conversion operators*/
 
 
 
+/*! \brief Close a file handle. */
+class fs::close : public fs
+{
+  //! \cond
+  friend class request::instance< close >;
+  //! \endcond
+
+public: /*types*/
+  using on_request_t = std::function< void(close _request) >;
+  /*!< \brief The function type of the callback called when the close request has completed. */
+
+protected: /*types*/
+  //! \cond
+  struct properties
+  {
+    file::uv_t *uv_handle = nullptr;
+  };
+  //! \endcond
+
+private: /*types*/
+  using instance = request::instance< close >;
+
+private: /*constructors*/
+  explicit close(uv_t *_uv_req)
+  {
+    if (_uv_req)  instance::from(_uv_req)->ref();
+    uv_req = _uv_req;
+  }
+
+public: /*constructors*/
+  ~close() = default;
+  close()
+  {
+    uv_req = instance::create();
+    static_cast< uv_t* >(uv_req)->type = UV_FS;
+    static_cast< uv_t* >(uv_req)->fs_type = UV_FS_CLOSE;
+  }
+
+  close(const close&) = default;
+  close& operator =(const close&) = default;
+
+  close(close&&) noexcept = default;
+  close& operator =(close&&) noexcept = default;
+
+private: /*functions*/
+  template< typename = void > static void close_cb(::uv_fs_t*);
+
+public: /*interface*/
+  const on_request_t& on_request() const noexcept  { return instance::from(uv_req)->request_cb_storage.value(); }
+        on_request_t& on_request()       noexcept  { return instance::from(uv_req)->request_cb_storage.value(); }
+
+  /*! \brief The file which this close request has been running on.
+      \details It is guaranteed that it will be a valid instance at least within the request callback. */
+  file handle() const noexcept  { return file(instance::from(uv_req)->properties().uv_handle); }
+
+  /*! \brief Run the request. Close a `_file` handle.
+      \sa libuv API documentation: [`uv_fs_close()`](http://docs.libuv.org/en/v1.x/fs.html#c.uv_fs_close).
+      \sa Linux: [`close()`](http://man7.org/linux/man-pages/man2/close.2.html).
+      \note If the request callback is empty (has not been set), the request runs _synchronously_. */
+  int run(file &_file)
+  {
+    int ret = 0;
+    file::instance::from(_file.uv_handle)->properties().is_closing = true;
+
+    auto instance_ptr = instance::from(uv_req);
+
+    auto &request_cb = instance_ptr->request_cb_storage.value();
+    if (!request_cb)
+    {
+      instance_ptr->properties().uv_handle = static_cast< file::uv_t* >(_file);
+
+      ret = uv_status(::uv_fs_close(
+          static_cast< file::uv_t* >(_file)->loop, static_cast< uv_t* >(uv_req),
+          _file.fd(),
+          nullptr
+      ));
+
+      ::uv_fs_req_cleanup(static_cast< uv_t* >(uv_req));
+      return ret;
+    };
+
+
+    file::instance::from(_file.uv_handle)->ref();
+    instance_ptr->ref();
+
+    // instance_ptr->properties() = {static_cast< file::uv_t* >(_file)};
+    {
+      auto &properties = instance_ptr->properties();
+      properties.uv_handle = static_cast< file::uv_t* >(_file);
+    }
+
+    uv_status(0);
+    ret = ::uv_fs_close(
+        static_cast< file::uv_t* >(_file)->loop, static_cast< uv_t* >(uv_req),
+        _file.fd(),
+        close_cb
+    );
+    if (!ret)  uv_status(ret);
+    return ret;
+  }
+
+public: /*conversion operators*/
+  explicit operator const uv_t*() const noexcept  { return static_cast< const uv_t* >(uv_req); }
+  explicit operator       uv_t*()       noexcept  { return static_cast<       uv_t* >(uv_req); }
+};
+
+template< typename >
+void fs::close::close_cb(::uv_fs_t *_uv_req)
+{
+  auto instance_ptr = instance::from(_uv_req);
+  instance_ptr->uv_error = _uv_req->result;
+
+  auto &properties = instance_ptr->properties();
+
+  ref_guard< file::instance > unref_file(*file::instance::from(properties.uv_handle), adopt_ref);
+  ref_guard< instance > unref_req(*instance_ptr, adopt_ref);
+
+  auto &close_cb = instance_ptr->request_cb_storage.value();
+  if (close_cb)  close_cb(close(_uv_req));
+
+  ::uv_fs_req_cleanup(_uv_req);
+}
+
+
+
 /*! \brief Read data from a file. */
 class fs::read : public fs
 {
@@ -158,7 +283,7 @@ public: /*interface*/
   const on_request_t& on_request() const noexcept  { return instance::from(uv_req)->request_cb_storage.value(); }
         on_request_t& on_request()       noexcept  { return instance::from(uv_req)->request_cb_storage.value(); }
 
-  /*! \brief The file which this read request is running on.
+  /*! \brief The file which this read request has been running on.
       \details It is guaranteed that it will be a valid instance at least within the request callback. */
   file handle() const noexcept  { return file(instance::from(uv_req)->properties().uv_handle); }
 
@@ -497,7 +622,7 @@ public: /*interface*/
   const on_request_t& on_request() const noexcept  { return instance::from(uv_req)->request_cb_storage.value(); }
         on_request_t& on_request()       noexcept  { return instance::from(uv_req)->request_cb_storage.value(); }
 
-  /*! \brief The file which this sync request is running on.
+  /*! \brief The file which this sync request has been running on.
       \details It is guaranteed that it will be a valid instance at least within the request callback. */
   file handle() const noexcept  { return file(instance::from(uv_req)->properties().uv_handle); }
 
@@ -507,10 +632,10 @@ public: /*interface*/
       \sa Linux: [`fsync()`](http://man7.org/linux/man-pages/man2/fsync.2.html),
                  [`fdatasync()`](http://man7.org/linux/man-pages/man2/fdatasync.2.html).
       \note If the request callback is empty (has not been set), the request runs _synchronously_. */
-  int run(file &_file, bool _flush_metadata = false)
+  int run(file &_file, bool _flush_all_metadata = false)
   {
     int ret = 0;
-    auto uv_fsync_function = _flush_metadata ? ::uv_fs_fsync : uv_fs_fdatasync;
+    auto uv_fsync_function = _flush_all_metadata ? ::uv_fs_fsync : uv_fs_fdatasync;
 
     auto instance_ptr = instance::from(uv_req);
 
@@ -625,7 +750,7 @@ public: /*interface*/
   const on_request_t& on_request() const noexcept  { return instance::from(uv_req)->request_cb_storage.value(); }
         on_request_t& on_request()       noexcept  { return instance::from(uv_req)->request_cb_storage.value(); }
 
-  /*! \brief The file which this truncate request is running on.
+  /*! \brief The file which this truncate request has been running on.
       \details It is guaranteed that it will be a valid instance at least within the request callback. */
   file handle() const noexcept  { return file(instance::from(uv_req)->properties().uv_handle); }
 
