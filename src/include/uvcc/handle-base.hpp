@@ -83,16 +83,16 @@ protected: /*types*/
     instance()
     {
       property_storage.reset< typename _HANDLE_::properties >();
-      uv_interface_ptr = new typename _HANDLE_::uv_interface;
+      uv_interface_ptr = &_HANDLE_::uv_interface::instance();
     }
     template< typename... _Args_ > instance(_Args_&&... _args)
     {
       property_storage.reset< typename _HANDLE_::properties >(std::forward< _Args_ >(_args)...);
-      uv_interface_ptr = new typename _HANDLE_::uv_interface;
+      uv_interface_ptr = &_HANDLE_::uv_interface::instance();
     }
 
   public: /* constructors*/
-    ~instance()  { delete uv_interface_ptr; }
+    ~instance() = default;
 
     instance(const instance&) = delete;
     instance& operator =(const instance&) = delete;

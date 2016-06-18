@@ -50,6 +50,8 @@ protected: /*types*/
 
   struct uv_interface : uv_fs_interface, io::uv_interface
   {
+    static uv_interface& instance()  { static uv_interface instance;  return instance; }
+
     int is_closing(void *_uv_fs) const noexcept override
     { return instance::from(_uv_fs)->properties().is_closing; }
 

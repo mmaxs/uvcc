@@ -50,6 +50,8 @@ protected: /*types*/
 
   struct uv_interface : uv_handle_interface, io::uv_interface
   {
+    static uv_interface& instance()  { static uv_interface instance;  return instance; }
+
     std::size_t write_queue_size(void *_uv_handle) const noexcept override
     { return static_cast< ::uv_udp_t* >(_uv_handle)->send_queue_size; }
 
