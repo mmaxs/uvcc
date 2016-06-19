@@ -1087,17 +1087,14 @@ public: /*interface*/
                                    [`uv_fs_t.statbuf`](http://docs.libuv.org/en/v1.x/fs.html#c.uv_fs_t.statbuf).
       \sa Linux: [`stat()`](http://man7.org/linux/man-pages/man2/stat.2.html),
                  [`fstat()`](http://man7.org/linux/man-pages/man2/fstat.2.html),
-                 [`lstat()`](http://man7.org/linux/man-pages/man2/lstat.2.html).\n
-          Windows: [`_stat()`](https://msdn.microsoft.com/en-us/library/14h5k7ff.aspx),
-                   [`_fstat()`](https://msdn.microsoft.com/en-us/library/221w8e43.aspx). */
+                 [`lstat()`](http://man7.org/linux/man-pages/man2/lstat.2.html). */
   const ::uv_stat_t& result() const noexcept  { return static_cast< uv_t* >(uv_req)->statbuf; }
 
   /*! \brief Run the request. Get status information on a file or directory specified by `_path`.
       \sa libuv API documentation: [`uv_fs_stat()`](http://docs.libuv.org/en/v1.x/fs.html#c.uv_fs_stat),
                                    [`uv_fs_lstat()`](http://docs.libuv.org/en/v1.x/fs.html#c.uv_fs_lstat).
       \sa Linux: [`stat()`](http://man7.org/linux/man-pages/man2/stat.2.html),
-                 [`lstat()`](http://man7.org/linux/man-pages/man2/lstat.2.html).\n
-          Windows: [`_stat()`](https://msdn.microsoft.com/en-us/library/14h5k7ff.aspx).
+                 [`lstat()`](http://man7.org/linux/man-pages/man2/lstat.2.html).
       \note If the request callback is empty (has not been set), the request runs _synchronously_. */
   int run(uv::loop &_loop, const char* _path, bool _follow_symlinks = false)
   {
@@ -1145,8 +1142,7 @@ public: /*interface*/
 
   /*! \brief Run the request. Get status information about the open `_file`.
       \sa libuv API documentation: [`uv_fs_fstat()`](http://docs.libuv.org/en/v1.x/fs.html#c.uv_fs_fstat).
-      \sa Linux: [`fstat()`](http://man7.org/linux/man-pages/man2/fstat.2.html).\n
-          Windows: [`_fstat()`](https://msdn.microsoft.com/en-us/library/221w8e43.aspx).
+      \sa Linux: [`fstat()`](http://man7.org/linux/man-pages/man2/fstat.2.html).
       \note If the request callback is empty (has not been set), the request runs _synchronously_. */
   int run(file &_file)
   {

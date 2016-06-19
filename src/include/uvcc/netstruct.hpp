@@ -122,7 +122,7 @@ inline int init(::sockaddr_storage &_ss, const char *_ip, const char *_port = nu
 
 /*! \brief Initialize an `addrinfo` structure for to be used as a hints argument in `uv::getaddrinfo` request.
     \details
-    The `_family` argument might be AF_UNSPEC or AF_INET or AF_INET6 or AF_NETBIOS (Windows only) .
+    The `_family` argument might be AF_UNSPEC or AF_INET or AF_INET6 or (Windows only) AF_NETBIOS.
 
     The `_socktype` argument might be SOCK_DGRAM or SOCK_STREAM.
 

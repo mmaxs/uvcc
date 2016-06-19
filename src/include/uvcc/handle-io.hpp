@@ -405,7 +405,7 @@ public: /*interface*/
       - Windows: pipe, tty, file
       - Unicies: pipe, tty, file, tcp/udp socket
       .
-      \sa [`uv_guess_handle()`](http://docs.libuv.org/en/v1.x/misc.html#c.uv_guess_handle). */
+      \sa libuv API documentation: [`uv_guess_handle()`](http://docs.libuv.org/en/v1.x/misc.html#c.uv_guess_handle). */
   static io guess_handle(uv::loop&, ::uv_file);
 
 public: /*conversion operators*/
