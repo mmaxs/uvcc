@@ -93,6 +93,14 @@ private: /*constructors*/
     uv_handle = _uv_handle;
   }
 
+  explicit file(uv::loop &_loop, ::uv_file _fd, const char *_path)
+  {
+    uv_handle = instance::create();
+    static_cast< uv_t* >(uv_handle)->loop = static_cast< uv::loop::uv_t* >(_loop);
+    static_cast< uv_t* >(uv_handle)->result = _fd;
+    static_cast< uv_t* >(uv_handle)->path = _path;
+  }
+
 public: /*constructors*/
   ~file() = default;
 
@@ -143,13 +151,7 @@ public: /*constructors*/
     if (!ret)  uv_status(ret);
   }
   /*! \brief Create a file object from an existing file descriptor. */
-  file(uv::loop &_loop, ::uv_file _fd)
-  {
-    uv_handle = instance::create();
-    static_cast< uv_t* >(uv_handle)->loop = static_cast< uv::loop::uv_t* >(_loop);
-    static_cast< uv_t* >(uv_handle)->result = _fd;
-    static_cast< uv_t* >(uv_handle)->path = nullptr;
-  }
+  file(uv::loop &_loop, ::uv_file _fd) : file(_loop, _fd, nullptr)  {}
   //! \}
 
 private: /*functions*/

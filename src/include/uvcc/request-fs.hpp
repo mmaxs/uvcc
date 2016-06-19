@@ -167,6 +167,7 @@ public: /*interface*/
   int run(file &_file)
   {
     int ret = 0;
+
     file::instance::from(_file.uv_handle)->properties().is_closing = true;
 
     auto instance_ptr = instance::from(uv_req);
@@ -631,6 +632,8 @@ public: /*interface*/
                                    [`uv_fs_fdatasync()`](http://docs.libuv.org/en/v1.x/fs.html#c.uv_fs_fdatasync).
       \sa Linux: [`fsync()`](http://man7.org/linux/man-pages/man2/fsync.2.html),
                  [`fdatasync()`](http://man7.org/linux/man-pages/man2/fdatasync.2.html).
+
+      By default [`uv_fs_fdatasync()`](http://docs.libuv.org/en/v1.x/fs.html#c.uv_fs_fdatasync) libuv API function is used.
       \note If the request callback is empty (has not been set), the request runs _synchronously_. */
   int run(file &_file, bool _flush_all_metadata = false)
   {
@@ -1014,6 +1017,196 @@ void fs::sendfile::sendfile_cb(::uv_fs_t *_uv_req)
 
   auto &sendfile_cb = instance_ptr->request_cb_storage.value();
   if (sendfile_cb)  sendfile_cb(sendfile(_uv_req));
+
+  ::uv_fs_req_cleanup(_uv_req);
+}
+
+
+
+/*! \brief Get information about a file. */
+class fs::stat : public fs
+{
+  //! \cond
+  friend class request::instance< stat >;
+  //! \endcond
+
+public: /*types*/
+  using on_request_t = std::function< void(stat _request) >;
+  /*!< \brief The function type of the callback called when the stat request has completed. */
+
+protected: /*types*/
+  //! \cond
+  struct properties
+  {
+    file::uv_t *uv_handle = nullptr;
+  };
+  //! \endcond
+
+private: /*types*/
+  using instance = request::instance< stat >;
+
+private: /*constructors*/
+  explicit stat(uv_t *_uv_req)
+  {
+    if (_uv_req)  instance::from(_uv_req)->ref();
+    uv_req = _uv_req;
+  }
+
+public: /*constructors*/
+  ~stat() = default;
+  stat()
+  {
+    uv_req = instance::create();
+    static_cast< uv_t* >(uv_req)->type = UV_FS;
+    static_cast< uv_t* >(uv_req)->fs_type = UV_FS_STAT;
+  }
+
+  stat(const stat&) = default;
+  stat& operator =(const stat&) = default;
+
+  stat(stat&&) noexcept = default;
+  stat& operator =(stat&&) noexcept = default;
+
+private: /*functions*/
+  template< typename = void > static void stat_cb(::uv_fs_t*);
+
+public: /*interface*/
+  const on_request_t& on_request() const noexcept  { return instance::from(uv_req)->request_cb_storage.value(); }
+        on_request_t& on_request()       noexcept  { return instance::from(uv_req)->request_cb_storage.value(); }
+
+  /*! \brief The file which this stat request has been running on.
+      \details It is guaranteed that it will be a valid instance at least within the request callback. */
+  file handle() const noexcept  { return file(instance::from(uv_req)->properties().uv_handle); }
+
+  /*! \brief The file path affected by request.
+      \sa libuv API documentation: [`uv_fs_t.path`](http://docs.libuv.org/en/v1.x/fs.html#c.uv_fs_t.path). */
+  const char* path() const noexcept  { return static_cast< uv_t* >(uv_req)->path; }
+
+  /*! \brief Result of the stat request.
+      \sa libuv API documentation: [`uv_stat_t`](http://docs.libuv.org/en/v1.x/fs.html#c.uv_stat_t),
+                                   [`uv_fs_t.statbuf`](http://docs.libuv.org/en/v1.x/fs.html#c.uv_fs_t.statbuf).
+      \sa Linux: [`stat()`](http://man7.org/linux/man-pages/man2/stat.2.html),
+                 [`fstat()`](http://man7.org/linux/man-pages/man2/fstat.2.html),
+                 [`lstat()`](http://man7.org/linux/man-pages/man2/lstat.2.html).\n
+          Windows: [`_stat()`](https://msdn.microsoft.com/en-us/library/14h5k7ff.aspx),
+                   [`_fstat()`](https://msdn.microsoft.com/en-us/library/221w8e43.aspx). */
+  const ::uv_stat_t& result() const noexcept  { return static_cast< uv_t* >(uv_req)->statbuf; }
+
+  /*! \brief Run the request. Get status information on a file or directory specified by `_path`.
+      \sa libuv API documentation: [`uv_fs_stat()`](http://docs.libuv.org/en/v1.x/fs.html#c.uv_fs_stat),
+                                   [`uv_fs_lstat()`](http://docs.libuv.org/en/v1.x/fs.html#c.uv_fs_lstat).
+      \sa Linux: [`stat()`](http://man7.org/linux/man-pages/man2/stat.2.html),
+                 [`lstat()`](http://man7.org/linux/man-pages/man2/lstat.2.html).\n
+          Windows: [`_stat()`](https://msdn.microsoft.com/en-us/library/14h5k7ff.aspx).
+      \note If the request callback is empty (has not been set), the request runs _synchronously_. */
+  int run(uv::loop &_loop, const char* _path, bool _follow_symlinks = false)
+  {
+    int ret = 0;
+    auto uv_stat_function = _follow_symlinks ? ::uv_fs_stat : uv_fs_lstat;
+
+    file f(_loop, -1, _path);
+
+    auto instance_ptr = instance::from(uv_req);
+
+    auto &request_cb = instance_ptr->request_cb_storage.value();
+    if (!request_cb)
+    {
+      instance_ptr->properties().uv_handle = static_cast< file::uv_t* >(f);
+
+      ret = uv_status(uv_stat_function(
+          static_cast< uv::loop::uv_t* >(_loop), static_cast< uv_t* >(uv_req),
+          _path,
+          nullptr
+      ));
+
+      ::uv_fs_req_cleanup(static_cast< uv_t* >(uv_req));
+      return ret;
+    };
+
+
+    file::instance::from(f.uv_handle)->ref();
+    instance_ptr->ref();
+
+    // instance_ptr->properties() = {static_cast< file::uv_t* >(f)};
+    {
+      auto &properties = instance_ptr->properties();
+      properties.uv_handle = static_cast< file::uv_t* >(f);
+    }
+
+    uv_status(0);
+    ret = uv_stat_function(
+        static_cast< uv::loop::uv_t* >(_loop), static_cast< uv_t* >(uv_req),
+        _path,
+        stat_cb
+    );
+    if (!ret)  uv_status(ret);
+    return ret;
+  }
+
+  /*! \brief Run the request. Get status information about the open `_file`.
+      \sa libuv API documentation: [`uv_fs_fstat()`](http://docs.libuv.org/en/v1.x/fs.html#c.uv_fs_fstat).
+      \sa Linux: [`fstat()`](http://man7.org/linux/man-pages/man2/fstat.2.html).\n
+          Windows: [`_fstat()`](https://msdn.microsoft.com/en-us/library/221w8e43.aspx).
+      \note If the request callback is empty (has not been set), the request runs _synchronously_. */
+  int run(file &_file)
+  {
+    int ret = 0;
+
+    auto instance_ptr = instance::from(uv_req);
+
+    auto &request_cb = instance_ptr->request_cb_storage.value();
+    if (!request_cb)
+    {
+      instance_ptr->properties().uv_handle = static_cast< file::uv_t* >(_file);
+
+      ret = uv_status(::uv_fs_fstat(
+          static_cast< file::uv_t* >(_file)->loop, static_cast< uv_t* >(uv_req),
+          _file.fd(),
+          nullptr
+      ));
+
+      ::uv_fs_req_cleanup(static_cast< uv_t* >(uv_req));
+      return ret;
+    };
+
+
+    file::instance::from(_file.uv_handle)->ref();
+    instance_ptr->ref();
+
+    // instance_ptr->properties() = {static_cast< file::uv_t* >(_file)};
+    {
+      auto &properties = instance_ptr->properties();
+      properties.uv_handle = static_cast< file::uv_t* >(_file);
+    }
+
+    uv_status(0);
+    ret = ::uv_fs_fstat(
+        static_cast< file::uv_t* >(_file)->loop, static_cast< uv_t* >(uv_req),
+        _file.fd(),
+        stat_cb
+    );
+    if (!ret)  uv_status(ret);
+    return ret;
+  }
+
+public: /*conversion operators*/
+  explicit operator const uv_t*() const noexcept  { return static_cast< const uv_t* >(uv_req); }
+  explicit operator       uv_t*()       noexcept  { return static_cast<       uv_t* >(uv_req); }
+};
+
+template< typename >
+void fs::stat::stat_cb(::uv_fs_t *_uv_req)
+{
+  auto instance_ptr = instance::from(_uv_req);
+  instance_ptr->uv_error = _uv_req->result;
+
+  auto &properties = instance_ptr->properties();
+
+  ref_guard< file::instance > unref_file(*file::instance::from(properties.uv_handle), adopt_ref);
+  ref_guard< instance > unref_req(*instance_ptr, adopt_ref);
+
+  auto &stat_cb = instance_ptr->request_cb_storage.value();
+  if (stat_cb)  stat_cb(stat(_uv_req));
 
   ::uv_fs_req_cleanup(_uv_req);
 }
