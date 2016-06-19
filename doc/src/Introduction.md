@@ -262,23 +262,23 @@ Here is a performance comparison between the two variants:
 $ cat /dev/zero | build/example/cpio-uv | dd of=/dev/null iflag=fullblock bs=1M count=10000
 10000+0 records in
 10000+0 records out
-10485760000 bytes (10 GB) copied, 47.909 s, 219 MB/s
+10485760000 bytes (10 GB) copied, 42.9026 s, 244 MB/s
 [mike@u250 /mnt/sda3/wroot/libuv/uvcc/uvcc.git]
 $ cat /dev/zero | build/example/cpio-uv | dd of=/dev/null iflag=fullblock bs=1M count=10000
 10000+0 records in
 10000+0 records out
-10485760000 bytes (10 GB) copied, 48.0284 s, 218 MB/s
+10485760000 bytes (10 GB) copied, 43.4466 s, 241 MB/s
 
 [mike@u250 /mnt/sda3/wroot/libuv/uvcc/uvcc.git]
 $ cat /dev/zero | build/example/cpio-uvcc | dd of=/dev/null iflag=fullblock bs=1M count=10000
 10000+0 records in
 10000+0 records out
-10485760000 bytes (10 GB) copied, 56.0083 s, 187 MB/s
+10485760000 bytes (10 GB) copied, 45.9849 s, 228 MB/s
 [mike@u250 /mnt/sda3/wroot/libuv/uvcc/uvcc.git]
 $ cat /dev/zero | build/example/cpio-uvcc | dd of=/dev/null iflag=fullblock bs=1M count=10000
 10000+0 records in
 10000+0 records out
-10485760000 bytes (10 GB) copied, 56.0129 s, 187 MB/s
+10485760000 bytes (10 GB) copied, 46.1908 s, 227 MB/s
 \endverbatim
 Obviously there is an impact of reference counting operations and other C++ related overheads that slightly reduce the performance.
 
