@@ -344,7 +344,7 @@ public: /*interface*/
     )  name.resize(len, '\0');
     return name;
   }
-  /*! \brief Set the number of pending pipe instances when this pipe server is waiting for connections. (_Windows only_) */
+  /*! \brief Set the number of pending pipe instances when this pipe server is waiting for connections. (_Windows only._) */
   void pending_instances(int _count) noexcept  { ::uv_pipe_pending_instances(static_cast< uv_t* >(uv_handle), _count); }
 
   /*! \brief The number of pending handles being sent over the IPC pipe.

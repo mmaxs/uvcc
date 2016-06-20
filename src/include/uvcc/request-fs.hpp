@@ -1374,6 +1374,353 @@ void fs::chmod::chmod_cb(::uv_fs_t *_uv_req)
 }
 
 
+
+/*! \brief Change ownership of a file. (_Not implemented on Windows._) */
+class fs::chown : public fs
+{
+  //! \cond
+  friend class request::instance< chown >;
+  //! \endcond
+
+public: /*types*/
+  using on_request_t = std::function< void(chown _request) >;
+  /*!< \brief The function type of the callback called when the chown request has completed. */
+
+protected: /*types*/
+  //! \cond
+  struct properties
+  {
+    file::uv_t *uv_handle = nullptr;
+  };
+  //! \endcond
+
+private: /*types*/
+  using instance = request::instance< chown >;
+
+private: /*constructors*/
+  explicit chown(uv_t *_uv_req)
+  {
+    if (_uv_req)  instance::from(_uv_req)->ref();
+    uv_req = _uv_req;
+  }
+
+public: /*constructors*/
+  ~chown() = default;
+  chown()
+  {
+    uv_req = instance::create();
+    static_cast< uv_t* >(uv_req)->type = UV_FS;
+    static_cast< uv_t* >(uv_req)->fs_type = UV_FS_CHOWN;
+  }
+
+  chown(const chown&) = default;
+  chown& operator =(const chown&) = default;
+
+  chown(chown&&) noexcept = default;
+  chown& operator =(chown&&) noexcept = default;
+
+private: /*functions*/
+  template< typename = void > static void chown_cb(::uv_fs_t*);
+
+public: /*interface*/
+  const on_request_t& on_request() const noexcept  { return instance::from(uv_req)->request_cb_storage.value(); }
+        on_request_t& on_request()       noexcept  { return instance::from(uv_req)->request_cb_storage.value(); }
+
+  /*! \brief The file which this chown request has been running on.
+      \details It is guaranteed that it will be a valid instance at least within the request callback. */
+  file handle() const noexcept  { return file(instance::from(uv_req)->properties().uv_handle); }
+
+  /*! \brief The file path affected by request.
+      \sa libuv API documentation: [`uv_fs_t.path`](http://docs.libuv.org/en/v1.x/fs.html#c.uv_fs_t.path). */
+  const char* path() const noexcept  { return static_cast< uv_t* >(uv_req)->path; }
+
+  /*! \brief Run the request. Change the owner and group of a file or directory specified by `_path`.
+      \sa libuv API documentation: [`uv_fs_chown()`](http://docs.libuv.org/en/v1.x/fs.html#c.uv_fs_chown).
+      \sa Linux: [`chown()`](http://man7.org/linux/man-pages/man2/chown.2.html).
+      \note If the request callback is empty (has not been set), the request runs _synchronously_. */
+  int run(uv::loop &_loop, const char* _path, ::uv_uid_t _uid, ::uv_gid_t _gid)
+  {
+    int ret = 0;
+
+    file f(_loop, -1, _path);
+
+    auto instance_ptr = instance::from(uv_req);
+
+    if (!instance_ptr->request_cb_storage.value())
+    {
+      instance_ptr->properties().uv_handle = static_cast< file::uv_t* >(f);
+
+      ret = uv_status(::uv_fs_chown(
+          static_cast< uv::loop::uv_t* >(_loop), static_cast< uv_t* >(uv_req),
+          _path, _uid, _gid,
+          nullptr
+      ));
+
+      ::uv_fs_req_cleanup(static_cast< uv_t* >(uv_req));
+      return ret;
+    };
+
+
+    file::instance::from(f.uv_handle)->ref();
+    instance_ptr->ref();
+
+    // instance_ptr->properties() = {static_cast< file::uv_t* >(f)};
+    {
+      auto &properties = instance_ptr->properties();
+      properties.uv_handle = static_cast< file::uv_t* >(f);
+    }
+
+    uv_status(0);
+    ret = ::uv_fs_chown(
+        static_cast< uv::loop::uv_t* >(_loop), static_cast< uv_t* >(uv_req),
+        _path, _uid, _gid,
+        chown_cb
+    );
+    if (!ret)  uv_status(ret);
+    return ret;
+  }
+
+  /*! \brief Run the request. Change the owner and group of the open `_file`.
+      \sa libuv API documentation: [`uv_fs_fchown()`](http://docs.libuv.org/en/v1.x/fs.html#c.uv_fs_fchown).
+      \sa Linux: [`fchown()`](http://man7.org/linux/man-pages/man2/fchown.2.html).
+      \note If the request callback is empty (has not been set), the request runs _synchronously_. */
+  int run(file &_file, ::uv_uid_t _uid, ::uv_gid_t _gid)
+  {
+    int ret = 0;
+
+    auto instance_ptr = instance::from(uv_req);
+
+    if (!instance_ptr->request_cb_storage.value())
+    {
+      instance_ptr->properties().uv_handle = static_cast< file::uv_t* >(_file);
+
+      ret = uv_status(::uv_fs_fchown(
+          static_cast< file::uv_t* >(_file)->loop, static_cast< uv_t* >(uv_req),
+          _file.fd(), _uid, _gid,
+          nullptr
+      ));
+
+      ::uv_fs_req_cleanup(static_cast< uv_t* >(uv_req));
+      return ret;
+    };
+
+
+    file::instance::from(_file.uv_handle)->ref();
+    instance_ptr->ref();
+
+    // instance_ptr->properties() = {static_cast< file::uv_t* >(_file)};
+    {
+      auto &properties = instance_ptr->properties();
+      properties.uv_handle = static_cast< file::uv_t* >(_file);
+    }
+
+    uv_status(0);
+    ret = ::uv_fs_fchown(
+        static_cast< file::uv_t* >(_file)->loop, static_cast< uv_t* >(uv_req),
+        _file.fd(), _uid, _gid,
+        chown_cb
+    );
+    if (!ret)  uv_status(ret);
+    return ret;
+  }
+
+public: /*conversion operators*/
+  explicit operator const uv_t*() const noexcept  { return static_cast< const uv_t* >(uv_req); }
+  explicit operator       uv_t*()       noexcept  { return static_cast<       uv_t* >(uv_req); }
+};
+
+template< typename >
+void fs::chown::chown_cb(::uv_fs_t *_uv_req)
+{
+  auto instance_ptr = instance::from(_uv_req);
+  instance_ptr->uv_error = _uv_req->result;
+
+  auto &properties = instance_ptr->properties();
+
+  ref_guard< file::instance > unref_file(*file::instance::from(properties.uv_handle), adopt_ref);
+  ref_guard< instance > unref_req(*instance_ptr, adopt_ref);
+
+  auto &chown_cb = instance_ptr->request_cb_storage.value();
+  if (chown_cb)  chown_cb(chown(_uv_req));
+
+  ::uv_fs_req_cleanup(_uv_req);
+}
+
+
+
+/*! \brief Change file timestamps. */
+class fs::utime : public fs
+{
+  //! \cond
+  friend class request::instance< utime >;
+  //! \endcond
+
+public: /*types*/
+  using on_request_t = std::function< void(utime _request) >;
+  /*!< \brief The function type of the callback called when the utime request has completed. */
+
+protected: /*types*/
+  //! \cond
+  struct properties
+  {
+    file::uv_t *uv_handle = nullptr;
+  };
+  //! \endcond
+
+private: /*types*/
+  using instance = request::instance< utime >;
+
+private: /*constructors*/
+  explicit utime(uv_t *_uv_req)
+  {
+    if (_uv_req)  instance::from(_uv_req)->ref();
+    uv_req = _uv_req;
+  }
+
+public: /*constructors*/
+  ~utime() = default;
+  utime()
+  {
+    uv_req = instance::create();
+    static_cast< uv_t* >(uv_req)->type = UV_FS;
+    static_cast< uv_t* >(uv_req)->fs_type = UV_FS_UTIME;
+  }
+
+  utime(const utime&) = default;
+  utime& operator =(const utime&) = default;
+
+  utime(utime&&) noexcept = default;
+  utime& operator =(utime&&) noexcept = default;
+
+private: /*functions*/
+  template< typename = void > static void utime_cb(::uv_fs_t*);
+
+public: /*interface*/
+  const on_request_t& on_request() const noexcept  { return instance::from(uv_req)->request_cb_storage.value(); }
+        on_request_t& on_request()       noexcept  { return instance::from(uv_req)->request_cb_storage.value(); }
+
+  /*! \brief The file which this utime request has been running on.
+      \details It is guaranteed that it will be a valid instance at least within the request callback. */
+  file handle() const noexcept  { return file(instance::from(uv_req)->properties().uv_handle); }
+
+  /*! \brief The file path affected by request.
+      \sa libuv API documentation: [`uv_fs_t.path`](http://docs.libuv.org/en/v1.x/fs.html#c.uv_fs_t.path). */
+  const char* path() const noexcept  { return static_cast< uv_t* >(uv_req)->path; }
+
+  /*! \brief Run the request. Change last access and modification times for a file or directory specified by `_path`.
+      \sa libuv API documentation: [`uv_fs_utime()`](http://docs.libuv.org/en/v1.x/fs.html#c.uv_fs_utime).
+      \sa Linux: [`utime()`](http://man7.org/linux/man-pages/man2/utime.2.html),
+                 [`utimensat()`](http://man7.org/linux/man-pages/man2/utimensat.2.html).
+      \note If the request callback is empty (has not been set), the request runs _synchronously_. */
+  int run(uv::loop &_loop, const char* _path, double _atime, double _mtime)
+  {
+    int ret = 0;
+
+    file f(_loop, -1, _path);
+
+    auto instance_ptr = instance::from(uv_req);
+
+    if (!instance_ptr->request_cb_storage.value())
+    {
+      instance_ptr->properties().uv_handle = static_cast< file::uv_t* >(f);
+
+      ret = uv_status(::uv_fs_utime(
+          static_cast< uv::loop::uv_t* >(_loop), static_cast< uv_t* >(uv_req),
+          _path, _atime, _mtime,
+          nullptr
+      ));
+
+      ::uv_fs_req_cleanup(static_cast< uv_t* >(uv_req));
+      return ret;
+    };
+
+
+    file::instance::from(f.uv_handle)->ref();
+    instance_ptr->ref();
+
+    // instance_ptr->properties() = {static_cast< file::uv_t* >(f)};
+    {
+      auto &properties = instance_ptr->properties();
+      properties.uv_handle = static_cast< file::uv_t* >(f);
+    }
+
+    uv_status(0);
+    ret = ::uv_fs_utime(
+        static_cast< uv::loop::uv_t* >(_loop), static_cast< uv_t* >(uv_req),
+        _path, _atime, _mtime,
+        utime_cb
+    );
+    if (!ret)  uv_status(ret);
+    return ret;
+  }
+
+  /*! \brief Run the request. Change last access and modification times for the open `_file`.
+      \sa libuv API documentation: [`uv_fs_futime()`](http://docs.libuv.org/en/v1.x/fs.html#c.uv_fs_futime).
+      \sa Linux: [`utimensat()`](http://man7.org/linux/man-pages/man2/utimensat.2.html).
+      \note If the request callback is empty (has not been set), the request runs _synchronously_. */
+  int run(file &_file, double _atime, double _mtime)
+  {
+    int ret = 0;
+
+    auto instance_ptr = instance::from(uv_req);
+
+    if (!instance_ptr->request_cb_storage.value())
+    {
+      instance_ptr->properties().uv_handle = static_cast< file::uv_t* >(_file);
+
+      ret = uv_status(::uv_fs_futime(
+          static_cast< file::uv_t* >(_file)->loop, static_cast< uv_t* >(uv_req),
+          _file.fd(), _atime, _mtime,
+          nullptr
+      ));
+
+      ::uv_fs_req_cleanup(static_cast< uv_t* >(uv_req));
+      return ret;
+    };
+
+
+    file::instance::from(_file.uv_handle)->ref();
+    instance_ptr->ref();
+
+    // instance_ptr->properties() = {static_cast< file::uv_t* >(_file)};
+    {
+      auto &properties = instance_ptr->properties();
+      properties.uv_handle = static_cast< file::uv_t* >(_file);
+    }
+
+    uv_status(0);
+    ret = ::uv_fs_futime(
+        static_cast< file::uv_t* >(_file)->loop, static_cast< uv_t* >(uv_req),
+        _file.fd(), _atime, _mtime,
+        utime_cb
+    );
+    if (!ret)  uv_status(ret);
+    return ret;
+  }
+
+public: /*conversion operators*/
+  explicit operator const uv_t*() const noexcept  { return static_cast< const uv_t* >(uv_req); }
+  explicit operator       uv_t*()       noexcept  { return static_cast<       uv_t* >(uv_req); }
+};
+
+template< typename >
+void fs::utime::utime_cb(::uv_fs_t *_uv_req)
+{
+  auto instance_ptr = instance::from(_uv_req);
+  instance_ptr->uv_error = _uv_req->result;
+
+  auto &properties = instance_ptr->properties();
+
+  ref_guard< file::instance > unref_file(*file::instance::from(properties.uv_handle), adopt_ref);
+  ref_guard< instance > unref_req(*instance_ptr, adopt_ref);
+
+  auto &utime_cb = instance_ptr->request_cb_storage.value();
+  if (utime_cb)  utime_cb(utime(_uv_req));
+
+  ::uv_fs_req_cleanup(_uv_req);
+}
+
+
 }
 
 
