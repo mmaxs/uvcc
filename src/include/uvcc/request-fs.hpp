@@ -48,7 +48,6 @@ public: /*types*/
   class read;
   class write;
   class sync;
-  class datasync;
   class truncate;
   class sendfile;
 
@@ -1076,7 +1075,7 @@ public: /*interface*/
       \sa libuv API documentation: [`uv_fs_t.path`](http://docs.libuv.org/en/v1.x/fs.html#c.uv_fs_t.path). */
   const char* path() const noexcept  { return static_cast< uv_t* >(uv_req)->path; }
 
-  /*! \brief Result of the stat request.
+  /*! \brief The result of the stat request.
       \sa libuv API documentation: [`uv_stat_t`](http://docs.libuv.org/en/v1.x/fs.html#c.uv_stat_t),
                                    [`uv_fs_t.statbuf`](http://docs.libuv.org/en/v1.x/fs.html#c.uv_fs_t.statbuf).
       \sa Linux: [`stat()`](http://man7.org/linux/man-pages/man2/stat.2.html),
@@ -1716,6 +1715,419 @@ void fs::utime::utime_cb(::uv_fs_t *_uv_req)
 
   auto &utime_cb = instance_ptr->request_cb_storage.value();
   if (utime_cb)  utime_cb(utime(_uv_req));
+
+  ::uv_fs_req_cleanup(_uv_req);
+}
+
+
+
+/*! \brief Delete a file name and possibly the file itself that the name refers to. */
+class fs::unlink : public fs
+{
+  //! \cond
+  friend class request::instance< unlink >;
+  //! \endcond
+
+public: /*types*/
+  using on_request_t = std::function< void(unlink _request) >;
+  /*!< \brief The function type of the callback called when the unlink request has completed. */
+
+private: /*types*/
+  using instance = request::instance< unlink >;
+
+private: /*constructors*/
+  explicit unlink(uv_t *_uv_req)
+  {
+    if (_uv_req)  instance::from(_uv_req)->ref();
+    uv_req = _uv_req;
+  }
+
+public: /*constructors*/
+  ~unlink() = default;
+  unlink()
+  {
+    uv_req = instance::create();
+    static_cast< uv_t* >(uv_req)->type = UV_FS;
+    static_cast< uv_t* >(uv_req)->fs_type = UV_FS_UNLINK;
+  }
+
+  unlink(const unlink&) = default;
+  unlink& operator =(const unlink&) = default;
+
+  unlink(unlink&&) noexcept = default;
+  unlink& operator =(unlink&&) noexcept = default;
+
+private: /*functions*/
+  template< typename = void > static void unlink_cb(::uv_fs_t*);
+
+public: /*interface*/
+  const on_request_t& on_request() const noexcept  { return instance::from(uv_req)->request_cb_storage.value(); }
+        on_request_t& on_request()       noexcept  { return instance::from(uv_req)->request_cb_storage.value(); }
+
+  /*! \brief The file path affected by request.
+      \sa libuv API documentation: [`uv_fs_t.path`](http://docs.libuv.org/en/v1.x/fs.html#c.uv_fs_t.path). */
+  const char* path() const noexcept  { return static_cast< uv_t* >(uv_req)->path; }
+
+  /*! \brief Run the request. Delete a file name specified by `_path`.
+      \sa libuv API documentation: [`uv_fs_unlink()`](http://docs.libuv.org/en/v1.x/fs.html#c.uv_fs_unlink).
+      \sa Linux: [`unlink()`](http://man7.org/linux/man-pages/man2/unlink.2.html).
+      \note If the request callback is empty (has not been set), the request runs _synchronously_. */
+  int run(uv::loop &_loop, const char* _path)
+  {
+    int ret = 0;
+
+    auto instance_ptr = instance::from(uv_req);
+
+    if (!instance_ptr->request_cb_storage.value())
+    {
+      ret = uv_status(::uv_fs_unlink(
+          static_cast< uv::loop::uv_t* >(_loop), static_cast< uv_t* >(uv_req),
+          _path,
+          nullptr
+      ));
+
+      ::uv_fs_req_cleanup(static_cast< uv_t* >(uv_req));
+      return ret;
+    };
+
+
+    instance_ptr->ref();
+
+    uv_status(0);
+    ret = ::uv_fs_unlink(
+        static_cast< uv::loop::uv_t* >(_loop), static_cast< uv_t* >(uv_req),
+        _path,
+        unlink_cb
+    );
+    if (!ret)  uv_status(ret);
+    return ret;
+  }
+
+public: /*conversion operators*/
+  explicit operator const uv_t*() const noexcept  { return static_cast< const uv_t* >(uv_req); }
+  explicit operator       uv_t*()       noexcept  { return static_cast<       uv_t* >(uv_req); }
+};
+
+template< typename >
+void fs::unlink::unlink_cb(::uv_fs_t *_uv_req)
+{
+  auto instance_ptr = instance::from(_uv_req);
+  instance_ptr->uv_error = _uv_req->result;
+
+  ref_guard< instance > unref_req(*instance_ptr, adopt_ref);
+
+  auto &unlink_cb = instance_ptr->request_cb_storage.value();
+  if (unlink_cb)  unlink_cb(unlink(_uv_req));
+
+  ::uv_fs_req_cleanup(_uv_req);
+}
+
+
+
+/*! \brief Create a directory. */
+class fs::mkdir : public fs
+{
+  //! \cond
+  friend class request::instance< mkdir >;
+  //! \endcond
+
+public: /*types*/
+  using on_request_t = std::function< void(mkdir _request) >;
+  /*!< \brief The function type of the callback called when the mkdir request has completed. */
+
+private: /*types*/
+  using instance = request::instance< mkdir >;
+
+private: /*constructors*/
+  explicit mkdir(uv_t *_uv_req)
+  {
+    if (_uv_req)  instance::from(_uv_req)->ref();
+    uv_req = _uv_req;
+  }
+
+public: /*constructors*/
+  ~mkdir() = default;
+  mkdir()
+  {
+    uv_req = instance::create();
+    static_cast< uv_t* >(uv_req)->type = UV_FS;
+    static_cast< uv_t* >(uv_req)->fs_type = UV_FS_MKDIR;
+  }
+
+  mkdir(const mkdir&) = default;
+  mkdir& operator =(const mkdir&) = default;
+
+  mkdir(mkdir&&) noexcept = default;
+  mkdir& operator =(mkdir&&) noexcept = default;
+
+private: /*functions*/
+  template< typename = void > static void mkdir_cb(::uv_fs_t*);
+
+public: /*interface*/
+  const on_request_t& on_request() const noexcept  { return instance::from(uv_req)->request_cb_storage.value(); }
+        on_request_t& on_request()       noexcept  { return instance::from(uv_req)->request_cb_storage.value(); }
+
+  /*! \brief The file path affected by request.
+      \sa libuv API documentation: [`uv_fs_t.path`](http://docs.libuv.org/en/v1.x/fs.html#c.uv_fs_t.path). */
+  const char* path() const noexcept  { return static_cast< uv_t* >(uv_req)->path; }
+
+  /*! \brief Run the request. Create a directory specified by `_path`.
+      \sa libuv API documentation: [`uv_fs_mkdir()`](http://docs.libuv.org/en/v1.x/fs.html#c.uv_fs_mkdir).
+      \sa Linux: [`mkdir()`](http://man7.org/linux/man-pages/man2/mkdir.2.html),\n
+          Windows: [`_mkdir()`](https://msdn.microsoft.com/en-us/library/2fkk4dzw.aspx).
+      \note If the request callback is empty (has not been set), the request runs _synchronously_. */
+  int run(uv::loop &_loop, const char* _path, int _mode)
+  {
+    int ret = 0;
+
+    auto instance_ptr = instance::from(uv_req);
+
+    if (!instance_ptr->request_cb_storage.value())
+    {
+      ret = uv_status(::uv_fs_mkdir(
+          static_cast< uv::loop::uv_t* >(_loop), static_cast< uv_t* >(uv_req),
+          _path, _mode,
+          nullptr
+      ));
+
+      ::uv_fs_req_cleanup(static_cast< uv_t* >(uv_req));
+      return ret;
+    };
+
+
+    instance_ptr->ref();
+
+    uv_status(0);
+    ret = ::uv_fs_mkdir(
+        static_cast< uv::loop::uv_t* >(_loop), static_cast< uv_t* >(uv_req),
+        _path, _mode,
+        mkdir_cb
+    );
+    if (!ret)  uv_status(ret);
+    return ret;
+  }
+
+public: /*conversion operators*/
+  explicit operator const uv_t*() const noexcept  { return static_cast< const uv_t* >(uv_req); }
+  explicit operator       uv_t*()       noexcept  { return static_cast<       uv_t* >(uv_req); }
+};
+
+template< typename >
+void fs::mkdir::mkdir_cb(::uv_fs_t *_uv_req)
+{
+  auto instance_ptr = instance::from(_uv_req);
+  instance_ptr->uv_error = _uv_req->result;
+
+  ref_guard< instance > unref_req(*instance_ptr, adopt_ref);
+
+  auto &mkdir_cb = instance_ptr->request_cb_storage.value();
+  if (mkdir_cb)  mkdir_cb(mkdir(_uv_req));
+
+  ::uv_fs_req_cleanup(_uv_req);
+}
+
+
+
+/*! \brief Create a uniquely named temporary directory. */
+class fs::mkdtemp : public fs
+{
+  //! \cond
+  friend class request::instance< mkdtemp >;
+  //! \endcond
+
+public: /*types*/
+  using on_request_t = std::function< void(mkdtemp _request) >;
+  /*!< \brief The function type of the callback called when the mkdtemp request has completed. */
+
+private: /*types*/
+  using instance = request::instance< mkdtemp >;
+
+private: /*constructors*/
+  explicit mkdtemp(uv_t *_uv_req)
+  {
+    if (_uv_req)  instance::from(_uv_req)->ref();
+    uv_req = _uv_req;
+  }
+
+public: /*constructors*/
+  ~mkdtemp() = default;
+  mkdtemp()
+  {
+    uv_req = instance::create();
+    static_cast< uv_t* >(uv_req)->type = UV_FS;
+    static_cast< uv_t* >(uv_req)->fs_type = UV_FS_MKDTEMP;
+  }
+
+  mkdtemp(const mkdtemp&) = default;
+  mkdtemp& operator =(const mkdtemp&) = default;
+
+  mkdtemp(mkdtemp&&) noexcept = default;
+  mkdtemp& operator =(mkdtemp&&) noexcept = default;
+
+private: /*functions*/
+  template< typename = void > static void mkdtemp_cb(::uv_fs_t*);
+
+public: /*interface*/
+  const on_request_t& on_request() const noexcept  { return instance::from(uv_req)->request_cb_storage.value(); }
+        on_request_t& on_request()       noexcept  { return instance::from(uv_req)->request_cb_storage.value(); }
+
+  /*! \brief The path of the directory created by request.
+      \sa libuv API documentation: [`uv_fs_t.path`](http://docs.libuv.org/en/v1.x/fs.html#c.uv_fs_t.path). */
+  const char* path() const noexcept  { return static_cast< uv_t* >(uv_req)->path; }
+
+  /*! \brief Run the request. Create a temporary directory with unique name generated from `_template` string.
+      \sa libuv API documentation: [`uv_fs_mkdtemp()`](http://docs.libuv.org/en/v1.x/fs.html#c.uv_fs_mkdtemp).
+      \sa Linux: [`mkdtemp()`](http://man7.org/linux/man-pages/man3/mkdtemp.3.html).
+      \note If the request callback is empty (has not been set), the request runs _synchronously_. */
+  int run(uv::loop &_loop, const char* _template)
+  {
+    int ret = 0;
+
+    auto instance_ptr = instance::from(uv_req);
+
+    if (!instance_ptr->request_cb_storage.value())
+    {
+      ret = uv_status(::uv_fs_mkdtemp(
+          static_cast< uv::loop::uv_t* >(_loop), static_cast< uv_t* >(uv_req),
+          _template,
+          nullptr
+      ));
+
+      ::uv_fs_req_cleanup(static_cast< uv_t* >(uv_req));
+      return ret;
+    };
+
+
+    instance_ptr->ref();
+
+    uv_status(0);
+    ret = ::uv_fs_mkdtemp(
+        static_cast< uv::loop::uv_t* >(_loop), static_cast< uv_t* >(uv_req),
+        _template,
+        mkdtemp_cb
+    );
+    if (!ret)  uv_status(ret);
+    return ret;
+  }
+
+public: /*conversion operators*/
+  explicit operator const uv_t*() const noexcept  { return static_cast< const uv_t* >(uv_req); }
+  explicit operator       uv_t*()       noexcept  { return static_cast<       uv_t* >(uv_req); }
+};
+
+template< typename >
+void fs::mkdtemp::mkdtemp_cb(::uv_fs_t *_uv_req)
+{
+  auto instance_ptr = instance::from(_uv_req);
+  instance_ptr->uv_error = _uv_req->result;
+
+  ref_guard< instance > unref_req(*instance_ptr, adopt_ref);
+
+  auto &mkdtemp_cb = instance_ptr->request_cb_storage.value();
+  if (mkdtemp_cb)  mkdtemp_cb(mkdtemp(_uv_req));
+
+  ::uv_fs_req_cleanup(_uv_req);
+}
+
+
+
+/*! \brief Delete a directory. */
+class fs::rmdir : public fs
+{
+  //! \cond
+  friend class request::instance< rmdir >;
+  //! \endcond
+
+public: /*types*/
+  using on_request_t = std::function< void(rmdir _request) >;
+  /*!< \brief The function type of the callback called when the rmdir request has completed. */
+
+private: /*types*/
+  using instance = request::instance< rmdir >;
+
+private: /*constructors*/
+  explicit rmdir(uv_t *_uv_req)
+  {
+    if (_uv_req)  instance::from(_uv_req)->ref();
+    uv_req = _uv_req;
+  }
+
+public: /*constructors*/
+  ~rmdir() = default;
+  rmdir()
+  {
+    uv_req = instance::create();
+    static_cast< uv_t* >(uv_req)->type = UV_FS;
+    static_cast< uv_t* >(uv_req)->fs_type = UV_FS_RMDIR;
+  }
+
+  rmdir(const rmdir&) = default;
+  rmdir& operator =(const rmdir&) = default;
+
+  rmdir(rmdir&&) noexcept = default;
+  rmdir& operator =(rmdir&&) noexcept = default;
+
+private: /*functions*/
+  template< typename = void > static void rmdir_cb(::uv_fs_t*);
+
+public: /*interface*/
+  const on_request_t& on_request() const noexcept  { return instance::from(uv_req)->request_cb_storage.value(); }
+        on_request_t& on_request()       noexcept  { return instance::from(uv_req)->request_cb_storage.value(); }
+
+  /*! \brief The file path affected by request.
+      \sa libuv API documentation: [`uv_fs_t.path`](http://docs.libuv.org/en/v1.x/fs.html#c.uv_fs_t.path). */
+  const char* path() const noexcept  { return static_cast< uv_t* >(uv_req)->path; }
+
+  /*! \brief Run the request. Delete a directory, which must be empty.
+      \sa libuv API documentation: [`uv_fs_rmdir()`](http://docs.libuv.org/en/v1.x/fs.html#c.uv_fs_rmdir).
+      \sa Linux: [`rmdir()`](http://man7.org/linux/man-pages/man2/rmdir.2.html).
+      \note If the request callback is empty (has not been set), the request runs _synchronously_. */
+  int run(uv::loop &_loop, const char* _path)
+  {
+    int ret = 0;
+
+    auto instance_ptr = instance::from(uv_req);
+
+    if (!instance_ptr->request_cb_storage.value())
+    {
+      ret = uv_status(::uv_fs_rmdir(
+          static_cast< uv::loop::uv_t* >(_loop), static_cast< uv_t* >(uv_req),
+          _path,
+          nullptr
+      ));
+
+      ::uv_fs_req_cleanup(static_cast< uv_t* >(uv_req));
+      return ret;
+    };
+
+
+    instance_ptr->ref();
+
+    uv_status(0);
+    ret = ::uv_fs_rmdir(
+        static_cast< uv::loop::uv_t* >(_loop), static_cast< uv_t* >(uv_req),
+        _path,
+        rmdir_cb
+    );
+    if (!ret)  uv_status(ret);
+    return ret;
+  }
+
+public: /*conversion operators*/
+  explicit operator const uv_t*() const noexcept  { return static_cast< const uv_t* >(uv_req); }
+  explicit operator       uv_t*()       noexcept  { return static_cast<       uv_t* >(uv_req); }
+};
+
+template< typename >
+void fs::rmdir::rmdir_cb(::uv_fs_t *_uv_req)
+{
+  auto instance_ptr = instance::from(_uv_req);
+  instance_ptr->uv_error = _uv_req->result;
+
+  ref_guard< instance > unref_req(*instance_ptr, adopt_ref);
+
+  auto &rmdir_cb = instance_ptr->request_cb_storage.value();
+  if (rmdir_cb)  rmdir_cb(rmdir(_uv_req));
 
   ::uv_fs_req_cleanup(_uv_req);
 }
