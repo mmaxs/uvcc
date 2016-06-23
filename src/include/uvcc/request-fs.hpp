@@ -638,7 +638,6 @@ public: /*interface*/
   int run(file &_file, bool _flush_all_metadata = false)
   {
     auto uv_fsync_function = _flush_all_metadata ? ::uv_fs_fsync : uv_fs_fdatasync;
-
     auto instance_ptr = instance::from(uv_req);
 
     ::uv_fs_req_cleanup(static_cast< uv_t* >(uv_req));  // assuming that *uv_req has initially been nulled
@@ -1056,7 +1055,11 @@ public: /*interface*/
 
   /*! \brief The file which this stat request has been running on.
       \details It is guaranteed that it will be a valid instance at least within the request callback. */
-  file handle() const noexcept  { return file(instance::from(uv_req)->properties().uv_handle); }
+  file handle() const noexcept
+  {
+    auto uv_handle = instance::from(uv_req)->properties().uv_handle;
+    return uv_handle ? file(uv_handle) : file(static_cast< uv_t* >(uv_req)->loop, -1, static_cast< uv_t* >(uv_req)->path);
+  }
 
   /*! \brief The file path affected by request.
       \sa libuv API documentation: [`uv_fs_t.path`](http://docs.libuv.org/en/v1.x/fs.html#c.uv_fs_t.path). */
@@ -1079,16 +1082,13 @@ public: /*interface*/
   int run(uv::loop &_loop, const char* _path, bool _follow_symlinks = false)
   {
     auto uv_stat_function = _follow_symlinks ? ::uv_fs_stat : uv_fs_lstat;
-
-    file f(_loop, -1, _path);
-
     auto instance_ptr = instance::from(uv_req);
 
     ::uv_fs_req_cleanup(static_cast< uv_t* >(uv_req));  // assuming that *uv_req has initially been nulled
 
     if (!instance_ptr->request_cb_storage.value())
     {
-      instance_ptr->properties().uv_handle = static_cast< file::uv_t* >(f);
+      instance_ptr->properties().uv_handle = nullptr;
 
       return uv_status(uv_stat_function(
           static_cast< uv::loop::uv_t* >(_loop), static_cast< uv_t* >(uv_req),
@@ -1098,13 +1098,12 @@ public: /*interface*/
     };
 
 
-    file::instance::from(f.uv_handle)->ref();
     instance_ptr->ref();
 
-    // instance_ptr->properties() = {static_cast< file::uv_t* >(f)};
+    // instance_ptr->properties() = {nullptr};
     {
       auto &properties = instance_ptr->properties();
-      properties.uv_handle = static_cast< file::uv_t* >(f);
+      properties.uv_handle = nullptr;
     }
 
     uv_status(0);
@@ -1171,11 +1170,21 @@ void fs::stat::stat_cb(::uv_fs_t *_uv_req)
 
   auto &properties = instance_ptr->properties();
 
-  ref_guard< file::instance > unref_file(*file::instance::from(properties.uv_handle), adopt_ref);
-  ref_guard< instance > unref_req(*instance_ptr, adopt_ref);
+  if (properties.uv_handle)
+  {
+    ref_guard< file::instance > unref_file(*file::instance::from(properties.uv_handle), adopt_ref);
+    ref_guard< instance > unref_req(*instance_ptr, adopt_ref);
 
-  auto &stat_cb = instance_ptr->request_cb_storage.value();
-  if (stat_cb)  stat_cb(stat(_uv_req));
+    auto &stat_cb = instance_ptr->request_cb_storage.value();
+    if (stat_cb)  stat_cb(stat(_uv_req));
+  }
+  else
+  {
+    ref_guard< instance > unref_req(*instance_ptr, adopt_ref);
+
+    auto &stat_cb = instance_ptr->request_cb_storage.value();
+    if (stat_cb)  stat_cb(stat(_uv_req));
+  }
 }
 
 
@@ -1232,7 +1241,11 @@ public: /*interface*/
 
   /*! \brief The file which this chmod request has been running on.
       \details It is guaranteed that it will be a valid instance at least within the request callback. */
-  file handle() const noexcept  { return file(instance::from(uv_req)->properties().uv_handle); }
+  file handle() const noexcept
+  {
+    auto uv_handle = instance::from(uv_req)->properties().uv_handle;
+    return uv_handle ? file(uv_handle) : file(static_cast< uv_t* >(uv_req)->loop, -1, static_cast< uv_t* >(uv_req)->path);
+  }
 
   /*! \brief The file path affected by request.
       \sa libuv API documentation: [`uv_fs_t.path`](http://docs.libuv.org/en/v1.x/fs.html#c.uv_fs_t.path). */
@@ -1245,15 +1258,13 @@ public: /*interface*/
       \note If the request callback is empty (has not been set), the request runs _synchronously_. */
   int run(uv::loop &_loop, const char* _path, int _mode)
   {
-    file f(_loop, -1, _path);
-
     auto instance_ptr = instance::from(uv_req);
 
     ::uv_fs_req_cleanup(static_cast< uv_t* >(uv_req));  // assuming that *uv_req has initially been nulled
 
     if (!instance_ptr->request_cb_storage.value())
     {
-      instance_ptr->properties().uv_handle = static_cast< file::uv_t* >(f);
+      instance_ptr->properties().uv_handle = nullptr;
 
       return uv_status(::uv_fs_chmod(
           static_cast< uv::loop::uv_t* >(_loop), static_cast< uv_t* >(uv_req),
@@ -1263,13 +1274,12 @@ public: /*interface*/
     };
 
 
-    file::instance::from(f.uv_handle)->ref();
     instance_ptr->ref();
 
-    // instance_ptr->properties() = {static_cast< file::uv_t* >(f)};
+    // instance_ptr->properties() = {nullptr};
     {
       auto &properties = instance_ptr->properties();
-      properties.uv_handle = static_cast< file::uv_t* >(f);
+      properties.uv_handle = nullptr;
     }
 
     uv_status(0);
@@ -1336,11 +1346,21 @@ void fs::chmod::chmod_cb(::uv_fs_t *_uv_req)
 
   auto &properties = instance_ptr->properties();
 
-  ref_guard< file::instance > unref_file(*file::instance::from(properties.uv_handle), adopt_ref);
-  ref_guard< instance > unref_req(*instance_ptr, adopt_ref);
+  if (properties.uv_handle)
+  {
+    ref_guard< file::instance > unref_file(*file::instance::from(properties.uv_handle), adopt_ref);
+    ref_guard< instance > unref_req(*instance_ptr, adopt_ref);
 
-  auto &chmod_cb = instance_ptr->request_cb_storage.value();
-  if (chmod_cb)  chmod_cb(chmod(_uv_req));
+    auto &chmod_cb = instance_ptr->request_cb_storage.value();
+    if (chmod_cb)  chmod_cb(chmod(_uv_req));
+  }
+  else
+  {
+    ref_guard< instance > unref_req(*instance_ptr, adopt_ref);
+
+    auto &chmod_cb = instance_ptr->request_cb_storage.value();
+    if (chmod_cb)  chmod_cb(chmod(_uv_req));
+  }
 }
 
 
@@ -1397,7 +1417,11 @@ public: /*interface*/
 
   /*! \brief The file which this chown request has been running on.
       \details It is guaranteed that it will be a valid instance at least within the request callback. */
-  file handle() const noexcept  { return file(instance::from(uv_req)->properties().uv_handle); }
+  file handle() const noexcept
+  {
+    auto uv_handle = instance::from(uv_req)->properties().uv_handle;
+    return uv_handle ? file(uv_handle) : file(static_cast< uv_t* >(uv_req)->loop, -1, static_cast< uv_t* >(uv_req)->path);
+  }
 
   /*! \brief The file path affected by request.
       \sa libuv API documentation: [`uv_fs_t.path`](http://docs.libuv.org/en/v1.x/fs.html#c.uv_fs_t.path). */
@@ -1409,15 +1433,13 @@ public: /*interface*/
       \note If the request callback is empty (has not been set), the request runs _synchronously_. */
   int run(uv::loop &_loop, const char* _path, ::uv_uid_t _uid, ::uv_gid_t _gid)
   {
-    file f(_loop, -1, _path);
-
     auto instance_ptr = instance::from(uv_req);
 
     ::uv_fs_req_cleanup(static_cast< uv_t* >(uv_req));  // assuming that *uv_req has initially been nulled
 
     if (!instance_ptr->request_cb_storage.value())
     {
-      instance_ptr->properties().uv_handle = static_cast< file::uv_t* >(f);
+      instance_ptr->properties().uv_handle = nullptr;
 
       return uv_status(::uv_fs_chown(
           static_cast< uv::loop::uv_t* >(_loop), static_cast< uv_t* >(uv_req),
@@ -1427,13 +1449,12 @@ public: /*interface*/
     };
 
 
-    file::instance::from(f.uv_handle)->ref();
     instance_ptr->ref();
 
-    // instance_ptr->properties() = {static_cast< file::uv_t* >(f)};
+    // instance_ptr->properties() = {nullptr};
     {
       auto &properties = instance_ptr->properties();
-      properties.uv_handle = static_cast< file::uv_t* >(f);
+      properties.uv_handle = nullptr;
     }
 
     uv_status(0);
@@ -1500,11 +1521,21 @@ void fs::chown::chown_cb(::uv_fs_t *_uv_req)
 
   auto &properties = instance_ptr->properties();
 
-  ref_guard< file::instance > unref_file(*file::instance::from(properties.uv_handle), adopt_ref);
-  ref_guard< instance > unref_req(*instance_ptr, adopt_ref);
+  if (properties.uv_handle)
+  {
+    ref_guard< file::instance > unref_file(*file::instance::from(properties.uv_handle), adopt_ref);
+    ref_guard< instance > unref_req(*instance_ptr, adopt_ref);
 
-  auto &chown_cb = instance_ptr->request_cb_storage.value();
-  if (chown_cb)  chown_cb(chown(_uv_req));
+    auto &chown_cb = instance_ptr->request_cb_storage.value();
+    if (chown_cb)  chown_cb(chown(_uv_req));
+  }
+  else
+  {
+    ref_guard< instance > unref_req(*instance_ptr, adopt_ref);
+
+    auto &chown_cb = instance_ptr->request_cb_storage.value();
+    if (chown_cb)  chown_cb(chown(_uv_req));
+  }
 }
 
 
@@ -1561,7 +1592,11 @@ public: /*interface*/
 
   /*! \brief The file which this utime request has been running on.
       \details It is guaranteed that it will be a valid instance at least within the request callback. */
-  file handle() const noexcept  { return file(instance::from(uv_req)->properties().uv_handle); }
+  file handle() const noexcept
+  {
+    auto uv_handle = instance::from(uv_req)->properties().uv_handle;
+    return uv_handle ? file(uv_handle) : file(static_cast< uv_t* >(uv_req)->loop, -1, static_cast< uv_t* >(uv_req)->path);
+  }
 
   /*! \brief The file path affected by request.
       \sa libuv API documentation: [`uv_fs_t.path`](http://docs.libuv.org/en/v1.x/fs.html#c.uv_fs_t.path). */
@@ -1574,15 +1609,13 @@ public: /*interface*/
       \note If the request callback is empty (has not been set), the request runs _synchronously_. */
   int run(uv::loop &_loop, const char* _path, double _atime, double _mtime)
   {
-    file f(_loop, -1, _path);
-
     auto instance_ptr = instance::from(uv_req);
 
     ::uv_fs_req_cleanup(static_cast< uv_t* >(uv_req));  // assuming that *uv_req has initially been nulled
 
     if (!instance_ptr->request_cb_storage.value())
     {
-      instance_ptr->properties().uv_handle = static_cast< file::uv_t* >(f);
+      instance_ptr->properties().uv_handle = nullptr;
 
       return uv_status(::uv_fs_utime(
           static_cast< uv::loop::uv_t* >(_loop), static_cast< uv_t* >(uv_req),
@@ -1592,13 +1625,12 @@ public: /*interface*/
     };
 
 
-    file::instance::from(f.uv_handle)->ref();
     instance_ptr->ref();
 
-    // instance_ptr->properties() = {static_cast< file::uv_t* >(f)};
+    // instance_ptr->properties() = {nullptr};
     {
       auto &properties = instance_ptr->properties();
-      properties.uv_handle = static_cast< file::uv_t* >(f);
+      properties.uv_handle = nullptr;
     }
 
     uv_status(0);
@@ -1665,11 +1697,21 @@ void fs::utime::utime_cb(::uv_fs_t *_uv_req)
 
   auto &properties = instance_ptr->properties();
 
-  ref_guard< file::instance > unref_file(*file::instance::from(properties.uv_handle), adopt_ref);
-  ref_guard< instance > unref_req(*instance_ptr, adopt_ref);
+  if (properties.uv_handle)
+  {
+    ref_guard< file::instance > unref_file(*file::instance::from(properties.uv_handle), adopt_ref);
+    ref_guard< instance > unref_req(*instance_ptr, adopt_ref);
 
-  auto &utime_cb = instance_ptr->request_cb_storage.value();
-  if (utime_cb)  utime_cb(utime(_uv_req));
+    auto &utime_cb = instance_ptr->request_cb_storage.value();
+    if (utime_cb)  utime_cb(utime(_uv_req));
+  }
+  else
+  {
+    ref_guard< instance > unref_req(*instance_ptr, adopt_ref);
+
+    auto &utime_cb = instance_ptr->request_cb_storage.value();
+    if (utime_cb)  utime_cb(utime(_uv_req));
+  }
 }
 
 
