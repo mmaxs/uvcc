@@ -1873,8 +1873,7 @@ public: /*interface*/
 
   /*! \brief Run the request. Create a directory specified by `_path`.
       \sa libuv API documentation: [`uv_fs_mkdir()`](http://docs.libuv.org/en/v1.x/fs.html#c.uv_fs_mkdir).
-      \sa Linux: [`mkdir()`](http://man7.org/linux/man-pages/man2/mkdir.2.html),\n
-          Windows: [`_mkdir()`](https://msdn.microsoft.com/en-us/library/2fkk4dzw.aspx).
+      \sa Linux: [`mkdir()`](http://man7.org/linux/man-pages/man2/mkdir.2.html).
       \note If the request callback is empty (has not been set), the request runs _synchronously_. */
   int run(uv::loop &_loop, const char* _path, int _mode)
   {
@@ -1939,6 +1938,15 @@ public: /*types*/
   using on_request_t = std::function< void(mkdtemp _request) >;
   /*!< \brief The function type of the callback called when the mkdtemp request has completed. */
 
+protected: /*types*/
+  //! \cond
+  struct properties
+  {
+    uv_t *uv_req = nullptr;
+    ~properties()  { if (uv_req)  ::uv_fs_req_cleanup(uv_req); }
+  };
+  //! \endcond
+
 private: /*types*/
   using instance = request::instance< mkdtemp >;
 
@@ -1956,6 +1964,7 @@ public: /*constructors*/
     uv_req = instance::create();
     static_cast< uv_t* >(uv_req)->type = UV_FS;
     static_cast< uv_t* >(uv_req)->fs_type = UV_FS_MKDTEMP;
+    instance::from(uv_req)->properties().uv_req = static_cast< uv_t* >(uv_req);
   }
 
   mkdtemp(const mkdtemp&) = default;
@@ -1981,27 +1990,24 @@ public: /*interface*/
       \note If the request callback is empty (has not been set), the request runs _synchronously_. */
   int run(uv::loop &_loop, const char* _template)
   {
-    int ret = 0;
-
     auto instance_ptr = instance::from(uv_req);
+
+    ::uv_fs_req_cleanup(static_cast< uv_t* >(uv_req));  // assuming that *uv_req has initially been nulled
 
     if (!instance_ptr->request_cb_storage.value())
     {
-      ret = uv_status(::uv_fs_mkdtemp(
+      return uv_status(::uv_fs_mkdtemp(
           static_cast< uv::loop::uv_t* >(_loop), static_cast< uv_t* >(uv_req),
           _template,
           nullptr
       ));
-
-      ::uv_fs_req_cleanup(static_cast< uv_t* >(uv_req));
-      return ret;
     };
 
 
     instance_ptr->ref();
 
     uv_status(0);
-    ret = ::uv_fs_mkdtemp(
+    int ret = ::uv_fs_mkdtemp(
         static_cast< uv::loop::uv_t* >(_loop), static_cast< uv_t* >(uv_req),
         _template,
         mkdtemp_cb
@@ -2025,8 +2031,6 @@ void fs::mkdtemp::mkdtemp_cb(::uv_fs_t *_uv_req)
 
   auto &mkdtemp_cb = instance_ptr->request_cb_storage.value();
   if (mkdtemp_cb)  mkdtemp_cb(mkdtemp(_uv_req));
-
-  ::uv_fs_req_cleanup(_uv_req);
 }
 
 
@@ -2078,7 +2082,7 @@ public: /*interface*/
       \sa libuv API documentation: [`uv_fs_t.path`](http://docs.libuv.org/en/v1.x/fs.html#c.uv_fs_t.path). */
   const char* path() const noexcept  { return static_cast< uv_t* >(uv_req)->path; }
 
-  /*! \brief Run the request. Delete a directory, which must be empty.
+  /*! \brief Run the request. Delete a directory (which must be empty) specified by `_path`.
       \sa libuv API documentation: [`uv_fs_rmdir()`](http://docs.libuv.org/en/v1.x/fs.html#c.uv_fs_rmdir).
       \sa Linux: [`rmdir()`](http://man7.org/linux/man-pages/man2/rmdir.2.html).
       \note If the request callback is empty (has not been set), the request runs _synchronously_. */
@@ -2130,6 +2134,126 @@ void fs::rmdir::rmdir_cb(::uv_fs_t *_uv_req)
   if (rmdir_cb)  rmdir_cb(rmdir(_uv_req));
 
   ::uv_fs_req_cleanup(_uv_req);
+}
+
+
+
+/*! \brief Scan a directory. */
+class fs::scandir : public fs
+{
+  //! \cond
+  friend class request::instance< scandir >;
+  //! \endcond
+
+public: /*types*/
+  using on_request_t = std::function< void(scandir _request) >;
+  /*!< \brief The function type of the callback called when the scandir request has completed. */
+
+  class iterator
+  {
+  };
+
+protected: /*types*/
+  //! \cond
+  struct properties
+  {
+    uv_t *uv_req = nullptr;
+    ~properties()  { if (uv_req)  ::uv_fs_req_cleanup(uv_req); }
+  };
+  //! \endcond
+
+private: /*types*/
+  using instance = request::instance< scandir >;
+
+private: /*constructors*/
+  explicit scandir(uv_t *_uv_req)
+  {
+    if (_uv_req)  instance::from(_uv_req)->ref();
+    uv_req = _uv_req;
+  }
+
+public: /*constructors*/
+  ~scandir() = default;
+  scandir()
+  {
+    uv_req = instance::create();
+    static_cast< uv_t* >(uv_req)->type = UV_FS;
+    static_cast< uv_t* >(uv_req)->fs_type = UV_FS_SCANDIR;
+    instance::from(uv_req)->properties().uv_req = static_cast< uv_t* >(uv_req);
+  }
+
+  scandir(const scandir&) = default;
+  scandir& operator =(const scandir&) = default;
+
+  scandir(scandir&&) noexcept = default;
+  scandir& operator =(scandir&&) noexcept = default;
+
+private: /*functions*/
+  template< typename = void > static void scandir_cb(::uv_fs_t*);
+
+public: /*interface*/
+  const on_request_t& on_request() const noexcept  { return instance::from(uv_req)->request_cb_storage.value(); }
+        on_request_t& on_request()       noexcept  { return instance::from(uv_req)->request_cb_storage.value(); }
+
+  /*! \brief The file path affected by request.
+      \sa libuv API documentation: [`uv_fs_t.path`](http://docs.libuv.org/en/v1.x/fs.html#c.uv_fs_t.path). */
+  const char* path() const noexcept  { return static_cast< uv_t* >(uv_req)->path; }
+
+  /*! \brief The result of the scandir request.
+      \sa libuv API documentation: [`uv_dirent_t`](http://docs.libuv.org/en/v1.x/fs.html#c.uv_dirent_t),
+                                   [`uv_fs_scandir()`](http://docs.libuv.org/en/v1.x/fs.html#c.uv_fs_scandir),
+                                   [`uv_fs_scandir_next()`](http://docs.libuv.org/en/v1.x/fs.html#c.uv_fs_scandir_next). */
+  // iterator& result() const noexcept  { return instance::from(uv_req)->properties().dirent; }
+
+  /*! \brief Run the request. Scan a directory specified by `_path`.
+      \sa libuv API documentation: [`uv_fs_scandir()`](http://docs.libuv.org/en/v1.x/fs.html#c.uv_fs_scandir),
+                                   [`uv_fs_scandir_next()`](http://docs.libuv.org/en/v1.x/fs.html#c.uv_fs_scandir_next).
+      \sa Linux: [`scandir()`](http://man7.org/linux/man-pages/man3/scandir.3.html).
+      \note If the request callback is empty (has not been set), the request runs _synchronously_.
+      In this case the function returns the number of directory entries or relevant libuv error code. */
+  int run(uv::loop &_loop, const char* _path)
+  {
+    auto instance_ptr = instance::from(uv_req);
+
+    ::uv_fs_req_cleanup(static_cast< uv_t* >(uv_req));  // assuming that *uv_req has initially been nulled
+
+    if (!instance_ptr->request_cb_storage.value())
+    {
+      return uv_status(::uv_fs_scandir(
+          static_cast< uv::loop::uv_t* >(_loop), static_cast< uv_t* >(uv_req),
+          _path, 0,
+          nullptr
+      ));
+    };
+
+
+    instance_ptr->ref();
+
+    uv_status(0);
+    int ret = ::uv_fs_scandir(
+        static_cast< uv::loop::uv_t* >(_loop), static_cast< uv_t* >(uv_req),
+        _path, 0,
+        scandir_cb
+    );
+    if (!ret)  uv_status(ret);
+    return ret;
+  }
+
+public: /*conversion operators*/
+  explicit operator const uv_t*() const noexcept  { return static_cast< const uv_t* >(uv_req); }
+  explicit operator       uv_t*()       noexcept  { return static_cast<       uv_t* >(uv_req); }
+};
+
+template< typename >
+void fs::scandir::scandir_cb(::uv_fs_t *_uv_req)
+{
+  auto instance_ptr = instance::from(_uv_req);
+  instance_ptr->uv_error = _uv_req->result;
+
+  ref_guard< instance > unref_req(*instance_ptr, adopt_ref);
+
+  auto &scandir_cb = instance_ptr->request_cb_storage.value();
+  if (scandir_cb)  scandir_cb(scandir(_uv_req));
 }
 
 
