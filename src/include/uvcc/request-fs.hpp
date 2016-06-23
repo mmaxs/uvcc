@@ -68,6 +68,15 @@ public: /*types*/
   class readlink;
   class realpath;
 
+protected: /*types*/
+  //! \cond
+  struct properties
+  {
+    uv_t *uv_req = nullptr;
+    ~properties()  { if (uv_req)  ::uv_fs_req_cleanup(uv_req); }
+  };
+  //! \endcond
+
 private: /*types*/
   using instance = request::instance< fs >;
 
@@ -89,6 +98,14 @@ public: /*constructors*/
 
   fs(fs&&) noexcept = default;
   fs& operator =(fs&&) noexcept = default;
+
+protected: /*interface*/
+  template< ::uv_fs_type _UV_FS_TYPE_ > void init()
+  {
+    static_cast< uv_t* >(uv_req)->type = UV_FS;
+    static_cast< uv_t* >(uv_req)->fs_type = _UV_FS_TYPE_;
+    instance::from(uv_req)->properties().uv_req = static_cast< uv_t* >(uv_req);
+  }
 
 public: /*interface*/
   /*! \brief The tag indicating a subtype of the filesystem request.
@@ -117,7 +134,7 @@ public: /*types*/
 
 protected: /*types*/
   //! \cond
-  struct properties
+  struct properties : public fs::properties
   {
     file::uv_t *uv_handle = nullptr;
   };
@@ -138,8 +155,7 @@ public: /*constructors*/
   close()
   {
     uv_req = instance::create();
-    static_cast< uv_t* >(uv_req)->type = UV_FS;
-    static_cast< uv_t* >(uv_req)->fs_type = UV_FS_CLOSE;
+    init< UV_FS_CLOSE >();
   }
 
   close(const close&) = default;
@@ -165,24 +181,21 @@ public: /*interface*/
       \note If the request callback is empty (has not been set), the request runs _synchronously_. */
   int run(file &_file)
   {
-    int ret = 0;
-
     file::instance::from(_file.uv_handle)->properties().is_closing = true;
 
     auto instance_ptr = instance::from(uv_req);
+
+    ::uv_fs_req_cleanup(static_cast< uv_t* >(uv_req));  // assuming that *uv_req has initially been nulled
 
     if (!instance_ptr->request_cb_storage.value())
     {
       instance_ptr->properties().uv_handle = static_cast< file::uv_t* >(_file);
 
-      ret = uv_status(::uv_fs_close(
+      return uv_status(::uv_fs_close(
           static_cast< file::uv_t* >(_file)->loop, static_cast< uv_t* >(uv_req),
           _file.fd(),
           nullptr
       ));
-
-      ::uv_fs_req_cleanup(static_cast< uv_t* >(uv_req));
-      return ret;
     };
 
 
@@ -196,7 +209,7 @@ public: /*interface*/
     }
 
     uv_status(0);
-    ret = ::uv_fs_close(
+    int ret = ::uv_fs_close(
         static_cast< file::uv_t* >(_file)->loop, static_cast< uv_t* >(uv_req),
         _file.fd(),
         close_cb
@@ -223,8 +236,6 @@ void fs::close::close_cb(::uv_fs_t *_uv_req)
 
   auto &close_cb = instance_ptr->request_cb_storage.value();
   if (close_cb)  close_cb(close(_uv_req));
-
-  ::uv_fs_req_cleanup(_uv_req);
 }
 
 
@@ -242,7 +253,7 @@ public: /*types*/
 
 protected: /*types*/
   //! \cond
-  struct properties
+  struct properties : public fs::properties
   {
     file::uv_t *uv_handle = nullptr;
     buffer::uv_t *uv_buf = nullptr;
@@ -265,8 +276,7 @@ public: /*constructors*/
   read()
   {
     uv_req = instance::create();
-    static_cast< uv_t* >(uv_req)->type = UV_FS;
-    static_cast< uv_t* >(uv_req)->fs_type = UV_FS_READ;
+    init< UV_FS_READ >();
   }
 
   read(const read&) = default;
@@ -298,8 +308,6 @@ public: /*interface*/
       The `_offset` value of < 0 means using of the current file position. */
   int run(file &_file, buffer &_buf, int64_t _offset)
   {
-    int ret = 0;
-
     if (_offset < 0)
     {
 #ifdef _WIN32
@@ -312,22 +320,21 @@ public: /*interface*/
 
     auto instance_ptr = instance::from(uv_req);
 
+    ::uv_fs_req_cleanup(static_cast< uv_t* >(uv_req));  // assuming that *uv_req has initially been nulled
+
     if (!instance_ptr->request_cb_storage.value())
     {
       auto &properties = instance_ptr->properties();
       properties.uv_handle = static_cast< file::uv_t* >(_file);
       properties.offset = _offset;
 
-      ret = uv_status(::uv_fs_read(
+      return uv_status(::uv_fs_read(
           static_cast< file::uv_t* >(_file)->loop, static_cast< uv_t* >(uv_req),
           _file.fd(),
           static_cast< const buffer::uv_t* >(_buf), _buf.count(),
           _offset,
           nullptr
       ));
-
-      ::uv_fs_req_cleanup(static_cast< uv_t* >(uv_req));
-      return ret;
     };
 
 
@@ -344,7 +351,7 @@ public: /*interface*/
     }
 
     uv_status(0);
-    ret = ::uv_fs_read(
+    int ret = ::uv_fs_read(
         static_cast< file::uv_t* >(_file)->loop, static_cast< uv_t* >(uv_req),
         _file.fd(),
         static_cast< const buffer::uv_t* >(_buf), _buf.count(),
@@ -376,8 +383,6 @@ void fs::read::read_cb(::uv_fs_t *_uv_req)
     read_cb(read(_uv_req), buffer(properties.uv_buf, adopt_ref));
   else
     buffer::instance::from(properties.uv_buf)->unref();
-
-  ::uv_fs_req_cleanup(_uv_req);
 }
 
 
@@ -396,7 +401,7 @@ public: /*types*/
 
 protected: /*types*/
   //! \cond
-  struct properties
+  struct properties  // since `fs::write` can be static-casted from an `output` request it appears to be an exception from the common scheme
   {
     file::uv_t *uv_handle = nullptr;
     buffer::uv_t *uv_buf = nullptr;
@@ -581,7 +586,7 @@ public: /*types*/
 
 protected: /*types*/
   //! \cond
-  struct properties
+  struct properties : public fs::properties
   {
     file::uv_t *uv_handle = nullptr;
   };
@@ -602,8 +607,7 @@ public: /*constructors*/
   sync()
   {
     uv_req = instance::create();
-    static_cast< uv_t* >(uv_req)->type = UV_FS;
-    static_cast< uv_t* >(uv_req)->fs_type = UV_FS_FSYNC;
+    init< UV_FS_FSYNC >();
   }
 
   sync(const sync&) = default;
@@ -633,23 +637,21 @@ public: /*interface*/
       \note If the request callback is empty (has not been set), the request runs _synchronously_. */
   int run(file &_file, bool _flush_all_metadata = false)
   {
-    int ret = 0;
     auto uv_fsync_function = _flush_all_metadata ? ::uv_fs_fsync : uv_fs_fdatasync;
 
     auto instance_ptr = instance::from(uv_req);
+
+    ::uv_fs_req_cleanup(static_cast< uv_t* >(uv_req));  // assuming that *uv_req has initially been nulled
 
     if (!instance_ptr->request_cb_storage.value())
     {
       instance_ptr->properties().uv_handle = static_cast< file::uv_t* >(_file);
 
-      ret = uv_status(uv_fsync_function(
+      return uv_status(uv_fsync_function(
           static_cast< file::uv_t* >(_file)->loop, static_cast< uv_t* >(uv_req),
           _file.fd(),
           nullptr
       ));
-
-      ::uv_fs_req_cleanup(static_cast< uv_t* >(uv_req));
-      return ret;
     };
 
 
@@ -663,7 +665,7 @@ public: /*interface*/
     }
 
     uv_status(0);
-    ret = uv_fsync_function(
+    int ret = uv_fsync_function(
         static_cast< file::uv_t* >(_file)->loop, static_cast< uv_t* >(uv_req),
         _file.fd(),
         sync_cb
@@ -690,8 +692,6 @@ void fs::sync::sync_cb(::uv_fs_t *_uv_req)
 
   auto &sync_cb = instance_ptr->request_cb_storage.value();
   if (sync_cb)  sync_cb(sync(_uv_req));
-
-  ::uv_fs_req_cleanup(_uv_req);
 }
 
 
@@ -709,7 +709,7 @@ public: /*types*/
 
 protected: /*types*/
   //! \cond
-  struct properties
+  struct properties : public fs::properties
   {
     file::uv_t *uv_handle = nullptr;
     int64_t offset = 0;
@@ -731,8 +731,7 @@ public: /*constructors*/
   truncate()
   {
     uv_req = instance::create();
-    static_cast< uv_t* >(uv_req)->type = UV_FS;
-    static_cast< uv_t* >(uv_req)->fs_type = UV_FS_FTRUNCATE;
+    init< UV_FS_FTRUNCATE >();
   }
 
   truncate(const truncate&) = default;
@@ -763,8 +762,6 @@ public: /*interface*/
       The `_offset` value of < 0 means using of the current file position. */
   int run(file &_file, int64_t _offset)
   {
-    int ret = 0;
-
     if (_offset < 0)
     {
 #ifdef _WIN32
@@ -777,21 +774,20 @@ public: /*interface*/
 
     auto instance_ptr = instance::from(uv_req);
 
+    ::uv_fs_req_cleanup(static_cast< uv_t* >(uv_req));  // assuming that *uv_req has initially been nulled
+
     if (!instance_ptr->request_cb_storage.value())
     {
       auto &properties = instance_ptr->properties();
       properties.uv_handle = static_cast< file::uv_t* >(_file);
       properties.offset = _offset;
 
-      ret = uv_status(::uv_fs_ftruncate(
+      return uv_status(::uv_fs_ftruncate(
           static_cast< file::uv_t* >(_file)->loop, static_cast< uv_t* >(uv_req),
           _file.fd(),
           _offset,
           nullptr
       ));
-
-      ::uv_fs_req_cleanup(static_cast< uv_t* >(uv_req));
-      return ret;
     };
 
 
@@ -806,7 +802,7 @@ public: /*interface*/
     }
 
     uv_status(0);
-    ret = ::uv_fs_ftruncate(
+    int ret = ::uv_fs_ftruncate(
         static_cast< file::uv_t* >(_file)->loop, static_cast< uv_t* >(uv_req),
         _file.fd(),
         _offset,
@@ -834,8 +830,6 @@ void fs::truncate::truncate_cb(::uv_fs_t *_uv_req)
 
   auto &truncate_cb = instance_ptr->request_cb_storage.value();
   if (truncate_cb)  truncate_cb(truncate(_uv_req));
-
-  ::uv_fs_req_cleanup(_uv_req);
 }
 
 
@@ -854,7 +848,7 @@ public: /*types*/
 
 protected: /*types*/
   //! \cond
-  struct properties
+  struct properties : public fs::properties
   {
     io::uv_t *uv_handle_out = nullptr;
     file::uv_t *uv_handle_in = nullptr;
@@ -887,8 +881,7 @@ public: /*constructors*/
   sendfile()
   {
     uv_req = instance::create();
-    static_cast< uv_t* >(uv_req)->type = UV_FS;
-    static_cast< uv_t* >(uv_req)->fs_type = UV_FS_SENDFILE;
+    init< UV_FS_SENDFILE >();
   }
 
   sendfile(const sendfile&) = default;
@@ -927,8 +920,6 @@ public: /*interface*/
     ::uv_file out = _out.type() == UV_FILE ? static_cast< file& >(_out).fd() : fd::try_convert(_out.fileno());
     if (out == -1)  return UV_EBADF;
 
-    int ret = 0;
-
     if (_offset < 0)
     {
 #ifdef _WIN32
@@ -941,6 +932,8 @@ public: /*interface*/
 
     auto instance_ptr = instance::from(uv_req);
 
+    ::uv_fs_req_cleanup(static_cast< uv_t* >(uv_req));  // assuming that *uv_req has initially been nulled
+
     if (!instance_ptr->request_cb_storage.value())
     {
       auto &properties = instance_ptr->properties();
@@ -948,15 +941,12 @@ public: /*interface*/
       properties.uv_handle_in = static_cast< file::uv_t* >(_in);
       properties.offset = _offset;
 
-      ret = uv_status(::uv_fs_sendfile(
+      return uv_status(::uv_fs_sendfile(
           static_cast< file::uv_t* >(_in)->loop, static_cast< uv_t* >(uv_req),
           out, _in.fd(),
           _offset, _length,
           nullptr
       ));
-
-      ::uv_fs_req_cleanup(static_cast< uv_t* >(uv_req));
-      return ret;
     };
 
 
@@ -976,7 +966,7 @@ public: /*interface*/
     if (_out.type() == UV_FILE)  file::instance::from(_out.uv_handle)->properties().write_queue_size += _length;
 
     uv_status(0);
-    ret = ::uv_fs_sendfile(
+    int ret = ::uv_fs_sendfile(
         static_cast< file::uv_t* >(_in)->loop, static_cast< uv_t* >(uv_req),
         out, _in.fd(),
         _offset, _length,
@@ -1010,8 +1000,6 @@ void fs::sendfile::sendfile_cb(::uv_fs_t *_uv_req)
 
   auto &sendfile_cb = instance_ptr->request_cb_storage.value();
   if (sendfile_cb)  sendfile_cb(sendfile(_uv_req));
-
-  ::uv_fs_req_cleanup(_uv_req);
 }
 
 
@@ -1029,7 +1017,7 @@ public: /*types*/
 
 protected: /*types*/
   //! \cond
-  struct properties
+  struct properties : public fs::properties
   {
     file::uv_t *uv_handle = nullptr;
   };
@@ -1050,8 +1038,7 @@ public: /*constructors*/
   stat()
   {
     uv_req = instance::create();
-    static_cast< uv_t* >(uv_req)->type = UV_FS;
-    static_cast< uv_t* >(uv_req)->fs_type = UV_FS_STAT;
+    init< UV_FS_STAT >();
   }
 
   stat(const stat&) = default;
@@ -1091,25 +1078,23 @@ public: /*interface*/
       \note If the request callback is empty (has not been set), the request runs _synchronously_. */
   int run(uv::loop &_loop, const char* _path, bool _follow_symlinks = false)
   {
-    int ret = 0;
     auto uv_stat_function = _follow_symlinks ? ::uv_fs_stat : uv_fs_lstat;
 
     file f(_loop, -1, _path);
 
     auto instance_ptr = instance::from(uv_req);
 
+    ::uv_fs_req_cleanup(static_cast< uv_t* >(uv_req));  // assuming that *uv_req has initially been nulled
+
     if (!instance_ptr->request_cb_storage.value())
     {
       instance_ptr->properties().uv_handle = static_cast< file::uv_t* >(f);
 
-      ret = uv_status(uv_stat_function(
+      return uv_status(uv_stat_function(
           static_cast< uv::loop::uv_t* >(_loop), static_cast< uv_t* >(uv_req),
           _path,
           nullptr
       ));
-
-      ::uv_fs_req_cleanup(static_cast< uv_t* >(uv_req));
-      return ret;
     };
 
 
@@ -1123,7 +1108,7 @@ public: /*interface*/
     }
 
     uv_status(0);
-    ret = uv_stat_function(
+    int ret = uv_stat_function(
         static_cast< uv::loop::uv_t* >(_loop), static_cast< uv_t* >(uv_req),
         _path,
         stat_cb
@@ -1138,22 +1123,19 @@ public: /*interface*/
       \note If the request callback is empty (has not been set), the request runs _synchronously_. */
   int run(file &_file)
   {
-    int ret = 0;
-
     auto instance_ptr = instance::from(uv_req);
+
+    ::uv_fs_req_cleanup(static_cast< uv_t* >(uv_req));  // assuming that *uv_req has initially been nulled
 
     if (!instance_ptr->request_cb_storage.value())
     {
       instance_ptr->properties().uv_handle = static_cast< file::uv_t* >(_file);
 
-      ret = uv_status(::uv_fs_fstat(
+      return uv_status(::uv_fs_fstat(
           static_cast< file::uv_t* >(_file)->loop, static_cast< uv_t* >(uv_req),
           _file.fd(),
           nullptr
       ));
-
-      ::uv_fs_req_cleanup(static_cast< uv_t* >(uv_req));
-      return ret;
     };
 
 
@@ -1167,7 +1149,7 @@ public: /*interface*/
     }
 
     uv_status(0);
-    ret = ::uv_fs_fstat(
+    int ret = ::uv_fs_fstat(
         static_cast< file::uv_t* >(_file)->loop, static_cast< uv_t* >(uv_req),
         _file.fd(),
         stat_cb
@@ -1194,8 +1176,6 @@ void fs::stat::stat_cb(::uv_fs_t *_uv_req)
 
   auto &stat_cb = instance_ptr->request_cb_storage.value();
   if (stat_cb)  stat_cb(stat(_uv_req));
-
-  ::uv_fs_req_cleanup(_uv_req);
 }
 
 
@@ -1213,7 +1193,7 @@ public: /*types*/
 
 protected: /*types*/
   //! \cond
-  struct properties
+  struct properties : public fs::properties
   {
     file::uv_t *uv_handle = nullptr;
   };
@@ -1234,8 +1214,7 @@ public: /*constructors*/
   chmod()
   {
     uv_req = instance::create();
-    static_cast< uv_t* >(uv_req)->type = UV_FS;
-    static_cast< uv_t* >(uv_req)->fs_type = UV_FS_CHMOD;
+    init< UV_FS_CHMOD >();
   }
 
   chmod(const chmod&) = default;
@@ -1266,24 +1245,21 @@ public: /*interface*/
       \note If the request callback is empty (has not been set), the request runs _synchronously_. */
   int run(uv::loop &_loop, const char* _path, int _mode)
   {
-    int ret = 0;
-
     file f(_loop, -1, _path);
 
     auto instance_ptr = instance::from(uv_req);
+
+    ::uv_fs_req_cleanup(static_cast< uv_t* >(uv_req));  // assuming that *uv_req has initially been nulled
 
     if (!instance_ptr->request_cb_storage.value())
     {
       instance_ptr->properties().uv_handle = static_cast< file::uv_t* >(f);
 
-      ret = uv_status(::uv_fs_chmod(
+      return uv_status(::uv_fs_chmod(
           static_cast< uv::loop::uv_t* >(_loop), static_cast< uv_t* >(uv_req),
           _path, _mode,
           nullptr
       ));
-
-      ::uv_fs_req_cleanup(static_cast< uv_t* >(uv_req));
-      return ret;
     };
 
 
@@ -1297,7 +1273,7 @@ public: /*interface*/
     }
 
     uv_status(0);
-    ret = ::uv_fs_chmod(
+    int ret = ::uv_fs_chmod(
         static_cast< uv::loop::uv_t* >(_loop), static_cast< uv_t* >(uv_req),
         _path, _mode,
         chmod_cb
@@ -1312,22 +1288,19 @@ public: /*interface*/
       \note If the request callback is empty (has not been set), the request runs _synchronously_. */
   int run(file &_file, int _mode)
   {
-    int ret = 0;
-
     auto instance_ptr = instance::from(uv_req);
+
+    ::uv_fs_req_cleanup(static_cast< uv_t* >(uv_req));  // assuming that *uv_req has initially been nulled
 
     if (!instance_ptr->request_cb_storage.value())
     {
       instance_ptr->properties().uv_handle = static_cast< file::uv_t* >(_file);
 
-      ret = uv_status(::uv_fs_fchmod(
+      return uv_status(::uv_fs_fchmod(
           static_cast< file::uv_t* >(_file)->loop, static_cast< uv_t* >(uv_req),
           _file.fd(), _mode,
           nullptr
       ));
-
-      ::uv_fs_req_cleanup(static_cast< uv_t* >(uv_req));
-      return ret;
     };
 
 
@@ -1341,7 +1314,7 @@ public: /*interface*/
     }
 
     uv_status(0);
-    ret = ::uv_fs_fchmod(
+    int ret = ::uv_fs_fchmod(
         static_cast< file::uv_t* >(_file)->loop, static_cast< uv_t* >(uv_req),
         _file.fd(), _mode,
         chmod_cb
@@ -1368,8 +1341,6 @@ void fs::chmod::chmod_cb(::uv_fs_t *_uv_req)
 
   auto &chmod_cb = instance_ptr->request_cb_storage.value();
   if (chmod_cb)  chmod_cb(chmod(_uv_req));
-
-  ::uv_fs_req_cleanup(_uv_req);
 }
 
 
@@ -1387,7 +1358,7 @@ public: /*types*/
 
 protected: /*types*/
   //! \cond
-  struct properties
+  struct properties : public fs::properties
   {
     file::uv_t *uv_handle = nullptr;
   };
@@ -1408,8 +1379,7 @@ public: /*constructors*/
   chown()
   {
     uv_req = instance::create();
-    static_cast< uv_t* >(uv_req)->type = UV_FS;
-    static_cast< uv_t* >(uv_req)->fs_type = UV_FS_CHOWN;
+    init< UV_FS_CHOWN >();
   }
 
   chown(const chown&) = default;
@@ -1439,24 +1409,21 @@ public: /*interface*/
       \note If the request callback is empty (has not been set), the request runs _synchronously_. */
   int run(uv::loop &_loop, const char* _path, ::uv_uid_t _uid, ::uv_gid_t _gid)
   {
-    int ret = 0;
-
     file f(_loop, -1, _path);
 
     auto instance_ptr = instance::from(uv_req);
+
+    ::uv_fs_req_cleanup(static_cast< uv_t* >(uv_req));  // assuming that *uv_req has initially been nulled
 
     if (!instance_ptr->request_cb_storage.value())
     {
       instance_ptr->properties().uv_handle = static_cast< file::uv_t* >(f);
 
-      ret = uv_status(::uv_fs_chown(
+      return uv_status(::uv_fs_chown(
           static_cast< uv::loop::uv_t* >(_loop), static_cast< uv_t* >(uv_req),
           _path, _uid, _gid,
           nullptr
       ));
-
-      ::uv_fs_req_cleanup(static_cast< uv_t* >(uv_req));
-      return ret;
     };
 
 
@@ -1470,7 +1437,7 @@ public: /*interface*/
     }
 
     uv_status(0);
-    ret = ::uv_fs_chown(
+    int ret = ::uv_fs_chown(
         static_cast< uv::loop::uv_t* >(_loop), static_cast< uv_t* >(uv_req),
         _path, _uid, _gid,
         chown_cb
@@ -1485,22 +1452,19 @@ public: /*interface*/
       \note If the request callback is empty (has not been set), the request runs _synchronously_. */
   int run(file &_file, ::uv_uid_t _uid, ::uv_gid_t _gid)
   {
-    int ret = 0;
-
     auto instance_ptr = instance::from(uv_req);
+
+    ::uv_fs_req_cleanup(static_cast< uv_t* >(uv_req));  // assuming that *uv_req has initially been nulled
 
     if (!instance_ptr->request_cb_storage.value())
     {
       instance_ptr->properties().uv_handle = static_cast< file::uv_t* >(_file);
 
-      ret = uv_status(::uv_fs_fchown(
+      return uv_status(::uv_fs_fchown(
           static_cast< file::uv_t* >(_file)->loop, static_cast< uv_t* >(uv_req),
           _file.fd(), _uid, _gid,
           nullptr
       ));
-
-      ::uv_fs_req_cleanup(static_cast< uv_t* >(uv_req));
-      return ret;
     };
 
 
@@ -1514,7 +1478,7 @@ public: /*interface*/
     }
 
     uv_status(0);
-    ret = ::uv_fs_fchown(
+    int ret = ::uv_fs_fchown(
         static_cast< file::uv_t* >(_file)->loop, static_cast< uv_t* >(uv_req),
         _file.fd(), _uid, _gid,
         chown_cb
@@ -1541,8 +1505,6 @@ void fs::chown::chown_cb(::uv_fs_t *_uv_req)
 
   auto &chown_cb = instance_ptr->request_cb_storage.value();
   if (chown_cb)  chown_cb(chown(_uv_req));
-
-  ::uv_fs_req_cleanup(_uv_req);
 }
 
 
@@ -1560,7 +1522,7 @@ public: /*types*/
 
 protected: /*types*/
   //! \cond
-  struct properties
+  struct properties : public fs::properties
   {
     file::uv_t *uv_handle = nullptr;
   };
@@ -1581,8 +1543,7 @@ public: /*constructors*/
   utime()
   {
     uv_req = instance::create();
-    static_cast< uv_t* >(uv_req)->type = UV_FS;
-    static_cast< uv_t* >(uv_req)->fs_type = UV_FS_UTIME;
+    init< UV_FS_UTIME >();
   }
 
   utime(const utime&) = default;
@@ -1613,24 +1574,21 @@ public: /*interface*/
       \note If the request callback is empty (has not been set), the request runs _synchronously_. */
   int run(uv::loop &_loop, const char* _path, double _atime, double _mtime)
   {
-    int ret = 0;
-
     file f(_loop, -1, _path);
 
     auto instance_ptr = instance::from(uv_req);
+
+    ::uv_fs_req_cleanup(static_cast< uv_t* >(uv_req));  // assuming that *uv_req has initially been nulled
 
     if (!instance_ptr->request_cb_storage.value())
     {
       instance_ptr->properties().uv_handle = static_cast< file::uv_t* >(f);
 
-      ret = uv_status(::uv_fs_utime(
+      return uv_status(::uv_fs_utime(
           static_cast< uv::loop::uv_t* >(_loop), static_cast< uv_t* >(uv_req),
           _path, _atime, _mtime,
           nullptr
       ));
-
-      ::uv_fs_req_cleanup(static_cast< uv_t* >(uv_req));
-      return ret;
     };
 
 
@@ -1644,7 +1602,7 @@ public: /*interface*/
     }
 
     uv_status(0);
-    ret = ::uv_fs_utime(
+    int ret = ::uv_fs_utime(
         static_cast< uv::loop::uv_t* >(_loop), static_cast< uv_t* >(uv_req),
         _path, _atime, _mtime,
         utime_cb
@@ -1659,22 +1617,19 @@ public: /*interface*/
       \note If the request callback is empty (has not been set), the request runs _synchronously_. */
   int run(file &_file, double _atime, double _mtime)
   {
-    int ret = 0;
-
     auto instance_ptr = instance::from(uv_req);
+
+    ::uv_fs_req_cleanup(static_cast< uv_t* >(uv_req));  // assuming that *uv_req has initially been nulled
 
     if (!instance_ptr->request_cb_storage.value())
     {
       instance_ptr->properties().uv_handle = static_cast< file::uv_t* >(_file);
 
-      ret = uv_status(::uv_fs_futime(
+      return uv_status(::uv_fs_futime(
           static_cast< file::uv_t* >(_file)->loop, static_cast< uv_t* >(uv_req),
           _file.fd(), _atime, _mtime,
           nullptr
       ));
-
-      ::uv_fs_req_cleanup(static_cast< uv_t* >(uv_req));
-      return ret;
     };
 
 
@@ -1688,7 +1643,7 @@ public: /*interface*/
     }
 
     uv_status(0);
-    ret = ::uv_fs_futime(
+    int ret = ::uv_fs_futime(
         static_cast< file::uv_t* >(_file)->loop, static_cast< uv_t* >(uv_req),
         _file.fd(), _atime, _mtime,
         utime_cb
@@ -1715,8 +1670,6 @@ void fs::utime::utime_cb(::uv_fs_t *_uv_req)
 
   auto &utime_cb = instance_ptr->request_cb_storage.value();
   if (utime_cb)  utime_cb(utime(_uv_req));
-
-  ::uv_fs_req_cleanup(_uv_req);
 }
 
 
@@ -1747,8 +1700,7 @@ public: /*constructors*/
   unlink()
   {
     uv_req = instance::create();
-    static_cast< uv_t* >(uv_req)->type = UV_FS;
-    static_cast< uv_t* >(uv_req)->fs_type = UV_FS_UNLINK;
+    init< UV_FS_UNLINK >();
   }
 
   unlink(const unlink&) = default;
@@ -1774,27 +1726,24 @@ public: /*interface*/
       \note If the request callback is empty (has not been set), the request runs _synchronously_. */
   int run(uv::loop &_loop, const char* _path)
   {
-    int ret = 0;
-
     auto instance_ptr = instance::from(uv_req);
+
+    ::uv_fs_req_cleanup(static_cast< uv_t* >(uv_req));  // assuming that *uv_req has initially been nulled
 
     if (!instance_ptr->request_cb_storage.value())
     {
-      ret = uv_status(::uv_fs_unlink(
+      return uv_status(::uv_fs_unlink(
           static_cast< uv::loop::uv_t* >(_loop), static_cast< uv_t* >(uv_req),
           _path,
           nullptr
       ));
-
-      ::uv_fs_req_cleanup(static_cast< uv_t* >(uv_req));
-      return ret;
     };
 
 
     instance_ptr->ref();
 
     uv_status(0);
-    ret = ::uv_fs_unlink(
+    int ret = ::uv_fs_unlink(
         static_cast< uv::loop::uv_t* >(_loop), static_cast< uv_t* >(uv_req),
         _path,
         unlink_cb
@@ -1818,8 +1767,6 @@ void fs::unlink::unlink_cb(::uv_fs_t *_uv_req)
 
   auto &unlink_cb = instance_ptr->request_cb_storage.value();
   if (unlink_cb)  unlink_cb(unlink(_uv_req));
-
-  ::uv_fs_req_cleanup(_uv_req);
 }
 
 
@@ -1850,8 +1797,7 @@ public: /*constructors*/
   mkdir()
   {
     uv_req = instance::create();
-    static_cast< uv_t* >(uv_req)->type = UV_FS;
-    static_cast< uv_t* >(uv_req)->fs_type = UV_FS_MKDIR;
+    init< UV_FS_MKDIR >();
   }
 
   mkdir(const mkdir&) = default;
@@ -1877,27 +1823,24 @@ public: /*interface*/
       \note If the request callback is empty (has not been set), the request runs _synchronously_. */
   int run(uv::loop &_loop, const char* _path, int _mode)
   {
-    int ret = 0;
-
     auto instance_ptr = instance::from(uv_req);
+
+    ::uv_fs_req_cleanup(static_cast< uv_t* >(uv_req));  // assuming that *uv_req has initially been nulled
 
     if (!instance_ptr->request_cb_storage.value())
     {
-      ret = uv_status(::uv_fs_mkdir(
+      return uv_status(::uv_fs_mkdir(
           static_cast< uv::loop::uv_t* >(_loop), static_cast< uv_t* >(uv_req),
           _path, _mode,
           nullptr
       ));
-
-      ::uv_fs_req_cleanup(static_cast< uv_t* >(uv_req));
-      return ret;
     };
 
 
     instance_ptr->ref();
 
     uv_status(0);
-    ret = ::uv_fs_mkdir(
+    int ret = ::uv_fs_mkdir(
         static_cast< uv::loop::uv_t* >(_loop), static_cast< uv_t* >(uv_req),
         _path, _mode,
         mkdir_cb
@@ -1921,8 +1864,6 @@ void fs::mkdir::mkdir_cb(::uv_fs_t *_uv_req)
 
   auto &mkdir_cb = instance_ptr->request_cb_storage.value();
   if (mkdir_cb)  mkdir_cb(mkdir(_uv_req));
-
-  ::uv_fs_req_cleanup(_uv_req);
 }
 
 
@@ -1937,15 +1878,6 @@ class fs::mkdtemp : public fs
 public: /*types*/
   using on_request_t = std::function< void(mkdtemp _request) >;
   /*!< \brief The function type of the callback called when the mkdtemp request has completed. */
-
-protected: /*types*/
-  //! \cond
-  struct properties
-  {
-    uv_t *uv_req = nullptr;
-    ~properties()  { if (uv_req)  ::uv_fs_req_cleanup(uv_req); }
-  };
-  //! \endcond
 
 private: /*types*/
   using instance = request::instance< mkdtemp >;
@@ -1962,9 +1894,7 @@ public: /*constructors*/
   mkdtemp()
   {
     uv_req = instance::create();
-    static_cast< uv_t* >(uv_req)->type = UV_FS;
-    static_cast< uv_t* >(uv_req)->fs_type = UV_FS_MKDTEMP;
-    instance::from(uv_req)->properties().uv_req = static_cast< uv_t* >(uv_req);
+    init< UV_FS_MKDTEMP >();
   }
 
   mkdtemp(const mkdtemp&) = default;
@@ -2061,8 +1991,7 @@ public: /*constructors*/
   rmdir()
   {
     uv_req = instance::create();
-    static_cast< uv_t* >(uv_req)->type = UV_FS;
-    static_cast< uv_t* >(uv_req)->fs_type = UV_FS_RMDIR;
+    init< UV_FS_RMDIR >();
   }
 
   rmdir(const rmdir&) = default;
@@ -2088,27 +2017,24 @@ public: /*interface*/
       \note If the request callback is empty (has not been set), the request runs _synchronously_. */
   int run(uv::loop &_loop, const char* _path)
   {
-    int ret = 0;
-
     auto instance_ptr = instance::from(uv_req);
+
+    ::uv_fs_req_cleanup(static_cast< uv_t* >(uv_req));  // assuming that *uv_req has initially been nulled
 
     if (!instance_ptr->request_cb_storage.value())
     {
-      ret = uv_status(::uv_fs_rmdir(
+      return uv_status(::uv_fs_rmdir(
           static_cast< uv::loop::uv_t* >(_loop), static_cast< uv_t* >(uv_req),
           _path,
           nullptr
       ));
-
-      ::uv_fs_req_cleanup(static_cast< uv_t* >(uv_req));
-      return ret;
     };
 
 
     instance_ptr->ref();
 
     uv_status(0);
-    ret = ::uv_fs_rmdir(
+    int ret = ::uv_fs_rmdir(
         static_cast< uv::loop::uv_t* >(_loop), static_cast< uv_t* >(uv_req),
         _path,
         rmdir_cb
@@ -2132,8 +2058,6 @@ void fs::rmdir::rmdir_cb(::uv_fs_t *_uv_req)
 
   auto &rmdir_cb = instance_ptr->request_cb_storage.value();
   if (rmdir_cb)  rmdir_cb(rmdir(_uv_req));
-
-  ::uv_fs_req_cleanup(_uv_req);
 }
 
 
@@ -2153,15 +2077,6 @@ public: /*types*/
   {
   };
 
-protected: /*types*/
-  //! \cond
-  struct properties
-  {
-    uv_t *uv_req = nullptr;
-    ~properties()  { if (uv_req)  ::uv_fs_req_cleanup(uv_req); }
-  };
-  //! \endcond
-
 private: /*types*/
   using instance = request::instance< scandir >;
 
@@ -2177,9 +2092,7 @@ public: /*constructors*/
   scandir()
   {
     uv_req = instance::create();
-    static_cast< uv_t* >(uv_req)->type = UV_FS;
-    static_cast< uv_t* >(uv_req)->fs_type = UV_FS_SCANDIR;
-    instance::from(uv_req)->properties().uv_req = static_cast< uv_t* >(uv_req);
+    init< UV_FS_SCANDIR >();
   }
 
   scandir(const scandir&) = default;
