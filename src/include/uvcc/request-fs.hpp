@@ -2115,10 +2115,6 @@ public: /*types*/
   using on_request_t = std::function< void(scandir _request) >;
   /*!< \brief The function type of the callback called when the scandir request has completed. */
 
-  class iterator
-  {
-  };
-
 private: /*types*/
   using instance = request::instance< scandir >;
 
@@ -2154,11 +2150,13 @@ public: /*interface*/
       \sa libuv API documentation: [`uv_fs_t.path`](http://docs.libuv.org/en/v1.x/fs.html#c.uv_fs_t.path). */
   const char* path() const noexcept  { return static_cast< uv_t* >(uv_req)->path; }
 
-  /*! \brief The result of the scandir request.
+  /*! \brief Get the results of the scandir request.
+      \details It is simply a wrapper around `uv_fs_scandir_next()` libuv API function.
       \sa libuv API documentation: [`uv_dirent_t`](http://docs.libuv.org/en/v1.x/fs.html#c.uv_dirent_t),
                                    [`uv_fs_scandir()`](http://docs.libuv.org/en/v1.x/fs.html#c.uv_fs_scandir),
                                    [`uv_fs_scandir_next()`](http://docs.libuv.org/en/v1.x/fs.html#c.uv_fs_scandir_next). */
-  // iterator& result() const noexcept  { return instance::from(uv_req)->properties().dirent; }
+  int scandir_next(::uv_dirent_t &_entry) const noexcept
+  { return uv_status(uv_fs_scandir_next(static_cast< uv_t* >(uv_req), &_entry)); }
 
   /*! \brief Run the request. Scan a directory specified by `_path`.
       \sa libuv API documentation: [`uv_fs_scandir()`](http://docs.libuv.org/en/v1.x/fs.html#c.uv_fs_scandir),
