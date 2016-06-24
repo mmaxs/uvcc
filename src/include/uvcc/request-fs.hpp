@@ -17,6 +17,7 @@
 #else
 #include <unistd.h>     // lseek64()
 #endif
+#include <string>       // string
 
 
 namespace uv
@@ -64,7 +65,6 @@ public: /*types*/
   class rename;
   class access;
   class link;
-  class symlink;
   class readlink;
   class realpath;
 
@@ -1086,10 +1086,10 @@ public: /*interface*/
 
     ::uv_fs_req_cleanup(static_cast< uv_t* >(uv_req));  // assuming that *uv_req has initially been nulled
 
+    instance_ptr->properties().uv_handle = nullptr;
+
     if (!instance_ptr->request_cb_storage.value())
     {
-      instance_ptr->properties().uv_handle = nullptr;
-
       return uv_status(uv_stat_function(
           static_cast< uv::loop::uv_t* >(_loop), static_cast< uv_t* >(uv_req),
           _path,
@@ -1099,12 +1099,6 @@ public: /*interface*/
 
 
     instance_ptr->ref();
-
-    // instance_ptr->properties() = {nullptr};
-    {
-      auto &properties = instance_ptr->properties();
-      properties.uv_handle = nullptr;
-    }
 
     uv_status(0);
     int ret = uv_stat_function(
@@ -1262,10 +1256,10 @@ public: /*interface*/
 
     ::uv_fs_req_cleanup(static_cast< uv_t* >(uv_req));  // assuming that *uv_req has initially been nulled
 
+    instance_ptr->properties().uv_handle = nullptr;
+
     if (!instance_ptr->request_cb_storage.value())
     {
-      instance_ptr->properties().uv_handle = nullptr;
-
       return uv_status(::uv_fs_chmod(
           static_cast< uv::loop::uv_t* >(_loop), static_cast< uv_t* >(uv_req),
           _path, _mode,
@@ -1275,12 +1269,6 @@ public: /*interface*/
 
 
     instance_ptr->ref();
-
-    // instance_ptr->properties() = {nullptr};
-    {
-      auto &properties = instance_ptr->properties();
-      properties.uv_handle = nullptr;
-    }
 
     uv_status(0);
     int ret = ::uv_fs_chmod(
@@ -1437,10 +1425,10 @@ public: /*interface*/
 
     ::uv_fs_req_cleanup(static_cast< uv_t* >(uv_req));  // assuming that *uv_req has initially been nulled
 
+    instance_ptr->properties().uv_handle = nullptr;
+
     if (!instance_ptr->request_cb_storage.value())
     {
-      instance_ptr->properties().uv_handle = nullptr;
-
       return uv_status(::uv_fs_chown(
           static_cast< uv::loop::uv_t* >(_loop), static_cast< uv_t* >(uv_req),
           _path, _uid, _gid,
@@ -1450,12 +1438,6 @@ public: /*interface*/
 
 
     instance_ptr->ref();
-
-    // instance_ptr->properties() = {nullptr};
-    {
-      auto &properties = instance_ptr->properties();
-      properties.uv_handle = nullptr;
-    }
 
     uv_status(0);
     int ret = ::uv_fs_chown(
@@ -1613,10 +1595,10 @@ public: /*interface*/
 
     ::uv_fs_req_cleanup(static_cast< uv_t* >(uv_req));  // assuming that *uv_req has initially been nulled
 
+    instance_ptr->properties().uv_handle = nullptr;
+
     if (!instance_ptr->request_cb_storage.value())
     {
-      instance_ptr->properties().uv_handle = nullptr;
-
       return uv_status(::uv_fs_utime(
           static_cast< uv::loop::uv_t* >(_loop), static_cast< uv_t* >(uv_req),
           _path, _atime, _mtime,
@@ -1626,12 +1608,6 @@ public: /*interface*/
 
 
     instance_ptr->ref();
-
-    // instance_ptr->properties() = {nullptr};
-    {
-      auto &properties = instance_ptr->properties();
-      properties.uv_handle = nullptr;
-    }
 
     uv_status(0);
     int ret = ::uv_fs_utime(
@@ -2207,6 +2183,362 @@ void fs::scandir::scandir_cb(::uv_fs_t *_uv_req)
 
   auto &scandir_cb = instance_ptr->request_cb_storage.value();
   if (scandir_cb)  scandir_cb(scandir(_uv_req));
+}
+
+
+
+/*! \brief Change the name or location of a file. */
+class fs::rename : public fs
+{
+  //! \cond
+  friend class request::instance< rename >;
+  //! \endcond
+
+public: /*types*/
+  using on_request_t = std::function< void(rename _request) >;
+  /*!< \brief The function type of the callback called when the rename request has completed. */
+
+protected: /*types*/
+  //! \cond
+  struct properties : public fs::properties
+  {
+    std::string new_path;
+  };
+  //! \endcond
+
+private: /*types*/
+  using instance = request::instance< rename >;
+
+private: /*constructors*/
+  explicit rename(uv_t *_uv_req)
+  {
+    if (_uv_req)  instance::from(_uv_req)->ref();
+    uv_req = _uv_req;
+  }
+
+public: /*constructors*/
+  ~rename() = default;
+  rename()
+  {
+    uv_req = instance::create();
+    init< UV_FS_RENAME >();
+  }
+
+  rename(const rename&) = default;
+  rename& operator =(const rename&) = default;
+
+  rename(rename&&) noexcept = default;
+  rename& operator =(rename&&) noexcept = default;
+
+private: /*functions*/
+  template< typename = void > static void rename_cb(::uv_fs_t*);
+
+public: /*interface*/
+  const on_request_t& on_request() const noexcept  { return instance::from(uv_req)->request_cb_storage.value(); }
+        on_request_t& on_request()       noexcept  { return instance::from(uv_req)->request_cb_storage.value(); }
+
+  /*! \brief The file path affected by request.
+      \sa libuv API documentation: [`uv_fs_t.path`](http://docs.libuv.org/en/v1.x/fs.html#c.uv_fs_t.path). */
+  const char* path() const noexcept  { return static_cast< uv_t* >(uv_req)->path; }
+  /*! \brief The file path affected by request. */
+  const char* new_path() const noexcept
+  {
+#ifdef _WIN32
+    return instance::from(uv_req)->properties().new_path.c_str();
+#else
+    return static_cast< uv_t* >(uv_req)->new_path;
+#endif
+  }
+
+  /*! \brief Run the request. Renames a file, moving it between directories if required.
+      \sa libuv API documentation: [`uv_fs_rename()`](http://docs.libuv.org/en/v1.x/fs.html#c.uv_fs_rename).
+      \sa Linux: [`rename()`](http://man7.org/linux/man-pages/man2/rename.2.html).
+      \note If the request callback is empty (has not been set), the request runs _synchronously_. */
+  int run(uv::loop &_loop, const char* _path, const char* _new_path)
+  {
+    auto instance_ptr = instance::from(uv_req);
+
+    ::uv_fs_req_cleanup(static_cast< uv_t* >(uv_req));  // assuming that *uv_req has initially been nulled
+
+#ifdef _WIN32
+    instance_ptr->properties().new_path.assign(_new_path);
+#endif
+
+    if (!instance_ptr->request_cb_storage.value())
+    {
+      return uv_status(::uv_fs_rename(
+          static_cast< uv::loop::uv_t* >(_loop), static_cast< uv_t* >(uv_req),
+          _path, _new_path,
+          nullptr
+      ));
+    };
+
+
+    instance_ptr->ref();
+
+    uv_status(0);
+    int ret = ::uv_fs_rename(
+        static_cast< uv::loop::uv_t* >(_loop), static_cast< uv_t* >(uv_req),
+        _path, _new_path,
+        rename_cb
+    );
+    if (!ret)  uv_status(ret);
+    return ret;
+  }
+
+public: /*conversion operators*/
+  explicit operator const uv_t*() const noexcept  { return static_cast< const uv_t* >(uv_req); }
+  explicit operator       uv_t*()       noexcept  { return static_cast<       uv_t* >(uv_req); }
+};
+
+template< typename >
+void fs::rename::rename_cb(::uv_fs_t *_uv_req)
+{
+  auto instance_ptr = instance::from(_uv_req);
+  instance_ptr->uv_error = _uv_req->result;
+
+  ref_guard< instance > unref_req(*instance_ptr, adopt_ref);
+
+  auto &rename_cb = instance_ptr->request_cb_storage.value();
+  if (rename_cb)  rename_cb(rename(_uv_req));
+}
+
+
+
+/*! \brief Check user's permissions for a file. */
+class fs::access : public fs
+{
+  //! \cond
+  friend class request::instance< access >;
+  //! \endcond
+
+public: /*types*/
+  using on_request_t = std::function< void(access _request) >;
+  /*!< \brief The function type of the callback called when the access request has completed. */
+
+private: /*types*/
+  using instance = request::instance< access >;
+
+private: /*constructors*/
+  explicit access(uv_t *_uv_req)
+  {
+    if (_uv_req)  instance::from(_uv_req)->ref();
+    uv_req = _uv_req;
+  }
+
+public: /*constructors*/
+  ~access() = default;
+  access()
+  {
+    uv_req = instance::create();
+    init< UV_FS_ACCESS >();
+  }
+
+  access(const access&) = default;
+  access& operator =(const access&) = default;
+
+  access(access&&) noexcept = default;
+  access& operator =(access&&) noexcept = default;
+
+private: /*functions*/
+  template< typename = void > static void access_cb(::uv_fs_t*);
+
+public: /*interface*/
+  const on_request_t& on_request() const noexcept  { return instance::from(uv_req)->request_cb_storage.value(); }
+        on_request_t& on_request()       noexcept  { return instance::from(uv_req)->request_cb_storage.value(); }
+
+  /*! \brief The file path affected by request.
+      \sa libuv API documentation: [`uv_fs_t.path`](http://docs.libuv.org/en/v1.x/fs.html#c.uv_fs_t.path). */
+  const char* path() const noexcept  { return static_cast< uv_t* >(uv_req)->path; }
+
+  /*! \brief Run the request. Check if the calling process can access the file specified by `_path` using the access `_mode`.
+      \sa libuv API documentation: [`uv_fs_access()`](http://docs.libuv.org/en/v1.x/fs.html#c.uv_fs_access).
+      \sa Linux: [`access()`](http://man7.org/linux/man-pages/man2/access.2.html).
+      \note If the request callback is empty (has not been set), the request runs _synchronously_. */
+  int run(uv::loop &_loop, const char* _path, int _mode)
+  {
+    auto instance_ptr = instance::from(uv_req);
+
+    ::uv_fs_req_cleanup(static_cast< uv_t* >(uv_req));  // assuming that *uv_req has initially been nulled
+
+    if (!instance_ptr->request_cb_storage.value())
+    {
+      return uv_status(::uv_fs_access(
+          static_cast< uv::loop::uv_t* >(_loop), static_cast< uv_t* >(uv_req),
+          _path, _mode,
+          nullptr
+      ));
+    };
+
+
+    instance_ptr->ref();
+
+    uv_status(0);
+    int ret = ::uv_fs_access(
+        static_cast< uv::loop::uv_t* >(_loop), static_cast< uv_t* >(uv_req),
+        _path, _mode,
+        access_cb
+    );
+    if (!ret)  uv_status(ret);
+    return ret;
+  }
+
+public: /*conversion operators*/
+  explicit operator const uv_t*() const noexcept  { return static_cast< const uv_t* >(uv_req); }
+  explicit operator       uv_t*()       noexcept  { return static_cast<       uv_t* >(uv_req); }
+};
+
+template< typename >
+void fs::access::access_cb(::uv_fs_t *_uv_req)
+{
+  auto instance_ptr = instance::from(_uv_req);
+  instance_ptr->uv_error = _uv_req->result;
+
+  ref_guard< instance > unref_req(*instance_ptr, adopt_ref);
+
+  auto &access_cb = instance_ptr->request_cb_storage.value();
+  if (access_cb)  access_cb(access(_uv_req));
+}
+
+
+
+/*! \brief Create a new link to a file. */
+class fs::link : public fs
+{
+  //! \cond
+  friend class request::instance< link >;
+  //! \endcond
+
+public: /*types*/
+  using on_request_t = std::function< void(link _request) >;
+  /*!< \brief The function type of the callback called when the link request has completed. */
+
+protected: /*types*/
+  //! \cond
+  struct properties : public fs::properties
+  {
+    std::string link_path;
+  };
+  //! \endcond
+
+private: /*types*/
+  using instance = request::instance< link >;
+
+private: /*constructors*/
+  explicit link(uv_t *_uv_req)
+  {
+    if (_uv_req)  instance::from(_uv_req)->ref();
+    uv_req = _uv_req;
+  }
+
+public: /*constructors*/
+  ~link() = default;
+  link()
+  {
+    uv_req = instance::create();
+    init< UV_FS_LINK >();
+  }
+
+  link(const link&) = default;
+  link& operator =(const link&) = default;
+
+  link(link&&) noexcept = default;
+  link& operator =(link&&) noexcept = default;
+
+private: /*functions*/
+  template< typename = void > static void link_cb(::uv_fs_t*);
+
+public: /*interface*/
+  const on_request_t& on_request() const noexcept  { return instance::from(uv_req)->request_cb_storage.value(); }
+        on_request_t& on_request()       noexcept  { return instance::from(uv_req)->request_cb_storage.value(); }
+
+  /*! \brief The file path affected by request.
+      \sa libuv API documentation: [`uv_fs_t.path`](http://docs.libuv.org/en/v1.x/fs.html#c.uv_fs_t.path). */
+  const char* path() const noexcept  { return static_cast< uv_t* >(uv_req)->path; }
+  /*! \brief The new name for the path affected by request. */
+  const char* link_path() const noexcept
+  {
+#ifdef _WIN32
+    return instance::from(uv_req)->properties().link_path.c_str();
+#else
+    return static_cast< uv_t* >(uv_req)->new_path;
+#endif
+  }
+
+  /*! \brief Run the request. Make a new name for a target specified by `_path`.
+      \details
+      \arg If `(_symbolic_link == false)`, create a new hard link to an existing `_path`.
+      \arg If `(_symbolic_link == true)`, create a symbolic link which contains the string from `_path`
+      as a link target.
+
+      On _Windows_ the `_symlink_flags` parameter can be specified to control how the _link to a directory_
+      will be created:
+      \arg `UV_FS_SYMLINK_DIR` - request to create a symbolic link;
+      \arg `UV_FS_SYMLINK_JUNCTION` - request to create a junction point.
+
+      \sa libuv API documentation: [`uv_fs_link()`](http://docs.libuv.org/en/v1.x/fs.html#c.uv_fs_link),
+                                   [`uv_fs_symlink()`](http://docs.libuv.org/en/v1.x/fs.html#c.uv_fs_symlink).
+      \sa Linux: [`link()`](http://man7.org/linux/man-pages/man2/link.2.html),
+                 [`symlink()`](http://man7.org/linux/man-pages/man2/symlink.2.html).
+      \note If the request callback is empty (has not been set), the request runs _synchronously_. */
+  int run(uv::loop &_loop, const char* _path, const char* _link_path, bool _symbolic_link, int _symlink_flags = 0)
+  {
+    auto instance_ptr = instance::from(uv_req);
+
+    ::uv_fs_req_cleanup(static_cast< uv_t* >(uv_req));  // assuming that *uv_req has initially been nulled
+
+#ifdef _WIN32
+    instance_ptr->properties().link_path.assign(_link_path);
+#endif
+
+    if (!instance_ptr->request_cb_storage.value())
+    {
+      if (_symbolic_link)  return uv_status(::uv_fs_symlink(
+          static_cast< uv::loop::uv_t* >(_loop), static_cast< uv_t* >(uv_req),
+          _path, _link_path, _symlink_flags,
+          nullptr
+      ));
+      else  return uv_status(::uv_fs_link(
+          static_cast< uv::loop::uv_t* >(_loop), static_cast< uv_t* >(uv_req),
+          _path, _link_path,
+          nullptr
+      ));
+    };
+
+
+    instance_ptr->ref();
+
+    uv_status(0);
+    int ret = _symbolic_link
+      ? ::uv_fs_symlink(
+            static_cast< uv::loop::uv_t* >(_loop), static_cast< uv_t* >(uv_req),
+            _path, _link_path, _symlink_flags,
+            link_cb
+        )
+      : ::uv_fs_link(
+            static_cast< uv::loop::uv_t* >(_loop), static_cast< uv_t* >(uv_req),
+            _path, _link_path,
+            link_cb
+        );
+    if (!ret)  uv_status(ret);
+    return ret;
+  }
+
+public: /*conversion operators*/
+  explicit operator const uv_t*() const noexcept  { return static_cast< const uv_t* >(uv_req); }
+  explicit operator       uv_t*()       noexcept  { return static_cast<       uv_t* >(uv_req); }
+};
+
+template< typename >
+void fs::link::link_cb(::uv_fs_t *_uv_req)
+{
+  auto instance_ptr = instance::from(_uv_req);
+  instance_ptr->uv_error = _uv_req->result;
+
+  ref_guard< instance > unref_req(*instance_ptr, adopt_ref);
+
+  auto &link_cb = instance_ptr->request_cb_storage.value();
+  if (link_cb)  link_cb(link(_uv_req));
 }
 
 
