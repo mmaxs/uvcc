@@ -100,12 +100,14 @@ public: /*constructors*/
   fs& operator =(fs&&) noexcept = default;
 
 protected: /*interface*/
+  //! \cond
   template< ::uv_fs_type _UV_FS_TYPE_ > void init()
   {
     static_cast< uv_t* >(uv_req)->type = UV_FS;
     static_cast< uv_t* >(uv_req)->fs_type = _UV_FS_TYPE_;
     instance::from(uv_req)->properties().uv_req = static_cast< uv_t* >(uv_req);
   }
+  //! \endcond
 
 public: /*interface*/
   /*! \brief The tag indicating a subtype of the filesystem request.
