@@ -45,10 +45,7 @@ int main(int _argc, char *_argv[])
         }
         else if (_nread > 0)
         {
-          _buffer.len() = _nread;
-
-          uv::write wr;
-          wr.on_request() = [](uv::write _wr, uv::buffer) -> void  // write_cb
+          static auto write_cb = [](uv::write _wr, uv::buffer) -> void
           {
             if (!_wr)
             {
@@ -58,6 +55,11 @@ int main(int _argc, char *_argv[])
 
             in.read_resume(out.write_queue_size() <= WRITE_QUEUE_SIZE_LOWER_LIMIT);
           };
+
+          _buffer.len() = _nread;
+
+          uv::write wr;
+          wr.on_request() = write_cb;
           wr.run(out, _buffer);
 
           in.read_pause(out.write_queue_size() >= WRITE_QUEUE_SIZE_UPPER_LIMIT);

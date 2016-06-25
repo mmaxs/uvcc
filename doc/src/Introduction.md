@@ -262,23 +262,24 @@ Here is a performance comparison between the two variants:
 $ cat /dev/zero | build/example/cpio-uv | dd of=/dev/null iflag=fullblock bs=1M count=10000
 10000+0 records in
 10000+0 records out
-10485760000 bytes (10 GB) copied, 42.9026 s, 244 MB/s
+10485760000 bytes (10 GB) copied, 43.4692 s, 241 MB/s
 [mike@u250 /mnt/sda3/wroot/libuv/uvcc/uvcc.git]
 $ cat /dev/zero | build/example/cpio-uv | dd of=/dev/null iflag=fullblock bs=1M count=10000
 10000+0 records in
 10000+0 records out
-10485760000 bytes (10 GB) copied, 43.4466 s, 241 MB/s
+10485760000 bytes (10 GB) copied, 43.3421 s, 242 MB/s
 
 [mike@u250 /mnt/sda3/wroot/libuv/uvcc/uvcc.git]
 $ cat /dev/zero | build/example/cpio-uvcc | dd of=/dev/null iflag=fullblock bs=1M count=10000
 10000+0 records in
 10000+0 records out
-10485760000 bytes (10 GB) copied, 45.9849 s, 228 MB/s
+10485760000 bytes (10 GB) copied, 45.5636 s, 230 MB/s
 [mike@u250 /mnt/sda3/wroot/libuv/uvcc/uvcc.git]
 $ cat /dev/zero | build/example/cpio-uvcc | dd of=/dev/null iflag=fullblock bs=1M count=10000
 10000+0 records in
 10000+0 records out
-10485760000 bytes (10 GB) copied, 46.1908 s, 227 MB/s
+10485760000 bytes (10 GB) copied, 45.119 s, 232 MB/s
+[mike@u250 /mnt/sda3/wroot/libuv/uvcc/uvcc.git]
 \endverbatim
 Obviously there is an impact of reference counting operations and other C++ related overheads that slightly reduce the performance.
 
