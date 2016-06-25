@@ -2202,7 +2202,9 @@ protected: /*types*/
   //! \cond
   struct properties : public fs::properties
   {
+#ifdef _WIN32
     std::string new_path;
+#endif
   };
   //! \endcond
 
@@ -2417,7 +2419,9 @@ protected: /*types*/
   //! \cond
   struct properties : public fs::properties
   {
+#ifdef _WIN32
     std::string link_path;
+#endif
   };
   //! \endcond
 
@@ -2539,6 +2543,206 @@ void fs::link::link_cb(::uv_fs_t *_uv_req)
 
   auto &link_cb = instance_ptr->request_cb_storage.value();
   if (link_cb)  link_cb(link(_uv_req));
+}
+
+
+
+/*! \brief Read value of a symbolic link. */
+class fs::readlink : public fs
+{
+  //! \cond
+  friend class request::instance< readlink >;
+  //! \endcond
+
+public: /*types*/
+  using on_request_t = std::function< void(readlink _request) >;
+  /*!< \brief The function type of the callback called when the readlink request has completed. */
+
+private: /*types*/
+  using instance = request::instance< readlink >;
+
+private: /*constructors*/
+  explicit readlink(uv_t *_uv_req)
+  {
+    if (_uv_req)  instance::from(_uv_req)->ref();
+    uv_req = _uv_req;
+  }
+
+public: /*constructors*/
+  ~readlink() = default;
+  readlink()
+  {
+    uv_req = instance::create();
+    init< UV_FS_READLINK >();
+  }
+
+  readlink(const readlink&) = default;
+  readlink& operator =(const readlink&) = default;
+
+  readlink(readlink&&) noexcept = default;
+  readlink& operator =(readlink&&) noexcept = default;
+
+private: /*functions*/
+  template< typename = void > static void readlink_cb(::uv_fs_t*);
+
+public: /*interface*/
+  const on_request_t& on_request() const noexcept  { return instance::from(uv_req)->request_cb_storage.value(); }
+        on_request_t& on_request()       noexcept  { return instance::from(uv_req)->request_cb_storage.value(); }
+
+  /*! \brief The file path affected by request.
+      \sa libuv API documentation: [`uv_fs_t.path`](http://docs.libuv.org/en/v1.x/fs.html#c.uv_fs_t.path). */
+  const char* path() const noexcept  { return static_cast< uv_t* >(uv_req)->path; }
+
+  /*! \brief The result of the readlink request. */
+  const char* result() const noexcept  { return static_cast< const char* >(static_cast< uv_t* >(uv_req)->ptr); }
+
+  /*! \brief Run the request. Read value of a symbolic link specified by `_path`.
+      \sa libuv API documentation: [`uv_fs_readlink()`](http://docs.libuv.org/en/v1.x/fs.html#c.uv_fs_readlink).
+      \sa Linux: [`readlink()`](http://man7.org/linux/man-pages/man2/readlink.2.html).
+      \note If the request callback is empty (has not been set), the request runs _synchronously_. */
+  int run(uv::loop &_loop, const char* _path)
+  {
+    auto instance_ptr = instance::from(uv_req);
+
+    ::uv_fs_req_cleanup(static_cast< uv_t* >(uv_req));  // assuming that *uv_req has initially been nulled
+
+    if (!instance_ptr->request_cb_storage.value())
+    {
+      return uv_status(::uv_fs_readlink(
+          static_cast< uv::loop::uv_t* >(_loop), static_cast< uv_t* >(uv_req),
+          _path,
+          nullptr
+      ));
+    };
+
+
+    instance_ptr->ref();
+
+    uv_status(0);
+    int ret = ::uv_fs_readlink(
+        static_cast< uv::loop::uv_t* >(_loop), static_cast< uv_t* >(uv_req),
+        _path,
+        readlink_cb
+    );
+    if (!ret)  uv_status(ret);
+    return ret;
+  }
+
+public: /*conversion operators*/
+  explicit operator const uv_t*() const noexcept  { return static_cast< const uv_t* >(uv_req); }
+  explicit operator       uv_t*()       noexcept  { return static_cast<       uv_t* >(uv_req); }
+};
+
+template< typename >
+void fs::readlink::readlink_cb(::uv_fs_t *_uv_req)
+{
+  auto instance_ptr = instance::from(_uv_req);
+  instance_ptr->uv_error = _uv_req->result;
+
+  ref_guard< instance > unref_req(*instance_ptr, adopt_ref);
+
+  auto &readlink_cb = instance_ptr->request_cb_storage.value();
+  if (readlink_cb)  readlink_cb(readlink(_uv_req));
+}
+
+
+
+/*! \brief Get canonicalized absolute pathname. */
+class fs::realpath : public fs
+{
+  //! \cond
+  friend class request::instance< realpath >;
+  //! \endcond
+
+public: /*types*/
+  using on_request_t = std::function< void(realpath _request) >;
+  /*!< \brief The function type of the callback called when the realpath request has completed. */
+
+private: /*types*/
+  using instance = request::instance< realpath >;
+
+private: /*constructors*/
+  explicit realpath(uv_t *_uv_req)
+  {
+    if (_uv_req)  instance::from(_uv_req)->ref();
+    uv_req = _uv_req;
+  }
+
+public: /*constructors*/
+  ~realpath() = default;
+  realpath()
+  {
+    uv_req = instance::create();
+    init< UV_FS_REALPATH >();
+  }
+
+  realpath(const realpath&) = default;
+  realpath& operator =(const realpath&) = default;
+
+  realpath(realpath&&) noexcept = default;
+  realpath& operator =(realpath&&) noexcept = default;
+
+private: /*functions*/
+  template< typename = void > static void realpath_cb(::uv_fs_t*);
+
+public: /*interface*/
+  const on_request_t& on_request() const noexcept  { return instance::from(uv_req)->request_cb_storage.value(); }
+        on_request_t& on_request()       noexcept  { return instance::from(uv_req)->request_cb_storage.value(); }
+
+  /*! \brief The file path affected by request.
+      \sa libuv API documentation: [`uv_fs_t.path`](http://docs.libuv.org/en/v1.x/fs.html#c.uv_fs_t.path). */
+  const char* path() const noexcept  { return static_cast< uv_t* >(uv_req)->path; }
+
+  /*! \brief The result of the realpath request. */
+  const char* result() const noexcept  { return static_cast< const char* >(static_cast< uv_t* >(uv_req)->ptr); }
+
+  /*! \brief Run the request. Get canonicalized absolute pathname.
+      \sa libuv API documentation: [`uv_fs_realpath()`](http://docs.libuv.org/en/v1.x/fs.html#c.uv_fs_realpath).
+      \sa Linux: [`realpath()`](http://man7.org/linux/man-pages/man3/realpath.3.html).
+      \note If the request callback is empty (has not been set), the request runs _synchronously_. */
+  int run(uv::loop &_loop, const char* _path)
+  {
+    auto instance_ptr = instance::from(uv_req);
+
+    ::uv_fs_req_cleanup(static_cast< uv_t* >(uv_req));  // assuming that *uv_req has initially been nulled
+
+    if (!instance_ptr->request_cb_storage.value())
+    {
+      return uv_status(::uv_fs_realpath(
+          static_cast< uv::loop::uv_t* >(_loop), static_cast< uv_t* >(uv_req),
+          _path,
+          nullptr
+      ));
+    };
+
+
+    instance_ptr->ref();
+
+    uv_status(0);
+    int ret = ::uv_fs_realpath(
+        static_cast< uv::loop::uv_t* >(_loop), static_cast< uv_t* >(uv_req),
+        _path,
+        realpath_cb
+    );
+    if (!ret)  uv_status(ret);
+    return ret;
+  }
+
+public: /*conversion operators*/
+  explicit operator const uv_t*() const noexcept  { return static_cast< const uv_t* >(uv_req); }
+  explicit operator       uv_t*()       noexcept  { return static_cast<       uv_t* >(uv_req); }
+};
+
+template< typename >
+void fs::realpath::realpath_cb(::uv_fs_t *_uv_req)
+{
+  auto instance_ptr = instance::from(_uv_req);
+  instance_ptr->uv_error = _uv_req->result;
+
+  ref_guard< instance > unref_req(*instance_ptr, adopt_ref);
+
+  auto &realpath_cb = instance_ptr->request_cb_storage.value();
+  if (realpath_cb)  realpath_cb(realpath(_uv_req));
 }
 
 
