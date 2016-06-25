@@ -111,6 +111,7 @@ public: /*interface*/
   /*! \brief The tag indicating a subtype of the filesystem request.
       \sa libuv API documentation: [`uv_fs_type`](http://docs.libuv.org/en/v1.x/fs.html#c.uv_fs_type). */
   ::uv_fs_type fs_type() const noexcept  { return static_cast< uv_t* >(uv_req)->fs_type; }
+
   /*! \brief The libuv loop that started this filesystem request and where completion will be reported. */
   uv::loop loop() const noexcept  { return uv::loop(static_cast< uv_t* >(uv_req)->loop); }
 
@@ -1067,6 +1068,7 @@ public: /*interface*/
 
   /*! \brief The result of the stat request.
       \sa libuv API documentation: [`uv_stat_t`](http://docs.libuv.org/en/v1.x/fs.html#c.uv_stat_t),
+                                   [`uv_timespec_t`](http://docs.libuv.org/en/v1.x/fs.html#c.uv_timespec_t),
                                    [`uv_fs_t.statbuf`](http://docs.libuv.org/en/v1.x/fs.html#c.uv_fs_t.statbuf).
       \sa Linux: [`stat()`](http://man7.org/linux/man-pages/man2/stat.2.html),
                  [`fstat()`](http://man7.org/linux/man-pages/man2/fstat.2.html),
