@@ -133,7 +133,7 @@ class fs::close : public fs
 
 public: /*types*/
   using on_request_t = std::function< void(close _request) >;
-  /*!< \brief The function type of the callback called when the close request has completed. */
+  /*!< \brief The function type of the callback called when the `close` request has completed. */
 
 protected: /*types*/
   //! \cond
@@ -585,7 +585,7 @@ class fs::sync : public fs
 
 public: /*types*/
   using on_request_t = std::function< void(sync _request) >;
-  /*!< \brief The function type of the callback called when the sync request has completed. */
+  /*!< \brief The function type of the callback called when the `sync` request has completed. */
 
 protected: /*types*/
   //! \cond
@@ -707,7 +707,7 @@ class fs::truncate : public fs
 
 public: /*types*/
   using on_request_t = std::function< void(truncate _request) >;
-  /*!< \brief The function type of the callback called when the truncate request has completed. */
+  /*!< \brief The function type of the callback called when the `truncate` request has completed. */
 
 protected: /*types*/
   //! \cond
@@ -846,7 +846,7 @@ class fs::sendfile : public fs
 
 public: /*types*/
   using on_request_t = std::function< void(sendfile _request) >;
-  /*!< \brief The function type of the callback called when the sendfile request has completed. */
+  /*!< \brief The function type of the callback called when the `sendfile` request has completed. */
 
 protected: /*types*/
   //! \cond
@@ -1015,7 +1015,7 @@ class fs::stat : public fs
 
 public: /*types*/
   using on_request_t = std::function< void(stat _request) >;
-  /*!< \brief The function type of the callback called when the stat request has completed. */
+  /*!< \brief The function type of the callback called when the `stat` request has completed. */
 
 protected: /*types*/
   //! \cond
@@ -1196,7 +1196,7 @@ class fs::chmod : public fs
 
 public: /*types*/
   using on_request_t = std::function< void(chmod _request) >;
-  /*!< \brief The function type of the callback called when the chmod request has completed. */
+  /*!< \brief The function type of the callback called when the `chmod` request has completed. */
 
 protected: /*types*/
   //! \cond
@@ -1366,7 +1366,7 @@ class fs::chown : public fs
 
 public: /*types*/
   using on_request_t = std::function< void(chown _request) >;
-  /*!< \brief The function type of the callback called when the chown request has completed. */
+  /*!< \brief The function type of the callback called when the `chown` request has completed. */
 
 protected: /*types*/
   //! \cond
@@ -1535,7 +1535,7 @@ class fs::utime : public fs
 
 public: /*types*/
   using on_request_t = std::function< void(utime _request) >;
-  /*!< \brief The function type of the callback called when the utime request has completed. */
+  /*!< \brief The function type of the callback called when the `utime` request has completed. */
 
 protected: /*types*/
   //! \cond
@@ -1705,7 +1705,7 @@ class fs::unlink : public fs
 
 public: /*types*/
   using on_request_t = std::function< void(unlink _request) >;
-  /*!< \brief The function type of the callback called when the unlink request has completed. */
+  /*!< \brief The function type of the callback called when the `unlink` request has completed. */
 
 private: /*types*/
   using instance = request::instance< unlink >;
@@ -1802,7 +1802,7 @@ class fs::mkdir : public fs
 
 public: /*types*/
   using on_request_t = std::function< void(mkdir _request) >;
-  /*!< \brief The function type of the callback called when the mkdir request has completed. */
+  /*!< \brief The function type of the callback called when the `mkdir` request has completed. */
 
 private: /*types*/
   using instance = request::instance< mkdir >;
@@ -1899,7 +1899,7 @@ class fs::mkdtemp : public fs
 
 public: /*types*/
   using on_request_t = std::function< void(mkdtemp _request) >;
-  /*!< \brief The function type of the callback called when the mkdtemp request has completed. */
+  /*!< \brief The function type of the callback called when the `mkdtemp` request has completed. */
 
 private: /*types*/
   using instance = request::instance< mkdtemp >;
@@ -1996,7 +1996,7 @@ class fs::rmdir : public fs
 
 public: /*types*/
   using on_request_t = std::function< void(rmdir _request) >;
-  /*!< \brief The function type of the callback called when the rmdir request has completed. */
+  /*!< \brief The function type of the callback called when the `rmdir` request has completed. */
 
 private: /*types*/
   using instance = request::instance< rmdir >;
@@ -2093,7 +2093,7 @@ class fs::scandir : public fs
 
 public: /*types*/
   using on_request_t = std::function< void(scandir _request) >;
-  /*!< \brief The function type of the callback called when the scandir request has completed. */
+  /*!< \brief The function type of the callback called when the `scandir` request has completed. */
 
 private: /*types*/
   using instance = request::instance< scandir >;
@@ -2200,7 +2200,7 @@ class fs::rename : public fs
 
 public: /*types*/
   using on_request_t = std::function< void(rename _request) >;
-  /*!< \brief The function type of the callback called when the rename request has completed. */
+  /*!< \brief The function type of the callback called when the `rename` request has completed. */
 
 protected: /*types*/
   //! \cond
@@ -2320,7 +2320,7 @@ class fs::access : public fs
 
 public: /*types*/
   using on_request_t = std::function< void(access _request) >;
-  /*!< \brief The function type of the callback called when the access request has completed. */
+  /*!< \brief The function type of the callback called when the `access` request has completed. */
 
 private: /*types*/
   using instance = request::instance< access >;
@@ -2417,7 +2417,7 @@ class fs::link : public fs
 
 public: /*types*/
   using on_request_t = std::function< void(link _request) >;
-  /*!< \brief The function type of the callback called when the link request has completed. */
+  /*!< \brief The function type of the callback called when the `link` request has completed. */
 
 protected: /*types*/
   //! \cond
@@ -2560,7 +2560,7 @@ class fs::readlink : public fs
 
 public: /*types*/
   using on_request_t = std::function< void(readlink _request) >;
-  /*!< \brief The function type of the callback called when the readlink request has completed. */
+  /*!< \brief The function type of the callback called when the `readlink` request has completed. */
 
 private: /*types*/
   using instance = request::instance< readlink >;
@@ -2660,7 +2660,7 @@ class fs::realpath : public fs
 
 public: /*types*/
   using on_request_t = std::function< void(realpath _request) >;
-  /*!< \brief The function type of the callback called when the realpath request has completed. */
+  /*!< \brief The function type of the callback called when the `realpath` request has completed. */
 
 private: /*types*/
   using instance = request::instance< realpath >;

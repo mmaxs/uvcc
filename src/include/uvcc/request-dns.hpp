@@ -27,7 +27,7 @@ class getaddrinfo : public request
 public: /*types*/
   using uv_t = ::uv_getaddrinfo_t;
   using on_request_t = std::function< void(getaddrinfo _request) >;
-  /*!< \brief The function type of the callback that is called with the `getaddrinfo` request result once complete.
+  /*!< \brief The function type of the callback called with the `getaddrinfo` request result once complete.
        \sa libuv API documentation: [`uv_getaddrinfo_cb`](http://docs.libuv.org/en/v1.x/dns.html#c.uv_getaddrinfo_cb). */
 
 protected: /*types*/
@@ -144,7 +144,7 @@ class getnameinfo : public request
 public: /*types*/
   using uv_t = ::uv_getnameinfo_t;
   using on_request_t = std::function< void(getnameinfo _request) >;
-  /*!< \brief The function type of the callback that is called with the `getnameinfo` request result once complete.
+  /*!< \brief The function type of the callback called with the `getnameinfo` request result once complete.
        \sa libuv API documentation: [`uv_getnameinfo_cb`](http://docs.libuv.org/en/v1.x/dns.html#c.uv_getnameinfo_cb). */
 
 private: /*types*/
