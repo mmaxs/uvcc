@@ -26,7 +26,7 @@ class write;
 class shutdown;
 class udp_send;
 class fs;
-class work;
+template< typename > class work;
 class getaddrinfo;
 class getnameinfo;
 
@@ -40,10 +40,12 @@ class getnameinfo;
 template< typename _UV_T_ > struct uv_req_traits  {};
 //! \endcond
 #define req request  // redefine the UV_REQ_TYPE_MAP() entry
+#define work work<>  // redefine the UV_REQ_TYPE_MAP() entry
 #define XX(X, x) template<> struct uv_req_traits< uv_##x##_t >  { using type = x; };
 UV_REQ_TYPE_MAP(XX)
-#undef XX
 #undef req
+#undef work
+#undef XX
 //! \}
 
 
