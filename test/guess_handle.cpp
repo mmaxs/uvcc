@@ -37,8 +37,8 @@ int main(int _argc, char *_argv[])
 
   if (!in)
   {
-    PRINT_UV_ERR("stdout open", out.uv_status());
-    return out.uv_status();
+    PRINT_UV_ERR("stdin open", in.uv_status());
+    return in.uv_status();
   }
   else
   {
