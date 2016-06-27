@@ -38,6 +38,7 @@ int main(int _argc, char *_argv[])
         fflush(stdout);
         return _ret;
       },
+      w,
       1234
   );
 
