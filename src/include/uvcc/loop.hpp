@@ -33,6 +33,7 @@ class loop
   friend class fs;
   friend class getaddrinfo;
   friend class getnameinfo;
+  template< typename > friend class work;
   //! \endcond
 
 public: /*types*/

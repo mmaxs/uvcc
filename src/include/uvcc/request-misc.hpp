@@ -6,7 +6,7 @@
 #include "uvcc/request-base.hpp"
 
 #include <uv.h>
-#include <functional>   // function
+#include <functional>   // function bind placeholders::
 #include <future>       // future packaged_task
 #include <type_traits>  // enable_if is_convertible
 
@@ -42,11 +42,19 @@ protected: /*types*/
   struct properties
   {
     std::packaged_task< _Result_(work) > task;
+    std::future< _Result_ > res;
   };
   //! \endcond
 
 private: /*types*/
   using instance = request::instance< work >;
+
+private: /*constructors*/
+  explicit work(uv_t *_uv_req)
+  {
+    if (_uv_req)  instance::from(_uv_req)->ref();
+    uv_req = _uv_req;
+  }
 
 public: /*constructors*/
   ~work() = default;
@@ -74,17 +82,57 @@ public: /*interface*/
       \details It is guaranteed that it will be a valid instance at least within the request callback. */
   uv::loop loop() const noexcept  { return uv::loop(static_cast< uv_t* >(uv_req)->loop); }
 
+  std::future< _Result_ >& result() const  { return instance::from(uv_req)->properties().res; }
+
   template< class _Task_, typename... _Args_ >
   std::enable_if_t< std::is_convertible< _Task_, on_work_t< _Args_&&... > >::value, int >
-  run(const _Task_&& _task, _Args_&&... _args)
+  run(uv::loop &_loop, const _Task_&& _task, _Args_&&... _args)
   {
-    return 0;
+    auto instance_ptr = instance::from(uv_req);
+
+    instance_ptr->ref();
+
+    {
+      auto &properties = instance_ptr->properties();
+      using task_t = decltype(properties.task);
+      properties.task = task_t(std::bind(_task, std::placeholders::_1, std::forward< _Args_ >(_args)...));
+      properties.res = properties.task.get_future();
+    }
+
+    uv_status(0);
+    int ret = ::uv_queue_work(
+        static_cast< uv::loop::uv_t* >(_loop), static_cast< uv_t* >(uv_req),
+        work_cb, after_work_cb
+    );
+    if (!ret)  uv_status(ret);
+    return ret;
   }
 
 public: /*conversion operators*/
   explicit operator const uv_t*() const noexcept  { return static_cast< const uv_t* >(uv_req); }
   explicit operator       uv_t*()       noexcept  { return static_cast<       uv_t* >(uv_req); }
 };
+
+template< typename _Result_ >
+template< typename >
+void work< _Result_ >::work_cb(::uv_work_t *_uv_req)
+{
+  auto &task = instance::from(_uv_req)->properties().task;
+  if (task.valid())  task(work(_uv_req));
+}
+
+template< typename _Result_ >
+template< typename >
+void work< _Result_ >::after_work_cb(::uv_work_t *_uv_req, int _status)
+{
+  auto instance_ptr = instance::from(_uv_req);
+  instance_ptr->uv_error = _status;
+
+  ref_guard< instance > unref_req(*instance_ptr, adopt_ref);
+
+  auto &after_work_cb = instance_ptr->request_cb_storage.value();
+  if (after_work_cb)  after_work_cb(work(_uv_req));
+}
 
 
 }
