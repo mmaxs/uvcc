@@ -32,7 +32,7 @@ public: /*types*/
        \details This callback is called _on the loop thread_.
        \sa libuv API documentation: [`uv_after_work_cb`](http://docs.libuv.org/en/v1.x/threadpool.html#c.uv_after_work_cb). */
   template< typename... _Args_ >
-  using on_work_t = std::function< _Result_(work _request, _Args_&&... _args) >;
+  using on_work_t = std::function< _Result_(_Args_&&... _args) >;
   /*!< \brief The function type of the task which is scheduled to be run on the thread pool.
        \details This function is called _on the one of the threads from the thread pool_.
        \sa libuv API documentation: [`uv_work_cb`](http://docs.libuv.org/en/v1.x/threadpool.html#c.uv_work_cb). */
@@ -41,7 +41,7 @@ protected: /*types*/
   //! \cond
   struct properties
   {
-    std::packaged_task< _Result_(work) > task;
+    std::packaged_task< _Result_() > task;
     std::future< _Result_ > res;
   };
   //! \endcond
@@ -82,8 +82,16 @@ public: /*interface*/
       \details It is guaranteed that it will be a valid instance at least within the request callback. */
   uv::loop loop() const noexcept  { return uv::loop(static_cast< uv_t* >(uv_req)->loop); }
 
+  /*! \brief Get the result of the work. */
   std::future< _Result_ >& result() const  { return instance::from(uv_req)->properties().res; }
 
+  /*! \brief Run the request. Queue the `_Task_` to the thread pool.
+      \details The given `_Task_` function is called with specified `_args` applied and is executed
+      on the one of the threads from the thread pool. Once it is completed, `on_request` callback will be called
+      on the `_loop` thread.
+      \note All arguments are copied (or moved) to the `_task` function object.
+      For passing arguments by reference (when parameters are used as output ones), wrap them with `std::ref()`.
+      \sa libuv API documentation: [`uv_queue_work()`](http://docs.libuv.org/en/v1.x/threadpool.html#c.uv_queue_work). */
   template< class _Task_, typename... _Args_ >
   std::enable_if_t< std::is_convertible< _Task_, on_work_t< _Args_&&... > >::value, int >
   run(uv::loop &_loop, const _Task_&& _task, _Args_&&... _args)
@@ -95,7 +103,7 @@ public: /*interface*/
     {
       auto &properties = instance_ptr->properties();
       using task_t = decltype(properties.task);
-      properties.task = task_t(std::bind(_task, std::placeholders::_1, std::forward< _Args_ >(_args)...));
+      properties.task = task_t(std::bind(_task, std::forward< _Args_ >(_args)...));
       properties.res = properties.task.get_future();
     }
 
@@ -118,7 +126,7 @@ template< typename >
 void work< _Result_ >::work_cb(::uv_work_t *_uv_req)
 {
   auto &task = instance::from(_uv_req)->properties().task;
-  if (task.valid())  task(work(_uv_req));
+  if (task.valid())  task();
 }
 
 template< typename _Result_ >

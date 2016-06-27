@@ -216,7 +216,7 @@ public: /*interface*/
   /*! \details Walk the list of active handles referenced by the loop: for each handle `_walk_cb`
       will be executed with the given `_args`.
       \note All arguments are copied (or moved) to the callback function object.
-      For passing arguments by reference and/or if some callback parameters are used as output ones,
+      For passing arguments by reference when some callback parameters are used as output ones,
       wrap corresponding arguments with `std::ref()`. */
   template< class _Func_, typename... _Args_ >
   std::enable_if_t< std::is_convertible< _Func_, on_walk_t< _Args_&&... > >::value >
