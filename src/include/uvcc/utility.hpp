@@ -147,20 +147,24 @@ template< std::size_t _index_, typename _T_, typename... _Ts_ > struct type_at< 
 
 
 //! \cond
-template< typename _T_ > constexpr const _T_& greatest(const _T_& _v)  { return _v; }
+template< typename _T_ > constexpr inline const _T_& greatest(const _T_& _v)  { return _v; }
 //! \endcond
 /*! \brief Intended to be used instead of `constexpr T max(std::initializer_list<T>)`...
     \details ...if the latter is not defined of being `constexpr` in the current STL version and therefore
     cannot be employed at compile-time. Does not require the arguments to be of the same type and using
-    the `std::initializer_list` curly braces when there are more than two arguments. */
-template< typename _T_, typename... _Ts_ > constexpr const _T_& greatest(const _T_& _v, const _Ts_&... _vs)
+    the `std::initializer_list` curly braces when there are more than two arguments.
+
+    While promoting to a common resulting type a temporary local value can be implicitly created by the compiler,
+    therefore the function is not able to safely return a reference type result, or else the
+    `'warning: returning reference to temporary'` is generated in some use cases. */
+template< typename _T_, typename... _Ts_ > constexpr inline const _T_ greatest(const _T_& _v, const _Ts_&... _vs)
 { return _v < greatest(_vs...) ? greatest(_vs...) : _v; }
 
 //! \cond
-template< typename _T_ > constexpr const _T_& lowest(const _T_& _v)  { return _v; }
+template< typename _T_ > constexpr inline const _T_& lowest(const _T_& _v)  { return _v; }
 //! \endcond
 /*! \brief The counterpart of `greatest()` */
-template< typename _T_, typename... _Ts_ > constexpr const _T_& lowest(const _T_& _v, const _Ts_&... _vs)
+template< typename _T_, typename... _Ts_ > constexpr inline const _T_ lowest(const _T_& _v, const _Ts_&... _vs)
 { return lowest(_vs...) < _v ? lowest(_vs...) : _v; }
 
 
