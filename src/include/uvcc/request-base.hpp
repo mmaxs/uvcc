@@ -6,6 +6,7 @@
 
 #include <uv.h>
 #include <cstddef>      // size_t offsetof
+#include <cstdint>      // uintptr_t
 #include <cstring>      // memset()
 #include <functional>   // function
 #include <type_traits>  // is_standard_layout
@@ -164,8 +165,11 @@ protected: /*functions*/
 
 public: /*interface*/
   void swap(request &_that) noexcept  { std::swap(uv_req, _that.uv_req); }
+  uintptr_t id() const noexcept  { return reinterpret_cast< uintptr_t >(instance< request >::from(uv_req)); }
+
   /*! \brief The current number of existing references to the same object as this request variable refers to. */
   long nrefs() const noexcept  { return instance< request >::from(uv_req)->refs.value(); }
+
   /*! \brief The status value returned by the last executed libuv API function on this request. */
   int uv_status() const noexcept  { return instance< request >::from(uv_req)->uv_error; }
 

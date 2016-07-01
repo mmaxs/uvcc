@@ -7,6 +7,7 @@
 
 #include <uv.h>
 #include <cstddef>      // size_t offsetof
+#include <cstdint>      // uintptr_t
 #include <functional>   // function
 #include <type_traits>  // is_standard_layout
 #include <utility>      // forward() swap()
@@ -178,8 +179,11 @@ protected: /*functions*/
 
 public: /*interface*/
   void swap(handle &_that) noexcept  { std::swap(uv_handle, _that.uv_handle); }
+  uintptr_t id() const noexcept  { return reinterpret_cast< uintptr_t >(instance< handle >::from(uv_handle)); }
+
   /*! \brief The current number of existing references to the same object as this handle variable refers to. */
   long nrefs() const noexcept  { return instance< handle >::from(uv_handle)->refs.value(); }
+
   /*! \brief The status value returned by the last executed libuv API function on this handle. */
   int uv_status() const noexcept  { return instance< handle >::from(uv_handle)->uv_error; }
 
