@@ -165,7 +165,7 @@ protected: /*functions*/
 
 public: /*interface*/
   void swap(request &_that) noexcept  { std::swap(uv_req, _that.uv_req); }
-  uintptr_t id() const noexcept  { return reinterpret_cast< uintptr_t >(instance< request >::from(uv_req)); }
+  std::uintptr_t id() const noexcept  { return reinterpret_cast< std::uintptr_t >(instance< request >::from(uv_req)); }
 
   /*! \brief The current number of existing references to the same object as this request variable refers to. */
   long nrefs() const noexcept  { return instance< request >::from(uv_req)->refs.value(); }

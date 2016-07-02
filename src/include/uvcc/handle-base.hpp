@@ -179,7 +179,7 @@ protected: /*functions*/
 
 public: /*interface*/
   void swap(handle &_that) noexcept  { std::swap(uv_handle, _that.uv_handle); }
-  uintptr_t id() const noexcept  { return reinterpret_cast< uintptr_t >(instance< handle >::from(uv_handle)); }
+  std::uintptr_t id() const noexcept  { return reinterpret_cast< std::uintptr_t >(instance< handle >::from(uv_handle)); }
 
   /*! \brief The current number of existing references to the same object as this handle variable refers to. */
   long nrefs() const noexcept  { return instance< handle >::from(uv_handle)->refs.value(); }
