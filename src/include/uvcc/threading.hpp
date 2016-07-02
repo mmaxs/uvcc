@@ -14,10 +14,10 @@ namespace uv
 class mutex
 {
 public: /*types*/
-  using native_t = ::uv_mutex_t;
+  using uv_t = ::uv_mutex_t;
 
 private: /*data*/
-  native_t uv_mutex;
+  uv_t uv_mutex;
 
 public: /*constructors*/
   ~mutex() noexcept  { ::uv_mutex_destroy(&uv_mutex); }
@@ -34,7 +34,9 @@ public: /*interface*/
   bool try_lock() noexcept { return ::uv_mutex_trylock(&uv_mutex) == 0; }
   void unlock() noexcept   { ::uv_mutex_unlock(&uv_mutex); }
 
-  native_t native() const noexcept  { return uv_mutex; }
+public: /*conversion operators*/
+  explicit operator const uv_t*() const noexcept  { return &uv_mutex; }
+  explicit operator       uv_t*()       noexcept  { return &uv_mutex; }
 };
 
 
@@ -61,7 +63,7 @@ public: /*constructors*/
   tls_int& operator =(const tls_int &_that) noexcept  { return this == &_that ? *this : operator =((int)_that); }
 
 public: /*conversion opertors*/
-  operator const int() const noexcept
+  operator int() const noexcept
   {
     return reinterpret_cast< std::intptr_t >(::uv_key_get(const_cast< ::uv_key_t* >(&tls_key)));
   }

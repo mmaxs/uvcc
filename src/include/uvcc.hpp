@@ -6,7 +6,7 @@
 #include "uvcc/loop.hpp"
 #include "uvcc/handle.hpp"
 #include "uvcc/request.hpp"
-#include "uvcc/thread.hpp"
+#include "uvcc/threading.hpp"
 #include "uvcc/endian.hpp"
 #include "uvcc/netstruct.hpp"
 #include "uvcc/utility.hpp"
