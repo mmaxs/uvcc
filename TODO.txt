@@ -451,33 +451,33 @@ http://docs.libuv.org/en/v1.x/fs_poll.html#c.uv_fs_poll_getpath
 + http://docs.libuv.org/en/v1.x/fs.html#c.uv_fs_fchown
 
 [threadpool]
-http://docs.libuv.org/en/v1.x/threadpool.html#thread-pool-work-scheduling
-http://docs.libuv.org/en/v1.x/threadpool.html#data-types
-http://docs.libuv.org/en/v1.x/threadpool.html#c.uv_work_t
-http://docs.libuv.org/en/v1.x/threadpool.html#c.uv_work_cb
-http://docs.libuv.org/en/v1.x/threadpool.html#c.uv_after_work_cb
-http://docs.libuv.org/en/v1.x/threadpool.html#public-members
-http://docs.libuv.org/en/v1.x/threadpool.html#c.uv_work_t.loop
-http://docs.libuv.org/en/v1.x/threadpool.html#api
-http://docs.libuv.org/en/v1.x/threadpool.html#c.uv_queue_work
++ http://docs.libuv.org/en/v1.x/threadpool.html#thread-pool-work-scheduling
+= http://docs.libuv.org/en/v1.x/threadpool.html#data-types
+- http://docs.libuv.org/en/v1.x/threadpool.html#c.uv_work_t
++ http://docs.libuv.org/en/v1.x/threadpool.html#c.uv_work_cb
++ http://docs.libuv.org/en/v1.x/threadpool.html#c.uv_after_work_cb
+- http://docs.libuv.org/en/v1.x/threadpool.html#public-members
+- http://docs.libuv.org/en/v1.x/threadpool.html#c.uv_work_t.loop
+= http://docs.libuv.org/en/v1.x/threadpool.html#api
++ http://docs.libuv.org/en/v1.x/threadpool.html#c.uv_queue_work
 
 [dns]
-http://docs.libuv.org/en/v1.x/dns.html#dns-utility-functions
-http://docs.libuv.org/en/v1.x/dns.html#data-types
-http://docs.libuv.org/en/v1.x/dns.html#c.uv_getaddrinfo_t
-http://docs.libuv.org/en/v1.x/dns.html#c.uv_getaddrinfo_cb
-http://docs.libuv.org/en/v1.x/dns.html#c.uv_getnameinfo_t
-http://docs.libuv.org/en/v1.x/dns.html#c.uv_getnameinfo_cb
-http://docs.libuv.org/en/v1.x/dns.html#public-members
-http://docs.libuv.org/en/v1.x/dns.html#c.uv_getaddrinfo_t.loop
-http://docs.libuv.org/en/v1.x/dns.html#c.uv_getaddrinfo_t.addrinfo
-http://docs.libuv.org/en/v1.x/dns.html#c.uv_getnameinfo_t.loop
-http://docs.libuv.org/en/v1.x/dns.html#c.uv_getnameinfo_t.host
-http://docs.libuv.org/en/v1.x/dns.html#c.uv_getnameinfo_t.service
-http://docs.libuv.org/en/v1.x/dns.html#api
-http://docs.libuv.org/en/v1.x/dns.html#c.uv_getaddrinfo
-http://docs.libuv.org/en/v1.x/dns.html#c.uv_freeaddrinfo
-http://docs.libuv.org/en/v1.x/dns.html#c.uv_getnameinfo
++ http://docs.libuv.org/en/v1.x/dns.html#dns-utility-functions
+= http://docs.libuv.org/en/v1.x/dns.html#data-types
+- http://docs.libuv.org/en/v1.x/dns.html#c.uv_getaddrinfo_t
++ http://docs.libuv.org/en/v1.x/dns.html#c.uv_getaddrinfo_cb
+- http://docs.libuv.org/en/v1.x/dns.html#c.uv_getnameinfo_t
++ http://docs.libuv.org/en/v1.x/dns.html#c.uv_getnameinfo_cb
+= http://docs.libuv.org/en/v1.x/dns.html#public-members
+- http://docs.libuv.org/en/v1.x/dns.html#c.uv_getaddrinfo_t.loop
+- http://docs.libuv.org/en/v1.x/dns.html#c.uv_getaddrinfo_t.addrinfo
+- http://docs.libuv.org/en/v1.x/dns.html#c.uv_getnameinfo_t.loop
+- http://docs.libuv.org/en/v1.x/dns.html#c.uv_getnameinfo_t.host
+- http://docs.libuv.org/en/v1.x/dns.html#c.uv_getnameinfo_t.service
+= http://docs.libuv.org/en/v1.x/dns.html#api
++ http://docs.libuv.org/en/v1.x/dns.html#c.uv_getaddrinfo
+- http://docs.libuv.org/en/v1.x/dns.html#c.uv_freeaddrinfo
++ http://docs.libuv.org/en/v1.x/dns.html#c.uv_getnameinfo
 
 [dll]
 http://docs.libuv.org/en/v1.x/dll.html#shared-library-handling
