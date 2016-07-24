@@ -35,19 +35,19 @@ protected: /*types*/
   constexpr static const std::size_t MAX_PROPERTY_SIZE = 24 + sizeof(::sockaddr_storage);
   constexpr static const std::size_t MAX_PROPERTY_ALIGN = 8;
 
-  template< class _REQUEST_ > class instance
+  template< class _Request_ > class instance
   {
     struct uv_t
     {
       template< typename _T_, typename = std::size_t > struct substitute  { using type = null_t; };
       template< typename _T_ > struct substitute< _T_, decltype(sizeof(typename _T_::uv_t)) >  { using type = typename _T_::uv_t; };
-      using type = typename substitute< _REQUEST_ >::type;
+      using type = typename substitute< _Request_ >::type;
     };
     struct on_request_t
     {
       template< typename _T_, typename = std::size_t > struct substitute  { using type = std::function< void() >; };
       template< typename _T_ > struct substitute< _T_, decltype(sizeof(typename _T_::on_request_t)) >  { using type = typename _T_::on_request_t; };
-      using type = typename substitute< _REQUEST_ >::type;
+      using type = typename substitute< _Request_ >::type;
     };
 
   public: /*data*/
@@ -63,12 +63,12 @@ protected: /*types*/
     instance()
     {
       std::memset(&uv_req_struct, 0, sizeof(uv_req_struct));
-      property_storage.reset< typename _REQUEST_::properties >();
+      property_storage.reset< typename _Request_::properties >();
     }
     template< typename... _Args_ > instance(_Args_&&... _args)
     {
       std::memset(&uv_req_struct, 0, sizeof(uv_req_struct));
-      property_storage.reset< typename _REQUEST_::properties >(std::forward< _Args_ >(_args)...);
+      property_storage.reset< typename _Request_::properties >(std::forward< _Args_ >(_args)...);
     }
 
   public: /*constructors*/
@@ -102,8 +102,8 @@ protected: /*types*/
       return reinterpret_cast< instance* >(static_cast< char* >(_uv_req) - offsetof(instance, uv_req_struct));
     }
 
-    typename _REQUEST_::properties& properties() noexcept
-    { return property_storage.get< typename _REQUEST_::properties >(); }
+    typename _Request_::properties& properties() noexcept
+    { return property_storage.get< typename _Request_::properties >(); }
 
     void ref()  { refs.inc(); }
     void unref()  { if (refs.dec() == 0)  destroy_instance(); }

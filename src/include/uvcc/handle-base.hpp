@@ -60,13 +60,13 @@ protected: /*types*/
   struct uv_handle_interface;
   struct uv_fs_interface;
 
-  template< class _HANDLE_ > class instance
+  template< class _Handle_ > class instance
   {
     struct uv_t
     {
       template< typename _T_, typename = std::size_t > struct substitute  { using type = empty_t; };
       template< typename _T_ > struct substitute< _T_, decltype(sizeof(typename _T_::uv_t)) >  { using type = typename _T_::uv_t; };
-      using type = typename substitute< _HANDLE_ >::type;
+      using type = typename substitute< _Handle_ >::type;
     };
 
   public: /*data*/
@@ -83,13 +83,13 @@ protected: /*types*/
   private: /*constructors*/
     instance()
     {
-      property_storage.reset< typename _HANDLE_::properties >();
-      uv_interface_ptr = &_HANDLE_::uv_interface::instance();
+      property_storage.reset< typename _Handle_::properties >();
+      uv_interface_ptr = &_Handle_::uv_interface::instance();
     }
     template< typename... _Args_ > instance(_Args_&&... _args)
     {
-      property_storage.reset< typename _HANDLE_::properties >(std::forward< _Args_ >(_args)...);
-      uv_interface_ptr = &_HANDLE_::uv_interface::instance();
+      property_storage.reset< typename _Handle_::properties >(std::forward< _Args_ >(_args)...);
+      uv_interface_ptr = &_Handle_::uv_interface::instance();
     }
 
   public: /* constructors*/
@@ -114,10 +114,10 @@ protected: /*types*/
       return reinterpret_cast< instance* >(static_cast< char* >(_uv_handle) - offsetof(instance, uv_handle_struct));
     }
 
-    typename _HANDLE_::properties& properties() noexcept
-    { return property_storage.get< typename _HANDLE_::properties >(); }
-    typename _HANDLE_::uv_interface* uv_interface() const noexcept
-    { return dynamic_cast/* from virtual base */< typename _HANDLE_::uv_interface* >(uv_interface_ptr); }
+    typename _Handle_::properties& properties() noexcept
+    { return property_storage.get< typename _Handle_::properties >(); }
+    typename _Handle_::uv_interface* uv_interface() const noexcept
+    { return dynamic_cast/* from virtual base */< typename _Handle_::uv_interface* >(uv_interface_ptr); }
 
     void ref()  { refs.inc(); }
     void unref()  { if (refs.dec() == 0)  uv_interface_ptr->destroy_instance(&uv_handle_struct); }
