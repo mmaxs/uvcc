@@ -16,6 +16,8 @@
 #endif
 
 
+#define HACK_UV_INTERFACE_PTR  1
+
 namespace uv
 {
 
@@ -74,7 +76,11 @@ protected: /*types*/
     ref_count refs;
     type_storage< on_destroy_t > destroy_cb_storage;
     aligned_storage< MAX_PROPERTY_SIZE, MAX_PROPERTY_ALIGN > property_storage;
+#ifndef HACK_UV_INTERFACE_PTR
     handle::uv_interface *uv_interface_ptr = nullptr;
+#else
+    typename _Handle_::uv_interface *uv_interface_ptr = nullptr;
+#endif
     //* all the fields placed before should have immutable layout size across the handle class hierarchy *//
     alignas(static_cast< const int >(
         greatest(alignof(::uv_any_handle), alignof(::uv_fs_t))
@@ -117,7 +123,15 @@ protected: /*types*/
     typename _Handle_::properties& properties() noexcept
     { return property_storage.get< typename _Handle_::properties >(); }
     typename _Handle_::uv_interface* uv_interface() const noexcept
+#ifndef HACK_UV_INTERFACE_PTR
     { return dynamic_cast/* from virtual base */< typename _Handle_::uv_interface* >(uv_interface_ptr); }
+#else  // for any uv_interface subclass it should be a __vptr-only object with no any data members,
+       // we are also never needed to switch between the actual __vtable targets
+       // as far as uv_interface subclasses don't override virtual functions defined in their base classes,
+       // so we can just use __vptr from the concrete uv_interface leaf subclass object
+       // and simply interpret it according to one of the desired uv_interface base class context
+    { return uv_interface_ptr; }
+#endif
 
     void ref()  { refs.inc(); }
     void unref()  { if (refs.dec() == 0)  uv_interface_ptr->destroy_instance(&uv_handle_struct); }
