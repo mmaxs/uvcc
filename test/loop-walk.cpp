@@ -17,6 +17,17 @@
 #pragma GCC diagnostic ignored "-Wunused-variable"
 
 
+void w(uv::handle)  {}
+
+struct S
+{
+  void operator ()(uv::handle) {}
+};
+
+S s;
+
+std::function< void(uv::handle) > f;
+
 
 int main(int _argc, char *_argv[])
 {
@@ -27,6 +38,9 @@ int main(int _argc, char *_argv[])
       [](uv::handle, void*) -> void {},
       nullptr
   );
+
+  loop.walk(w);
+  loop.walk(f);
 
   getchar();
   return 0;

@@ -94,7 +94,7 @@ public: /*interface*/
       \sa libuv API documentation: [`uv_queue_work()`](http://docs.libuv.org/en/v1.x/threadpool.html#c.uv_queue_work). */
   template< class _Task_, typename... _Args_ >
   std::enable_if_t< std::is_convertible< _Task_, on_work_t< _Args_&&... > >::value, int >
-  run(uv::loop &_loop, const _Task_&& _task, _Args_&&... _args)
+  run(uv::loop &_loop, _Task_&& _task, _Args_&&... _args)
   {
     auto instance_ptr = instance::from(uv_req);
 

@@ -220,10 +220,10 @@ public: /*interface*/
       wrap corresponding arguments with `std::ref()`. */
   template< class _Func_, typename... _Args_ >
   std::enable_if_t< std::is_convertible< _Func_, on_walk_t< _Args_&&... > >::value >
-  walk(const _Func_&& _walk_cb, _Args_&&... _args)
+  walk(_Func_&& _walk_cb, _Args_&&... _args)
   {
-    if (!_walk_cb)  return;
     std::function< void(handle) > cb{std::bind(_walk_cb, std::placeholders::_1, std::forward< _Args_ >(_args)...)};
+    if (!cb)  return;
     ::uv_walk(uv_loop, walk_cb, &cb);
   }
 
