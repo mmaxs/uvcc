@@ -179,6 +179,21 @@ public: /*interface*/
   /*! \brief The tag indicating a libuv type of the request.
       \sa libuv API documentation: [`uv_req_t.type`](http://docs.libuv.org/en/v1.x/request.html#c.uv_req_t.type). */
   ::uv_req_type type() const noexcept  { return static_cast< uv_t* >(uv_req)->type; }
+  /*! \brief A string containing the name of the request type. */
+  const char* type_name() const noexcept
+  {
+    const char *ret;
+
+    switch (type())
+    {
+#define XX(X, x) case UV_##X: ret = #x; break;
+      UV_REQ_TYPE_MAP(XX)
+#undef XX
+      default: ret = "<unknown>"; break;
+    }
+
+    return ret;
+  }
 
   /*! \brief The pointer to the user-defined arbitrary data. libuv and uvcc does not use this field. */
   void* const& data() const noexcept  { return static_cast< uv_t* >(uv_req)->data; }
