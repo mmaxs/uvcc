@@ -180,7 +180,8 @@ public: /*interface*/
 
   /*! \brief Go into a loop and process events and their callbacks with the current thread.
       \details The function acts and returns depending on circumstances which processing is defined by the `_mode` argument.
-      \sa libuv API documentation: [`uv_run()`](http://docs.libuv.org/en/v1.x/loop.html#c.uv_run).
+      \sa libuv API documentation: [`uv_run()`](http://docs.libuv.org/en/v1.x/loop.html#c.uv_run),
+                                   [`uv_run_mode`](http://docs.libuv.org/en/v1.x/loop.html#c.uv_run_mode).
       \note If you start a loop with this function within a callback executed by another loop the first one will
       be "blocked" until the second started loop ends and the function returns. */
   int run(::uv_run_mode _mode)
