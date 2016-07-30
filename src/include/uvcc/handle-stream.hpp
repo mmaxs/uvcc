@@ -249,6 +249,32 @@ public: /*interface*/
         sizeof(_T_) >= z;
   }
 
+#if 1
+  /*! \brief _Get_ the size of the send buffer that the operating system uses for the socket.
+      \sa libuv API documentation: [`uv_send_buffer_size()`](http://docs.libuv.org/en/v1.x/handle.html#c.uv_send_buffer_size). */
+  unsigned int send_buffer_size() const noexcept
+  {
+    unsigned int v = 0;
+    uv_status(::uv_send_buffer_size(static_cast< handle::uv_t* >(uv_handle), (int*)&v));
+    return v;
+  }
+  /*! \brief _Set_ the size of the send buffer that the operating system uses for the socket.
+      \sa libuv API documentation: [`uv_send_buffer_size()`](http://docs.libuv.org/en/v1.x/handle.html#c.uv_send_buffer_size). */
+  void send_buffer_size(const unsigned int _value) noexcept  { uv_status(::uv_send_buffer_size(static_cast< handle::uv_t* >(uv_handle), (int*)&_value)); }
+
+  /*! \brief _Get_ the size of the receive buffer that the operating system uses for the socket.
+      \sa libuv API documentation: [`uv_recv_buffer_size()`](http://docs.libuv.org/en/v1.x/handle.html#c.uv_recv_buffer_size). */
+  unsigned int recv_buffer_size() const noexcept
+  {
+    unsigned int v = 0;
+    uv_status(::uv_recv_buffer_size(static_cast< handle::uv_t* >(uv_handle), (int*)&v));
+    return v;
+  }
+  /*! \brief _Set_ the size of the receive buffer that the operating system uses for the socket.
+      \sa libuv API documentation: [`uv_recv_buffer_size()`](http://docs.libuv.org/en/v1.x/handle.html#c.uv_recv_buffer_size). */
+  void recv_buffer_size(const unsigned int _value) noexcept  { uv_status(::uv_recv_buffer_size(static_cast< handle::uv_t* >(uv_handle), (int*)&_value)); }
+#endif
+
 public: /*conversion operators*/
   explicit operator const uv_t*() const noexcept  { return static_cast< const uv_t* >(uv_handle); }
   explicit operator       uv_t*()       noexcept  { return static_cast<       uv_t* >(uv_handle); }
@@ -353,6 +379,32 @@ public: /*interface*/
   /*! \brief Used to receive handles over the IPC pipe.
       \sa libuv API documentation: [`uv_pipe_pending_type()`](http://docs.libuv.org/en/v1.x/pipe.html#c.uv_pipe_pending_type). */
   stream accept_pending_handle() const;
+
+#if 1
+  /*! \brief _Get_ the size of the send buffer that the operating system uses for the pipe.
+      \sa libuv API documentation: [`uv_send_buffer_size()`](http://docs.libuv.org/en/v1.x/handle.html#c.uv_send_buffer_size). */
+  unsigned int send_buffer_size() const noexcept
+  {
+    unsigned int v = 0;
+    uv_status(::uv_send_buffer_size(static_cast< handle::uv_t* >(uv_handle), (int*)&v));
+    return v;
+  }
+  /*! \brief _Set_ the size of the send buffer that the operating system uses for the pipe.
+      \sa libuv API documentation: [`uv_send_buffer_size()`](http://docs.libuv.org/en/v1.x/handle.html#c.uv_send_buffer_size). */
+  void send_buffer_size(const unsigned int _value) noexcept  { uv_status(::uv_send_buffer_size(static_cast< handle::uv_t* >(uv_handle), (int*)&_value)); }
+
+  /*! \brief _Get_ the size of the receive buffer that the operating system uses for the pipe.
+      \sa libuv API documentation: [`uv_recv_buffer_size()`](http://docs.libuv.org/en/v1.x/handle.html#c.uv_recv_buffer_size). */
+  unsigned int recv_buffer_size() const noexcept
+  {
+    unsigned int v = 0;
+    uv_status(::uv_recv_buffer_size(static_cast< handle::uv_t* >(uv_handle), (int*)&v));
+    return v;
+  }
+  /*! \brief _Set_ the size of the receive buffer that the operating system uses for the pipe.
+      \sa libuv API documentation: [`uv_recv_buffer_size()`](http://docs.libuv.org/en/v1.x/handle.html#c.uv_recv_buffer_size). */
+  void recv_buffer_size(const unsigned int _value) noexcept  { uv_status(::uv_recv_buffer_size(static_cast< handle::uv_t* >(uv_handle), (int*)&_value)); }
+#endif
 
 public: /*conversion operators*/
   explicit operator const uv_t*() const noexcept  { return static_cast< const uv_t* >(uv_handle); }
