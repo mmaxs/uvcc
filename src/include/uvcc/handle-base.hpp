@@ -125,11 +125,12 @@ protected: /*types*/
     typename _Handle_::uv_interface* uv_interface() const noexcept
 #ifndef HACK_UV_INTERFACE_PTR
     { return dynamic_cast/* from virtual base */< typename _Handle_::uv_interface* >(uv_interface_ptr); }
-#else  // for any uv_interface subclass it should be a __vptr-only object with no any data members,
-       // we are also never needed to switch between the actual __vtable targets
-       // as far as uv_interface subclasses don't override virtual functions defined in their base classes,
-       // so we can just use __vptr from the concrete uv_interface leaf subclass object
-       // and simply interpret it according to one of the desired uv_interface base class context
+#else
+    /* for any uv_interface subclass it should be a __vptr-only object with no any data members,
+       there is also no needs to switch between the actual __vtable targets
+       as far as uv_interface subclasses don't override virtual functions defined in their base classes,
+       so we can just use __vptr from the concrete uv_interface leaf subclass object
+       and simply interpret it according to the one of the desired uv_interface base class context */
     { return uv_interface_ptr; }
 #endif
 
