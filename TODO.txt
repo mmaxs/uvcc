@@ -7,109 +7,109 @@ http://docs.libuv.org/en/v1.x/design.html#the-i-o-loop
 http://docs.libuv.org/en/v1.x/design.html#file-i-o
 
 [errors]
-http://docs.libuv.org/en/v1.x/errors.html#error-handling
-http://docs.libuv.org/en/v1.x/errors.html#error-constants
-  http://docs.libuv.org/en/v1.x/errors.html#c.UV_E2BIG
-  http://docs.libuv.org/en/v1.x/errors.html#c.UV_EACCES
-  http://docs.libuv.org/en/v1.x/errors.html#c.UV_EADDRINUSE
-  http://docs.libuv.org/en/v1.x/errors.html#c.UV_EADDRNOTAVAIL
-  http://docs.libuv.org/en/v1.x/errors.html#c.UV_EAFNOSUPPORT
-  http://docs.libuv.org/en/v1.x/errors.html#c.UV_EAGAIN
-  http://docs.libuv.org/en/v1.x/errors.html#c.UV_EAI_ADDRFAMILY
-  http://docs.libuv.org/en/v1.x/errors.html#c.UV_EAI_AGAIN
-  http://docs.libuv.org/en/v1.x/errors.html#c.UV_EAI_BADFLAGS
-  http://docs.libuv.org/en/v1.x/errors.html#c.UV_EAI_BADHINTS
-  http://docs.libuv.org/en/v1.x/errors.html#c.UV_EAI_CANCELED
-  http://docs.libuv.org/en/v1.x/errors.html#c.UV_EAI_FAIL
-  http://docs.libuv.org/en/v1.x/errors.html#c.UV_EAI_FAMILY
-  http://docs.libuv.org/en/v1.x/errors.html#c.UV_EAI_MEMORY
-  http://docs.libuv.org/en/v1.x/errors.html#c.UV_EAI_NODATA
-  http://docs.libuv.org/en/v1.x/errors.html#c.UV_EAI_NONAME
-  http://docs.libuv.org/en/v1.x/errors.html#c.UV_EAI_OVERFLOW
-  http://docs.libuv.org/en/v1.x/errors.html#c.UV_EAI_PROTOCOL
-  http://docs.libuv.org/en/v1.x/errors.html#c.UV_EAI_SERVICE
-  http://docs.libuv.org/en/v1.x/errors.html#c.UV_EAI_SOCKTYPE
-  http://docs.libuv.org/en/v1.x/errors.html#c.UV_EALREADY
-  http://docs.libuv.org/en/v1.x/errors.html#c.UV_EBADF
-  http://docs.libuv.org/en/v1.x/errors.html#c.UV_EBUSY
-  http://docs.libuv.org/en/v1.x/errors.html#c.UV_ECANCELED
-  http://docs.libuv.org/en/v1.x/errors.html#c.UV_ECHARSET
-  http://docs.libuv.org/en/v1.x/errors.html#c.UV_ECONNABORTED
-  http://docs.libuv.org/en/v1.x/errors.html#c.UV_ECONNREFUSED
-  http://docs.libuv.org/en/v1.x/errors.html#c.UV_ECONNRESET
-  http://docs.libuv.org/en/v1.x/errors.html#c.UV_EDESTADDRREQ
-  http://docs.libuv.org/en/v1.x/errors.html#c.UV_EEXIST
-  http://docs.libuv.org/en/v1.x/errors.html#c.UV_EFAULT
-  http://docs.libuv.org/en/v1.x/errors.html#c.UV_EFBIG
-  http://docs.libuv.org/en/v1.x/errors.html#c.UV_EHOSTUNREACH
-  http://docs.libuv.org/en/v1.x/errors.html#c.UV_EINTR
-  http://docs.libuv.org/en/v1.x/errors.html#c.UV_EINVAL
-  http://docs.libuv.org/en/v1.x/errors.html#c.UV_EIO
-  http://docs.libuv.org/en/v1.x/errors.html#c.UV_EISCONN
-  http://docs.libuv.org/en/v1.x/errors.html#c.UV_EISDIR
-  http://docs.libuv.org/en/v1.x/errors.html#c.UV_ELOOP
-  http://docs.libuv.org/en/v1.x/errors.html#c.UV_EMFILE
-  http://docs.libuv.org/en/v1.x/errors.html#c.UV_EMSGSIZE
-  http://docs.libuv.org/en/v1.x/errors.html#c.UV_ENAMETOOLONG
-  http://docs.libuv.org/en/v1.x/errors.html#c.UV_ENETDOWN
-  http://docs.libuv.org/en/v1.x/errors.html#c.UV_ENETUNREACH
-  http://docs.libuv.org/en/v1.x/errors.html#c.UV_ENFILE
-  http://docs.libuv.org/en/v1.x/errors.html#c.UV_ENOBUFS
-  http://docs.libuv.org/en/v1.x/errors.html#c.UV_ENODEV
-  http://docs.libuv.org/en/v1.x/errors.html#c.UV_ENOENT
-  http://docs.libuv.org/en/v1.x/errors.html#c.UV_ENOMEM
-  http://docs.libuv.org/en/v1.x/errors.html#c.UV_ENONET
-  http://docs.libuv.org/en/v1.x/errors.html#c.UV_ENOPROTOOPT
-  http://docs.libuv.org/en/v1.x/errors.html#c.UV_ENOSPC
-  http://docs.libuv.org/en/v1.x/errors.html#c.UV_ENOSYS
-  http://docs.libuv.org/en/v1.x/errors.html#c.UV_ENOTCONN
-  http://docs.libuv.org/en/v1.x/errors.html#c.UV_ENOTDIR
-  http://docs.libuv.org/en/v1.x/errors.html#c.UV_ENOTEMPTY
-  http://docs.libuv.org/en/v1.x/errors.html#c.UV_ENOTSOCK
-  http://docs.libuv.org/en/v1.x/errors.html#c.UV_ENOTSUP
-  http://docs.libuv.org/en/v1.x/errors.html#c.UV_EPERM
-  http://docs.libuv.org/en/v1.x/errors.html#c.UV_EPIPE
-  http://docs.libuv.org/en/v1.x/errors.html#c.UV_EPROTO
-  http://docs.libuv.org/en/v1.x/errors.html#c.UV_EPROTONOSUPPORT
-  http://docs.libuv.org/en/v1.x/errors.html#c.UV_EPROTOTYPE
-  http://docs.libuv.org/en/v1.x/errors.html#c.UV_ERANGE
-  http://docs.libuv.org/en/v1.x/errors.html#c.UV_EROFS
-  http://docs.libuv.org/en/v1.x/errors.html#c.UV_ESHUTDOWN
-  http://docs.libuv.org/en/v1.x/errors.html#c.UV_ESPIPE
-  http://docs.libuv.org/en/v1.x/errors.html#c.UV_ESRCH
-  http://docs.libuv.org/en/v1.x/errors.html#c.UV_ETIMEDOUT
-  http://docs.libuv.org/en/v1.x/errors.html#c.UV_ETXTBSY
-  http://docs.libuv.org/en/v1.x/errors.html#c.UV_EXDEV
-  http://docs.libuv.org/en/v1.x/errors.html#c.UV_UNKNOWN
-  http://docs.libuv.org/en/v1.x/errors.html#c.UV_EOF
-  http://docs.libuv.org/en/v1.x/errors.html#c.UV_ENXIO
-  http://docs.libuv.org/en/v1.x/errors.html#c.UV_EMLINK
-  http://docs.libuv.org/en/v1.x/errors.html#api
-+ http://docs.libuv.org/en/v1.x/errors.html#c.uv_strerror
-+ http://docs.libuv.org/en/v1.x/errors.html#c.uv_err_name
+- http://docs.libuv.org/en/v1.x/errors.html#error-handling
+= http://docs.libuv.org/en/v1.x/errors.html#error-constants
+- http://docs.libuv.org/en/v1.x/errors.html#c.UV_E2BIG
+- http://docs.libuv.org/en/v1.x/errors.html#c.UV_EACCES
+- http://docs.libuv.org/en/v1.x/errors.html#c.UV_EADDRINUSE
+- http://docs.libuv.org/en/v1.x/errors.html#c.UV_EADDRNOTAVAIL
+- http://docs.libuv.org/en/v1.x/errors.html#c.UV_EAFNOSUPPORT
+- http://docs.libuv.org/en/v1.x/errors.html#c.UV_EAGAIN
+- http://docs.libuv.org/en/v1.x/errors.html#c.UV_EAI_ADDRFAMILY
+- http://docs.libuv.org/en/v1.x/errors.html#c.UV_EAI_AGAIN
+- http://docs.libuv.org/en/v1.x/errors.html#c.UV_EAI_BADFLAGS
+- http://docs.libuv.org/en/v1.x/errors.html#c.UV_EAI_BADHINTS
+- http://docs.libuv.org/en/v1.x/errors.html#c.UV_EAI_CANCELED
+- http://docs.libuv.org/en/v1.x/errors.html#c.UV_EAI_FAIL
+- http://docs.libuv.org/en/v1.x/errors.html#c.UV_EAI_FAMILY
+- http://docs.libuv.org/en/v1.x/errors.html#c.UV_EAI_MEMORY
+- http://docs.libuv.org/en/v1.x/errors.html#c.UV_EAI_NODATA
+- http://docs.libuv.org/en/v1.x/errors.html#c.UV_EAI_NONAME
+- http://docs.libuv.org/en/v1.x/errors.html#c.UV_EAI_OVERFLOW
+- http://docs.libuv.org/en/v1.x/errors.html#c.UV_EAI_PROTOCOL
+- http://docs.libuv.org/en/v1.x/errors.html#c.UV_EAI_SERVICE
+- http://docs.libuv.org/en/v1.x/errors.html#c.UV_EAI_SOCKTYPE
+- http://docs.libuv.org/en/v1.x/errors.html#c.UV_EALREADY
+- http://docs.libuv.org/en/v1.x/errors.html#c.UV_EBADF
+- http://docs.libuv.org/en/v1.x/errors.html#c.UV_EBUSY
+- http://docs.libuv.org/en/v1.x/errors.html#c.UV_ECANCELED
+- http://docs.libuv.org/en/v1.x/errors.html#c.UV_ECHARSET
+- http://docs.libuv.org/en/v1.x/errors.html#c.UV_ECONNABORTED
+- http://docs.libuv.org/en/v1.x/errors.html#c.UV_ECONNREFUSED
+- http://docs.libuv.org/en/v1.x/errors.html#c.UV_ECONNRESET
+- http://docs.libuv.org/en/v1.x/errors.html#c.UV_EDESTADDRREQ
+- http://docs.libuv.org/en/v1.x/errors.html#c.UV_EEXIST
+- http://docs.libuv.org/en/v1.x/errors.html#c.UV_EFAULT
+- http://docs.libuv.org/en/v1.x/errors.html#c.UV_EFBIG
+- http://docs.libuv.org/en/v1.x/errors.html#c.UV_EHOSTUNREACH
+- http://docs.libuv.org/en/v1.x/errors.html#c.UV_EINTR
+- http://docs.libuv.org/en/v1.x/errors.html#c.UV_EINVAL
+- http://docs.libuv.org/en/v1.x/errors.html#c.UV_EIO
+- http://docs.libuv.org/en/v1.x/errors.html#c.UV_EISCONN
+- http://docs.libuv.org/en/v1.x/errors.html#c.UV_EISDIR
+- http://docs.libuv.org/en/v1.x/errors.html#c.UV_ELOOP
+- http://docs.libuv.org/en/v1.x/errors.html#c.UV_EMFILE
+- http://docs.libuv.org/en/v1.x/errors.html#c.UV_EMSGSIZE
+- http://docs.libuv.org/en/v1.x/errors.html#c.UV_ENAMETOOLONG
+- http://docs.libuv.org/en/v1.x/errors.html#c.UV_ENETDOWN
+- http://docs.libuv.org/en/v1.x/errors.html#c.UV_ENETUNREACH
+- http://docs.libuv.org/en/v1.x/errors.html#c.UV_ENFILE
+- http://docs.libuv.org/en/v1.x/errors.html#c.UV_ENOBUFS
+- http://docs.libuv.org/en/v1.x/errors.html#c.UV_ENODEV
+- http://docs.libuv.org/en/v1.x/errors.html#c.UV_ENOENT
+- http://docs.libuv.org/en/v1.x/errors.html#c.UV_ENOMEM
+- http://docs.libuv.org/en/v1.x/errors.html#c.UV_ENONET
+- http://docs.libuv.org/en/v1.x/errors.html#c.UV_ENOPROTOOPT
+- http://docs.libuv.org/en/v1.x/errors.html#c.UV_ENOSPC
+- http://docs.libuv.org/en/v1.x/errors.html#c.UV_ENOSYS
+- http://docs.libuv.org/en/v1.x/errors.html#c.UV_ENOTCONN
+- http://docs.libuv.org/en/v1.x/errors.html#c.UV_ENOTDIR
+- http://docs.libuv.org/en/v1.x/errors.html#c.UV_ENOTEMPTY
+- http://docs.libuv.org/en/v1.x/errors.html#c.UV_ENOTSOCK
+- http://docs.libuv.org/en/v1.x/errors.html#c.UV_ENOTSUP
+- http://docs.libuv.org/en/v1.x/errors.html#c.UV_EPERM
+- http://docs.libuv.org/en/v1.x/errors.html#c.UV_EPIPE
+- http://docs.libuv.org/en/v1.x/errors.html#c.UV_EPROTO
+- http://docs.libuv.org/en/v1.x/errors.html#c.UV_EPROTONOSUPPORT
+- http://docs.libuv.org/en/v1.x/errors.html#c.UV_EPROTOTYPE
+- http://docs.libuv.org/en/v1.x/errors.html#c.UV_ERANGE
+- http://docs.libuv.org/en/v1.x/errors.html#c.UV_EROFS
+- http://docs.libuv.org/en/v1.x/errors.html#c.UV_ESHUTDOWN
+- http://docs.libuv.org/en/v1.x/errors.html#c.UV_ESPIPE
+- http://docs.libuv.org/en/v1.x/errors.html#c.UV_ESRCH
+- http://docs.libuv.org/en/v1.x/errors.html#c.UV_ETIMEDOUT
+- http://docs.libuv.org/en/v1.x/errors.html#c.UV_ETXTBSY
+- http://docs.libuv.org/en/v1.x/errors.html#c.UV_EXDEV
+- http://docs.libuv.org/en/v1.x/errors.html#c.UV_UNKNOWN
+- http://docs.libuv.org/en/v1.x/errors.html#c.UV_EOF
+- http://docs.libuv.org/en/v1.x/errors.html#c.UV_ENXIO
+- http://docs.libuv.org/en/v1.x/errors.html#c.UV_EMLINK
+= http://docs.libuv.org/en/v1.x/errors.html#api
+- http://docs.libuv.org/en/v1.x/errors.html#c.uv_strerror
+- http://docs.libuv.org/en/v1.x/errors.html#c.uv_err_name
 
 [version]
-  http://docs.libuv.org/en/v1.x/version.html#version-checking-macros-and-functions
-  http://docs.libuv.org/en/v1.x/version.html#macros
-  http://docs.libuv.org/en/v1.x/version.html#c.UV_VERSION_MAJOR
-  http://docs.libuv.org/en/v1.x/version.html#c.UV_VERSION_MINOR
-  http://docs.libuv.org/en/v1.x/version.html#c.UV_VERSION_PATCH
-  http://docs.libuv.org/en/v1.x/version.html#c.UV_VERSION_IS_RELEASE
-  http://docs.libuv.org/en/v1.x/version.html#c.UV_VERSION_SUFFIX
-  http://docs.libuv.org/en/v1.x/version.html#c.UV_VERSION_HEX
-  http://docs.libuv.org/en/v1.x/version.html#functions
-  http://docs.libuv.org/en/v1.x/version.html#c.uv_version
-  http://docs.libuv.org/en/v1.x/version.html#c.uv_version_string
+- http://docs.libuv.org/en/v1.x/version.html#version-checking-macros-and-functions
+= http://docs.libuv.org/en/v1.x/version.html#macros
+- http://docs.libuv.org/en/v1.x/version.html#c.UV_VERSION_MAJOR
+- http://docs.libuv.org/en/v1.x/version.html#c.UV_VERSION_MINOR
+- http://docs.libuv.org/en/v1.x/version.html#c.UV_VERSION_PATCH
+- http://docs.libuv.org/en/v1.x/version.html#c.UV_VERSION_IS_RELEASE
+- http://docs.libuv.org/en/v1.x/version.html#c.UV_VERSION_SUFFIX
+- http://docs.libuv.org/en/v1.x/version.html#c.UV_VERSION_HEX
+= http://docs.libuv.org/en/v1.x/version.html#functions
+- http://docs.libuv.org/en/v1.x/version.html#c.uv_version
+- http://docs.libuv.org/en/v1.x/version.html#c.uv_version_string
 
 [loop]
-  http://docs.libuv.org/en/v1.x/loop.html#uv-loop-t-event-loop
-  http://docs.libuv.org/en/v1.x/loop.html#data-types
++ http://docs.libuv.org/en/v1.x/loop.html#uv-loop-t-event-loop
+= http://docs.libuv.org/en/v1.x/loop.html#data-types
 + http://docs.libuv.org/en/v1.x/loop.html#c.uv_loop_t
-  http://docs.libuv.org/en/v1.x/loop.html#c.uv_run_mode
++ http://docs.libuv.org/en/v1.x/loop.html#c.uv_run_mode
 + http://docs.libuv.org/en/v1.x/loop.html#c.uv_walk_cb
-  http://docs.libuv.org/en/v1.x/loop.html#public-members
+= http://docs.libuv.org/en/v1.x/loop.html#public-members
 + http://docs.libuv.org/en/v1.x/loop.html#c.uv_loop_t.data
-  http://docs.libuv.org/en/v1.x/loop.html#api
+= http://docs.libuv.org/en/v1.x/loop.html#api
 + http://docs.libuv.org/en/v1.x/loop.html#c.uv_loop_init
 + http://docs.libuv.org/en/v1.x/loop.html#c.uv_loop_configure
 + http://docs.libuv.org/en/v1.x/loop.html#c.uv_loop_close
@@ -125,40 +125,40 @@ http://docs.libuv.org/en/v1.x/errors.html#error-constants
 + http://docs.libuv.org/en/v1.x/loop.html#c.uv_walk
 
 [handle]
-http://docs.libuv.org/en/v1.x/handle.html#uv-handle-t-base-handle
-http://docs.libuv.org/en/v1.x/handle.html#data-types
-http://docs.libuv.org/en/v1.x/handle.html#c.uv_handle_t
-http://docs.libuv.org/en/v1.x/handle.html#c.uv_any_handle
-http://docs.libuv.org/en/v1.x/handle.html#c.uv_alloc_cb
-http://docs.libuv.org/en/v1.x/handle.html#c.uv_close_cb
-http://docs.libuv.org/en/v1.x/handle.html#public-members
-http://docs.libuv.org/en/v1.x/handle.html#c.uv_handle_t.loop
-http://docs.libuv.org/en/v1.x/handle.html#c.uv_handle_t.data
-http://docs.libuv.org/en/v1.x/handle.html#api
-http://docs.libuv.org/en/v1.x/handle.html#c.uv_is_active
-http://docs.libuv.org/en/v1.x/handle.html#c.uv_is_closing
-http://docs.libuv.org/en/v1.x/handle.html#c.uv_close
-http://docs.libuv.org/en/v1.x/handle.html#c.uv_ref
-http://docs.libuv.org/en/v1.x/handle.html#c.uv_unref
-http://docs.libuv.org/en/v1.x/handle.html#c.uv_has_ref
-http://docs.libuv.org/en/v1.x/handle.html#c.uv_handle_size
-http://docs.libuv.org/en/v1.x/handle.html#miscellaneous-api-functions
-http://docs.libuv.org/en/v1.x/handle.html#c.uv_send_buffer_size
-http://docs.libuv.org/en/v1.x/handle.html#c.uv_recv_buffer_size
-http://docs.libuv.org/en/v1.x/handle.html#c.uv_fileno
-http://docs.libuv.org/en/v1.x/handle.html#reference-counting
++ http://docs.libuv.org/en/v1.x/handle.html#uv-handle-t-base-handle
+= http://docs.libuv.org/en/v1.x/handle.html#data-types
+- http://docs.libuv.org/en/v1.x/handle.html#c.uv_handle_t
+- http://docs.libuv.org/en/v1.x/handle.html#c.uv_any_handle
++ http://docs.libuv.org/en/v1.x/handle.html#c.uv_alloc_cb
++ http://docs.libuv.org/en/v1.x/handle.html#c.uv_close_cb
+= http://docs.libuv.org/en/v1.x/handle.html#public-members
+~ http://docs.libuv.org/en/v1.x/handle.html#c.uv_handle_t.loop
+~ http://docs.libuv.org/en/v1.x/handle.html#c.uv_handle_t.data
+= http://docs.libuv.org/en/v1.x/handle.html#api
++ http://docs.libuv.org/en/v1.x/handle.html#c.uv_is_active
++ http://docs.libuv.org/en/v1.x/handle.html#c.uv_is_closing
++ http://docs.libuv.org/en/v1.x/handle.html#c.uv_close
+- http://docs.libuv.org/en/v1.x/handle.html#c.uv_ref
+- http://docs.libuv.org/en/v1.x/handle.html#c.uv_unref
+- http://docs.libuv.org/en/v1.x/handle.html#c.uv_has_ref
+- http://docs.libuv.org/en/v1.x/handle.html#c.uv_handle_size
+= http://docs.libuv.org/en/v1.x/handle.html#miscellaneous-api-functions
++ http://docs.libuv.org/en/v1.x/handle.html#c.uv_send_buffer_size
++ http://docs.libuv.org/en/v1.x/handle.html#c.uv_recv_buffer_size
++ http://docs.libuv.org/en/v1.x/handle.html#c.uv_fileno
++ http://docs.libuv.org/en/v1.x/handle.html#reference-counting
 
 [request]
-http://docs.libuv.org/en/v1.x/request.html#uv-req-t-base-request
-http://docs.libuv.org/en/v1.x/request.html#data-types
-http://docs.libuv.org/en/v1.x/request.html#c.uv_req_t
-http://docs.libuv.org/en/v1.x/request.html#c.uv_any_req
-http://docs.libuv.org/en/v1.x/request.html#public-members
-http://docs.libuv.org/en/v1.x/request.html#c.uv_req_t.data
-http://docs.libuv.org/en/v1.x/request.html#c.uv_req_t.type
-http://docs.libuv.org/en/v1.x/request.html#api
-http://docs.libuv.org/en/v1.x/request.html#c.uv_cancel
-http://docs.libuv.org/en/v1.x/request.html#c.uv_req_size
++ http://docs.libuv.org/en/v1.x/request.html#uv-req-t-base-request
+= http://docs.libuv.org/en/v1.x/request.html#data-types
+- http://docs.libuv.org/en/v1.x/request.html#c.uv_req_t
+- http://docs.libuv.org/en/v1.x/request.html#c.uv_any_req
+= http://docs.libuv.org/en/v1.x/request.html#public-members
+~ http://docs.libuv.org/en/v1.x/request.html#c.uv_req_t.data
++ http://docs.libuv.org/en/v1.x/request.html#c.uv_req_t.type
+= http://docs.libuv.org/en/v1.x/request.html#api
++ http://docs.libuv.org/en/v1.x/request.html#c.uv_cancel
+- http://docs.libuv.org/en/v1.x/request.html#c.uv_req_size
 
 [timer]
 http://docs.libuv.org/en/v1.x/timer.html#uv-timer-t-timer-handle
@@ -412,8 +412,8 @@ http://docs.libuv.org/en/v1.x/fs_poll.html#c.uv_fs_poll_getpath
 + http://docs.libuv.org/en/v1.x/fs.html#c.uv_fs_type
 + http://docs.libuv.org/en/v1.x/fs.html#c.uv_dirent_t
 = http://docs.libuv.org/en/v1.x/fs.html#public-members
-- http://docs.libuv.org/en/v1.x/fs.html#c.uv_fs_t.loop
-- http://docs.libuv.org/en/v1.x/fs.html#c.uv_fs_t.fs_type
+~ http://docs.libuv.org/en/v1.x/fs.html#c.uv_fs_t.loop
+~ http://docs.libuv.org/en/v1.x/fs.html#c.uv_fs_t.fs_type
 + http://docs.libuv.org/en/v1.x/fs.html#c.uv_fs_t.path
 - http://docs.libuv.org/en/v1.x/fs.html#c.uv_fs_t.result
 + http://docs.libuv.org/en/v1.x/fs.html#c.uv_fs_t.statbuf
@@ -456,7 +456,7 @@ http://docs.libuv.org/en/v1.x/fs_poll.html#c.uv_fs_poll_getpath
 - http://docs.libuv.org/en/v1.x/threadpool.html#c.uv_work_t
 + http://docs.libuv.org/en/v1.x/threadpool.html#c.uv_work_cb
 + http://docs.libuv.org/en/v1.x/threadpool.html#c.uv_after_work_cb
-- http://docs.libuv.org/en/v1.x/threadpool.html#public-members
+= http://docs.libuv.org/en/v1.x/threadpool.html#public-members
 - http://docs.libuv.org/en/v1.x/threadpool.html#c.uv_work_t.loop
 = http://docs.libuv.org/en/v1.x/threadpool.html#api
 + http://docs.libuv.org/en/v1.x/threadpool.html#c.uv_queue_work
@@ -469,11 +469,11 @@ http://docs.libuv.org/en/v1.x/fs_poll.html#c.uv_fs_poll_getpath
 - http://docs.libuv.org/en/v1.x/dns.html#c.uv_getnameinfo_t
 + http://docs.libuv.org/en/v1.x/dns.html#c.uv_getnameinfo_cb
 = http://docs.libuv.org/en/v1.x/dns.html#public-members
-- http://docs.libuv.org/en/v1.x/dns.html#c.uv_getaddrinfo_t.loop
-- http://docs.libuv.org/en/v1.x/dns.html#c.uv_getaddrinfo_t.addrinfo
-- http://docs.libuv.org/en/v1.x/dns.html#c.uv_getnameinfo_t.loop
-- http://docs.libuv.org/en/v1.x/dns.html#c.uv_getnameinfo_t.host
-- http://docs.libuv.org/en/v1.x/dns.html#c.uv_getnameinfo_t.service
+~ http://docs.libuv.org/en/v1.x/dns.html#c.uv_getaddrinfo_t.loop
+~ http://docs.libuv.org/en/v1.x/dns.html#c.uv_getaddrinfo_t.addrinfo
+~ http://docs.libuv.org/en/v1.x/dns.html#c.uv_getnameinfo_t.loop
+~ http://docs.libuv.org/en/v1.x/dns.html#c.uv_getnameinfo_t.host
+~ http://docs.libuv.org/en/v1.x/dns.html#c.uv_getnameinfo_t.service
 = http://docs.libuv.org/en/v1.x/dns.html#api
 + http://docs.libuv.org/en/v1.x/dns.html#c.uv_getaddrinfo
 - http://docs.libuv.org/en/v1.x/dns.html#c.uv_freeaddrinfo
