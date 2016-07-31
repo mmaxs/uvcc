@@ -3,34 +3,40 @@
 
 typedef void (*foo_t)();
 
-void test(foo_t)
+void test(foo_t, foo_t)
 {}
 
 template< typename >
 struct A
 {
-  template< typename = void > static void foo();
+  template< typename = void > static void foo1();
+  template< typename = void > static void foo2();
 
   void bar()
   {
-    test(foo);
+    test(foo1, foo2<>);
   }
 
   template< typename >
   void baz()
   {
-    test(foo);
+    test(foo1<>, foo2);
   }
 };
 
 template< typename _T_ >
 template< typename >
-void A< _T_ >::foo()
+void A< _T_ >::foo1()
+{}
+
+template< typename _T_ >
+template< typename >
+void A< _T_ >::foo2()
 {}
 
 #else
 
-template< typename >
+template< typename = void >
 struct Outer
 {
   template< typename >
@@ -42,7 +48,9 @@ template< typename _T_ >
 class Outer< _T_ >::Inner< _T_ >
 {};
 
-template struct Outer< int >::Inner< int >;
+template struct Outer< void >::Inner< void >;
 
 #endif
+
+int main() {}
 
