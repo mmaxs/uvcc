@@ -110,7 +110,7 @@ public: /*interface*/
     uv_status(0);
     int ret = ::uv_queue_work(
         static_cast< uv::loop::uv_t* >(_loop), static_cast< uv_t* >(uv_req),
-        work_cb, after_work_cb
+        work_cb<>, after_work_cb<>
     );
     if (!ret)  uv_status(ret);
     return ret;
