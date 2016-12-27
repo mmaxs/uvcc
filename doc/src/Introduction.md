@@ -16,8 +16,8 @@ these uvcc classes are designed with the use of a reference counting technique:
 * `uv::request`
 * `uv::loop`
 
-This means that the variables for one of these types are just pointers to an object instance created on the heap
-and have a semantics analogous to `std::shared_ptr`.
+This means that the variables for one of these types are just pointers to object instances created on the heap
+and have semantics analogous to `std::shared_ptr`.
 A newly created variable produces a new object got instantiated on the heap with initial reference count value equal to one.
 Copying this variable to another or passing it by value as a function argument just copies the pointer and increases the reference
 count of the object instance. If the variable goes out of scope of its definition and gets destroyed then the reference count of
@@ -294,7 +294,8 @@ It demonstrates the following points:
 
 1. Different I/O endpoints and common input/output operations for them can be handled in a generic uniform manner.
 The program can deal with `stdin`, `stdout` handles that can be system descriptors of any sort of supported I/O endpoints:
-a file, TCP/UDP socket, pipe, or TTY. Minimal changes need to be made in source code to get a full-fledged application.
+a file, TCP/UDP socket, pipe, or TTY. Minimal changes relative to the previous example for _cpio_ program need to be made
+in source code to get a full-fledged application.
 
 2. The very same uvcc buffer can be easily dispatched to several asynchronous operations and its lifetime
 will continue until the last operation has completed.

@@ -116,8 +116,8 @@ public: /*interface*/
        `uv::udp`                       | `udp_send::run(static_cast< uv::udp& >(_io), _buf, *static_cast< const udp::io_info* >(_info)->peer)`
 
       \note Employing this function can be practical within a `io::on_read_t` callback <em>when the type of the I/O
-      endpoint that output request is going to be run on is of the same type, as one the `io::on_read_t` callback
-      is called for</em> as far as the `_offset` and `_info` arguments are interpreted in the same way as they are
+      endpoint that the output request is going to be run on is of the same type, as the one the `io::on_read_t` callback
+      is called for</em> because the `_offset` and `_info` arguments are interpreted in the same way as when they have been
       passed into the `io::on_read_t` callback but for determining supplemental parameters for output operation.
       In any case the `output` request can be static-casted to the desired _request_ type corresponding to the output
       I/O endpoint and then the one of the _request_`::run()` available functions can be used. */
