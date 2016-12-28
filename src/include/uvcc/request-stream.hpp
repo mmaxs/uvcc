@@ -16,7 +16,7 @@ namespace uv
 {
 
 
-/*! \ingroup doxy_group_request
+/*! \ingroup doxy_group__request
     \brief Stream connect request type.
     \sa libuv API documentation: [`uv_stream_t — Stream handle`](http://docs.libuv.org/en/v1.x/stream.html#uv-stream-t-stream-handle),\n
                                  [`uv_tcp_t — TCP handle`](http://docs.libuv.org/en/v1.x/tcp.html#uv-tcp-t-tcp-handle),\n
@@ -116,7 +116,7 @@ void connect::connect_cb(::uv_connect_t *_uv_req, int _status)
 
 
 
-/*! \ingroup doxy_group_request
+/*! \ingroup doxy_group__request
     \brief Stream write request type.
     \sa libuv API documentation: [`uv_stream_t — Stream handle`](http://docs.libuv.org/en/v1.x/stream.html#uv-stream-t-stream-handle). */
 class write : public request
@@ -270,7 +270,7 @@ void write::write2_cb(::uv_write_t *_uv_req, int _status)
 
 
 
-/*! \ingroup doxy_group_request
+/*! \ingroup doxy_group__request
     \brief Stream shutdown request type.
     \sa libuv API documentation: [`uv_stream_t — Stream handle`](http://docs.libuv.org/en/v1.x/stream.html#uv-stream-t-stream-handle). */
 class shutdown : public request

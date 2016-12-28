@@ -17,8 +17,8 @@
 
 namespace uv
 {
-/*! \defgroup doxy_group_netstruct Network-related structures initialization
-    \ingroup doxy_group_utility
+/*! \defgroup doxy_group__netstruct  Network-related structures initialization
+    \ingroup doxy_group__utility
     \sa Linux: [ip(7):`sockaddr_in`](http://man7.org/linux/man-pages/man7/ip.7.html),
                [ipv6(7):`sockaddr_in6`](http://man7.org/linux/man-pages/man7/ipv6.7.html),
                [socket(7):`sockaddr_storage`](http://man7.org/linux/man-pages/man7/socket.7.html).\n
@@ -134,13 +134,13 @@ inline int init(::sockaddr_storage &_ss, const char *_ip, const char *_port = nu
     - AI_NUMERICSERV
     - AI_PASSIVE
     - AI_V4MAPPED
-
+    .
     Linux only - extensions for Internationalized Domain Names:
     - AI_CANONIDN
     - AI_IDN
     - AI_IDN_ALLOW_UNASSIGNED
     - AI_IDN_USE_STD3_ASCII_RULES
-
+    .
     Windows only:
     - AI_DISABLE_IDN_ENCODING
     - AI_FILESERVER

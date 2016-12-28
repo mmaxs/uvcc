@@ -22,7 +22,7 @@ namespace uv
 {
 
 
-/*! \ingroup doxy_group_handle 
+/*! \ingroup doxy_group__handle
     \brief The base class for the libuv handles.
     \details Derived classes conceptually are just interfaces to the data stored
     in the base class, so there are no any virtual member functions.
@@ -386,7 +386,7 @@ struct handle::uv_fs_interface : virtual uv_interface
 namespace std
 {
 
-//! \ingroup doxy_group_handle
+//! \ingroup doxy_group__handle
 template<> inline void swap(uv::handle &_this, uv::handle &_that) noexcept  { _this.swap(_that); }
 
 }

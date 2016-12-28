@@ -15,7 +15,7 @@ namespace uv
 {
 
 
-/*! \ingroup doxy_group_request
+/*! \ingroup doxy_group__request
     \brief Getaddrinfo request type.
     \sa libuv API documentation: [DNS utility functions](http://docs.libuv.org/en/v1.x/dns.html#dns-utility-functions). */
 class getaddrinfo : public request
@@ -99,7 +99,7 @@ public: /*interface*/
   const ::addrinfo* addrinfo() const noexcept  { return static_cast< uv_t* >(uv_req)->addrinfo; }
 
   /*! \brief Run the request.
-      \details For supplying `_hints` argument the appropriate helper function for \ref doxy_group_netstruct can be utilized.
+      \details For supplying `_hints` argument the appropriate helper function for \ref doxy_group__netstruct can be utilized.
       \sa libuv API documentation: [`uv_getaddrinfo()`](http://docs.libuv.org/en/v1.x/dns.html#c.uv_getaddrinfo).
       \note If the request callback is empty (has not been set), the request runs _synchronously_
       (and `_loop` parameter is ignored). */
@@ -132,7 +132,7 @@ void getaddrinfo::getaddrinfo_cb(::uv_getaddrinfo_t *_uv_req, int _status, ::add
 
 
 
-/*! \ingroup doxy_group_request
+/*! \ingroup doxy_group__request
     \brief Getnameinfo request type.
     \sa libuv API documentation: [DNS utility functions](http://docs.libuv.org/en/v1.x/dns.html#dns-utility-functions). */
 class getnameinfo : public request

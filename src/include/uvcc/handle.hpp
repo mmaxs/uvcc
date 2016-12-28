@@ -14,7 +14,7 @@
 
 namespace uv
 {
-/*! \defgroup doxy_group_handle Handles
+/*! \defgroup doxy_group__handle  Handles
     \brief The classes representing libuv handles. */
 
 
@@ -38,8 +38,8 @@ class signal;
 
 
 
-/*! \defgroup doxy_group_handle_traits uv_handle_traits< typename >
-    \ingroup doxy_group_handle
+/*! \defgroup doxy_group__handle_traits  uv_handle_traits< typename >
+    \ingroup doxy_group__handle
     \brief The correspondence between libuv handle data types and C++ classes representing them. */
 //! \{
 //! \cond

@@ -1,20 +1,27 @@
 
+
+
+/*! \page doxy_page__introduction  Introduction
+
 uvcc is C++ bindings for libuv.
 
 \sa _docs.libuv.org_: [libuv API documentation](http://docs.libuv.org/en/v1.x/)\n
     _nikhilm.github.io/uvbook_: [An Introduction to libuv](http://nikhilm.github.io/uvbook)\n
     _github.com/thlorenz/libuv-dox_: [Documenting types and methods of libuv, mostly by reading  uv.h](https://github.com/thlorenz/libuv-dox)
 
+*/
 
-\page doxy_page_ref_counting Objects with reference counting semantics
 
+
+/*! \page doxy_page__ref_counting  Objects with reference counting semantics
 
 To implement automatic memory management for the objects involved in libuv API function calls and user callbacks
 these uvcc classes are designed with the use of a reference counting technique:
-* `uv::buffer`
-* `uv::handle`
-* `uv::request`
-* `uv::loop`
+- `uv::buffer`
+- `uv::handle`
+- `uv::request`
+- `uv::loop`
+.
 
 This means that the variables for one of these types are just pointers to object instances created on the heap
 and have semantics analogous to `std::shared_ptr`.
@@ -27,22 +34,25 @@ is automatically released when the last variable referencing the object is destr
 
 \sa Considerations on reference-counted objects in [libcxx](http://www.libcxx.org/refobj.html) documentation on _www.libcxx.org_.
 
+*/
 
 
 
-\page doxy_page_destroy_cb Destroy callbacks
+/*! \page doxy_page__destroy_cb  Destroy callbacks
 
 The following libuv types provide a field which is a pointer to the user-defined arbitrary data
 that can be associated with the libuv object:
-* [`uv_handle_t.data`](http://docs.libuv.org/en/v1.x/handle.html#c.uv_handle_t.data),
-* [`uv_req_t.data`](http://docs.libuv.org/en/v1.x/request.html#c.uv_req_t.data),
-* [`uv_loop_t.data`](http://docs.libuv.org/en/v1.x/loop.html#c.uv_loop_t.data).
+- [`uv_handle_t.data`](http://docs.libuv.org/en/v1.x/handle.html#c.uv_handle_t.data),
+- [`uv_req_t.data`](http://docs.libuv.org/en/v1.x/request.html#c.uv_req_t.data),
+- [`uv_loop_t.data`](http://docs.libuv.org/en/v1.x/loop.html#c.uv_loop_t.data).
+.
 
 Each of the uvcc classes representing these libuv types provides a destroy callback that is called when the reference count
 for the object instance becomes zero:
-* `uv::handle::on_destroy_t`
-* `uv::request::on_destroy_t`
-* `uv::loop::on_destroy_t`
+- `uv::handle::on_destroy_t`
+- `uv::request::on_destroy_t`
+- `uv::loop::on_destroy_t`
+.
 
 The callback is intended to give the option to manipulate the user-defined data associated with the object
 through the `.data` pointer before the last variable referencing this object has been destroyed.
@@ -59,139 +69,31 @@ variable's destructor.
 For the other two classes (`uv::request` and `uv::loop`) the destroy callbacks are a uvcc specific feature and they are executed
 as part of the variable's destructor.
 
+*/
 
 
 
-\addtogroup doxy_group_buffer
-\details
-[`uv_buf_t`]: http://docs.libuv.org/en/latest/misc.html#c.uv_buf_t "libuv"
-[`iovec`]: http://man7.org/linux/man-pages/man2/readv.2.html "readv(2)"
-[`WSABUF`]: https://msdn.microsoft.com/en-us/library/ms741542(v=vs.85).aspx "MSDN"
-
-libuv uses the [`uv_buf_t`] structure to describe the I/O buffer. It is made up in accordance with
-system depended type [`iovec`] on Unix-like OSes and with [`WSABUF`] on Windows. An array of
-`uv_buf_t` structures is used to allow writing multiple buffers in a single `uv::write` request.
-
-The class `uv::buffer` encapsulates `uv_buf_t` structure and provides `uv_buf_t[]` array functionality.
-\see documentation for `uv::buffer` constructors.
-
-For the following example here is the diagram illustrating the internals of the `uv::buffer` object while executing `foo(BUF)`:
-```
-buffer BUF{100, 200, 0, 300};
-
-void foo(buffer _b)  { /*...*/ }
-
-int main() {
-  foo(BUF);
-}
-```
-\verbatim
-
-         BUF                         buffer::instance
- ╔═══════════════╗       ╔═════════════════════════════════════╗
- ║ uv_buf_t* ptr ╫────┐  ║ ref_count refs = 2                  ║
- ╚═══════════════╝    │  ╟─────────────────────────────────────╢
-                      │  ║ size_t    buf_count = 4             ║
-                      │  ╟─────────────────┬───────────────────╢
-         _b        ┌─►└─►║ uv_buf_t buf[0] │ char*  .base      ╫───┐
- ╔═══════════════╗ │     ║                 │ size_t .len = 100 ║   │
- ║ uv_buf_t* ptr ╫─┘     ╚═════════════════╧═══════════════════╝   │
- ╚═══════════════╝       │ uv_buf_t buf[1] │ char*  .base      ┼───│───┐
-                         │                 │ size_t .len = 200 │   │   │
-                         ├─────────────────┼───────────────────┤   │   │
-                         │ uv_buf_t buf[2] │ char*  .base      ┼───│───│───┐
-                         │                 │ size_t .len = 0   │   │   │   │
-                         ├─────────────────┼───────────────────┤   │   │   │
-                         │ uv_buf_t buf[3] │ char*  .base      ┼───│───│───│───┐
-                         │                 │ size_t .len = 300 │   │   │   │   │
-                         ├─────────────────┴───────────────────┤   │   │   │   │
-                         │ ... std::max_align_t padding ...    │   │   │   │   │
-                         ├─────────────────────────────────────┤   │   │   │   │
-                         │                                     │◄──┘   │   │   │
-                         │ ... 100 bytes ...                   │       │   │   │
-                         │                                     │       │   │   │
-                         ├─────────────────────────────────────┤       │   │   │
-                         │                                     │◄──────┘   │   │
-                         │                                     │           │   │
-                         │ ... 200 bytes ...                   │           │   │
-                         │                                     │           │   │
-                         │                                     │           │   │
-                         ├─────────────────────────────────────┤           │   │
-                         │                                     │◄──────────┘◄──┘
-                         │                                     │
-                         │                                     │
-                         │ ... 300 bytes ...                   │
-                         │                                     │
-                         │                                     │
-                         │                                     │
-                         └─────────────────────────────────────┘
-\endverbatim                            
-                            
-[ ]: # "▲ ► ▼ ◄"
-[ ]: # "─ │ ┌ ┐ └ ┘ ├ ┤ ┬ ┴ ┼"
-[ ]: # "═ ║ ╒ ╓ ╔ ╕ ╖ ╗ ╘ ╙ ╚ ╛ ╜ ╝ ╞ ╟ ╠ ╡ ╢ ╣ ╤ ╥ ╦ ╧ ╨ ╩ ╪ ╫ ╬"
-
-The default constructor `uv::buffer::buffer()` creates a _null-initialized_ `uv_buf_t` structure.
-One can manually fill in a _null-initialized_ `uv_buf_t` structure to make it pointing to manually allocated memory
-area in the following ways:
-```
-buffer buf;
-
-const size_t len = /*...*/
-
-buf[0] = uv_buf_init(new char[len], len);
-
-// or
-
-buf.base() = new char[len];
-buf.len() = len;
-```
-\warning Do not return such a manually initialized `buffer` objects from the buffer allocation callbacks (of
-`uv::on_buffer_alloc_t` function type) that should be passed to `io::read_start()` and `udp::recv_start()` functions.
-Merely a copy of the first `uv_buf_t` structure held in a `buffer` object is passed to libuv API functions and there
-is no way to reconstruct the `buffer` object's address (which is needed for the uvcc reference counting mechanism to
-work properly) from the `uv_buf_t.base` pointer referencing the manually allocated external memory.
-\warning Also, the `buffer` objects that contain an array of `uv_buf_t` structures are not supported as a valid result
-of the `uv::on_buffer_alloc_t` callback functions. Only a single `uv_buf_t` structure in a `buffer` object is currently
-supported for the purposes of the `io::read_start()` and `udp::recv_start()` functions.
-
-\sa libuv documentation: [`uv_buf_init()`](http://docs.libuv.org/en/v1.x/misc.html#c.uv_buf_init).
-
-
-
-
-\addtogroup doxy_group_handle
-\details
-\note uvcc handle objects have no interface functions corresponding to the following libuv API functions that control
-whether a handle is [referenced by the event loop](http://docs.libuv.org/en/v1.x/handle.html#reference-counting)
-which it has been attached to while being created and where it is running on:
-[`uv_ref()`](http://docs.libuv.org/en/v1.x/handle.html#c.uv_ref),
-[`uv_unref()`](http://docs.libuv.org/en/v1.x/handle.html#c.uv_unref),
-[`uv_has_ref()`](http://docs.libuv.org/en/v1.x/handle.html#c.uv_has_ref).
-These libuv functions can be directly applied to uvcc handle objects
-(using explicit `static_cast< uv_handle_t* >()` operator for the handle object variable) if necessary.
-
-
-
-
-\page doxy_page_example Examples
+/*! \page doxy_page__examples  Examples
 
 uvcc sources are accompanied with several illustrative example programs the source code of which can be found in the
 /example subdirectory.
 
-* \subpage doxy_page_example_lxjs2012 "lxjs2012-demo" - an example used by Bert Belder at LXJS 2012 to demonstrate the libuv basics.\n
-                                      It shows how uvcc simplifies the code.
+- \subpage doxy_page__example_lxjs2012  "lxjs2012-demo" - an example used by Bert Belder at LXJS 2012 to demonstrate the libuv basics.\n
+                                        It shows how uvcc simplifies the code.
 
-* \subpage doxy_page_example_cpio "cpio" - a simple program that copies its `stdin` to `stdout`.\n
-                                  It shows some essential points that one comes across with when beginning to develop
-                                  programs using libuv and how uvcc address them.
+- \subpage doxy_page__example_cpio  "cpio" - a simple program that copies its `stdin` to `stdout`.\n
+                                    It shows some essential points that one comes across with when beginning to develop
+                                    programs using libuv and how uvcc address them.
 
-* \subpage doxy_page_example_tee "tee" - a program that copies its `stdin` to `stdout` and also to each file specified as a program argument.\n
-                                 It demonstrates uvcc features and simple version of the buffer pool that can avoid intense memory
-                                 allocation requests.
+- \subpage doxy_page__example_tee   "tee" - a program that copies its `stdin` to `stdout` and also to each file specified as a program argument.\n
+                                    It demonstrates uvcc features and simple version of the buffer pool that can avoid intense memory
+                                    allocation requests.
+.
+
+*/
 
 
-\page doxy_page_example_lxjs2012 lxjs2012-demo
+/*! \page doxy_page__example_lxjs2012  lxjs2012-demo
 
 The example used by Bert Belder at LXJS 2012 to introduce the libuv basics.
 \sa Video at _youtube.com_: ["LXJS 2012 - Bert Belder - libuv"](http://www.youtube.com/watch?v=nGn60vDSxQ4).
@@ -223,9 +125,11 @@ keeps reading from the remote peer until it closes the connection.
 \verbatim example/hello-tcp-client.cpp \endverbatim
 \includelineno hello-tcp-client.cpp
 
+*/
 
 
-\page doxy_page_example_cpio cpio
+
+/*! \page doxy_page__example_cpio  cpio
 
 A simple program that copies its `stdin` to `stdout` written in pure C using libuv.
 
@@ -255,7 +159,9 @@ There are some points that should be mentioned:
 The following is the above program being rewritten using uvcc. All the considered points are taken into account by design of uvcc.
 \verbatim example/cpio-uvcc.cpp \endverbatim
 \includelineno cpio-uvcc.cpp
+
 - - -
+
 Here is a performance comparison between the two variants:
 \verbatim
 [mike@u250 /mnt/sda3/wroot/libuv/uvcc/uvcc.git]
@@ -283,10 +189,11 @@ $ cat /dev/zero | build/example/cpio-uvcc | dd of=/dev/null iflag=fullblock bs=1
 \endverbatim
 Obviously there is an impact of reference counting operations and other C++ related overheads that slightly reduce the performance.
 
+*/
 
 
 
-\page doxy_page_example_tee tee
+/*! \page doxy_page__example_tee  tee
 
 A full-fledged simple program that copies its `stdin` to `stdout` and also to each file specified as a program argument.
 
@@ -307,6 +214,7 @@ from the pool in multi-thread environment or such acquire requests from differen
 As far as this program is a typical single-thread libuv application these requirements are fulfilled.
 The condition of item's `(nrefs() == 1)` indicates that no more references are left anywhere at the runtime other than in the pool
 container itself and thus this spare item can be returned on an acquire request.
+.
 
 In debug build some diagnostic messages are printed out.
 
@@ -315,10 +223,11 @@ In debug build some diagnostic messages are printed out.
 \verbatim example/tee.cpp \endverbatim
 \includelineno tee.cpp
 
+*/
 
 
 
-\page doxy_page_compiling Compiling
+/*! \page doxy_page__compiling  Compiling
 
 uvcc consists only of header files. You need just to copy files and subfolders from /src/include directory into one of
 the directories being searched for header files in your project and include uvcc.hpp header into your source files.
@@ -344,6 +253,7 @@ before specifying any make target.
 
 All build results will be placed in /build/example subdirectory from the uvcc root directory.
 
+*/
 
 
 

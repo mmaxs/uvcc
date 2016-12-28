@@ -20,7 +20,7 @@ namespace uv
 {
 
 
-/*! \ingroup doxy_group_handle
+/*! \ingroup doxy_group__handle
     \brief The open file handle. */
 class file : public io
 {

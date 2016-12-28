@@ -19,9 +19,9 @@ namespace uv
 class handle;
 
 
-/*! \defgroup doxy_group_buffer Buffer for I/O operations */
+/*! \defgroup doxy_group__buffer  Buffer for I/O operations */
 
-/*! \ingroup doxy_group_buffer
+/*! \ingroup doxy_group__buffer
     \brief Encapsulates `uv_buf_t` data type and provides `uv_buf_t[]` functionality. */
 class buffer
 {
@@ -216,13 +216,13 @@ public: /*conversion operators*/
 };
 
 
-/*! \ingroup doxy_group_buffer
+/*! \ingroup doxy_group__buffer
     \brief The function type of the callback called by `io::read_start()` and `udp::recv_start()`...
     \details ...to supply the input operation with a preallocated buffer. The callback should return a `uv::buffer`
     instance initialized with a `_suggested_size` (the value provided by libuv API is a constant of _65536_ bytes)
     or with whatever size, as long as it’s > 0.
     \sa libuv API documentation: [`uv_alloc_cb`](http://docs.libuv.org/en/v1.x/handle.html#c.uv_alloc_cb).
-    \details The following is an example of the trivial ready for general use callback:
+    \details The following is an example of the trivial callback that is ready for general use:
     ```
     buffer alloc_cb(handle, std::size_t _suggested_size)
     {

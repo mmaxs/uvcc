@@ -15,7 +15,7 @@ namespace uv
 {
 
 
-/*! \ingroup doxy_group_request
+/*! \ingroup doxy_group__request
     \brief Work scheduling request type.
     \sa libuv API documentation: [Thread pool work scheduling](http://docs.libuv.org/en/v1.x/threadpool.html#thread-pool-work-scheduling). */
 template< typename _Result_ = void >

@@ -15,7 +15,7 @@
 
 namespace uv
 {
-/*! \defgroup doxy_group_request Requests
+/*! \defgroup doxy_group__request  Requests
     \brief The classes representing libuv requests. */
 
 
@@ -32,8 +32,8 @@ class getnameinfo;
 
 
 
-/*! \defgroup doxy_group_request_traits uv_req_traits< typename >
-    \ingroup doxy_group_request
+/*! \defgroup doxy_group__request_traits  uv_req_traits< typename >
+    \ingroup doxy_group__request
     \brief The correspondence between libuv request data types and C++ classes representing them. */
 //! \{
 //! \cond

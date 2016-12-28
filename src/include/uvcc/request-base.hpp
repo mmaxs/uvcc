@@ -17,7 +17,7 @@ namespace uv
 {
 
 
-/*! \ingroup doxy_group_request
+/*! \ingroup doxy_group__request
     \brief The base class for the libuv requests.
     \details Derived classes conceptually are just interfaces to the data stored
     in the base class, so there are no any virtual member functions.
@@ -217,7 +217,7 @@ public: /*conversion operators*/
 namespace std
 {
 
-//! \ingroup doxy_group_request
+//! \ingroup doxy_group__request
 template<> inline void swap(uv::request &_this, uv::request &_that) noexcept  { _this.swap(_that); }
 
 }

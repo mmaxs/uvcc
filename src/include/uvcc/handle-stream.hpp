@@ -19,7 +19,7 @@ namespace uv
 {
 
 
-/*! \ingroup doxy_group_handle
+/*! \ingroup doxy_group__handle
     \brief Stream handle type.
     \sa libuv API documentation: [`uv_stream_t — Stream handle`](http://docs.libuv.org/en/v1.x/stream.html#uv-stream-t-stream-handle). */
 class stream : public io
@@ -146,7 +146,7 @@ void stream::connection_cb(::uv_stream_t *_uv_stream, int _status)
 
 
 
-/*! \ingroup doxy_group_handle
+/*! \ingroup doxy_group__handle
     \brief TCP handle type.
     \sa libuv API documentation: [`uv_tcp_t — TCP handle`](http://docs.libuv.org/en/v1.x/tcp.html#uv-tcp-t-tcp-handle). */
 class tcp : public stream
@@ -282,7 +282,7 @@ public: /*conversion operators*/
 
 
 
-/*! \ingroup doxy_group_handle
+/*! \ingroup doxy_group__handle
     \brief Pipe handle type.
     \sa libuv API documentation: [`uv_pipe_t — Pipe handle`](http://docs.libuv.org/en/v1.x/pipe.html#uv-pipe-t-pipe-handle). */
 class pipe : public stream
@@ -413,7 +413,7 @@ public: /*conversion operators*/
 
 
 
-/*! \ingroup doxy_group_handle
+/*! \ingroup doxy_group__handle
     \brief TTY handle type.
     \sa libuv API documentation: [`uv_tty_t — TTY handle`](http://docs.libuv.org/en/v1.x/tty.html#uv-tty-t-tty-handle). */
 class tty : public stream

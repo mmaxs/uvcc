@@ -24,7 +24,7 @@ namespace uv
 {
 
 
-/*! \ingroup doxy_group_request
+/*! \ingroup doxy_group__request
     \brief The base calss for filesystem requests.
     \sa libuv API documentation: [Filesystem operations](http://docs.libuv.org/en/v1.x/fs.html#filesystem-operations).
 

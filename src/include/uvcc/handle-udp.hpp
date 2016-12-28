@@ -16,7 +16,7 @@ namespace uv
 {
 
 
-/*! \ingroup doxy_group_handle
+/*! \ingroup doxy_group__handle
     \brief UDP handle type.
     \sa libuv API documentation: [`uv_udp_t — UDP handle`](http://docs.libuv.org/en/v1.x/udp.html#uv-udp-t-udp-handle). */
 class udp : public io

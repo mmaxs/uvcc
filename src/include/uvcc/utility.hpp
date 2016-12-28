@@ -13,7 +13,7 @@
 
 namespace uv
 {
-/*! \defgroup doxy_group_utility Utility structures and definitions
+/*! \defgroup doxy_group__utility  Utility structures and definitions
     \brief The utility definitions to be used throughout the library. */
 //! \{
 
@@ -81,8 +81,8 @@ template< typename _T_ > struct default_destroy
 
 
 
-/*! \defgroup doxy_group_variadic Dealing with type lists and parameter packs */
-//! \addtogroup doxy_group_variadic
+/*! \defgroup doxy_group__variadic  Dealing with type lists and parameter packs */
+//! \addtogroup doxy_group__variadic
 //! \{
 
 /*! \brief The type of an absent entity. Cannot be instantiated.

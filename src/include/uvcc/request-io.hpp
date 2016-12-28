@@ -19,7 +19,7 @@ namespace uv
 {
 
 
-/*! \ingroup doxy_group_request
+/*! \ingroup doxy_group__request
     \brief Generic write/send request type for I/O endpoints (files, TCP/UDP sockets, pipes, TTYs).
     \details Virtually it appears to be a one of the request:
     - `uv::fs::write`
