@@ -97,8 +97,7 @@ example/%:
 .PHONY: doc
 doc:
 	rm -rf doc/html/*
-	doxygen doc/Doxyfile
-	[ -f doc/doxygen_sqlite3.db ] && rm doc/doxygen_sqlite3.db || true
+	doxygen doc/Doxyfile-1.8.12
 
 
 
