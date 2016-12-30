@@ -581,6 +581,7 @@ table.memberdecls {
 .permalink a:hover
 {
 	text-decoration: none;  /* michaelus */
+	color: #3D578C;  /* michaelus */
 }
 
 
@@ -619,6 +620,14 @@ table.memberdecls {
         width: 100%;
 }
 
+.memitem a.el {
+	font-weight: normal;  /* michaelus */
+}
+
+code a.el {
+	font-weight: normal;  /* michaelus */
+}
+
 .memitem.glow {
 	/* box-shadow: 0 0 15px cyan; */
 	box-shadow: 0 0 15px RoyalBlue;  /* michaelus */
@@ -628,9 +637,6 @@ table.memberdecls {
         font-weight: 400;
         margin-left: 6px;
 	font-family: monospace;  /* michaelus */
-}
-.memname a.el {
-	font-weight: normal;  /* michaelus */
 }
 
 .memname td {
