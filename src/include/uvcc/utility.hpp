@@ -147,7 +147,13 @@ template< std::size_t _index_, typename _T_, typename... _Ts_ > struct type_at< 
 
 
 //! \cond
-template< typename _T_ > constexpr inline const _T_& greatest(const _T_& _v)  { return _v; }
+template< typename _T_ >
+constexpr
+inline
+auto greatest(_T_&& _v) -> decltype(_v)  // return _T_ or _T_&
+{
+  return std::forward< _T_ >(_v);
+}
 //! \endcond
 /*! \brief Intended to be used instead of `constexpr T max(std::initializer_list<T>)`...
     \details ...if the latter is not defined of being `constexpr` in the current STL version and therefore
@@ -157,23 +163,50 @@ template< typename _T_ > constexpr inline const _T_& greatest(const _T_& _v)  { 
     While promoting to a common resulting type a temporary local value can be implicitly created by the compiler,
     therefore the function is not able to safely return a reference type result, or else the
     `'warning: returning reference to temporary'` is generated in some use cases. */
-template< typename _T_, typename... _Ts_ > constexpr inline const _T_ greatest(const _T_& _v, const _Ts_&... _vs)
-{ return _v < greatest(_vs...) ? greatest(_vs...) : _v; }
+template< typename _T_, typename... _Ts_ >
+constexpr
+inline
+auto greatest(_T_&& _v, _Ts_&&... _vs) -> std::common_type_t< _T_, _Ts_... >
+{
+  return _v < greatest(std::forward< _Ts_ >(_vs)...) ?
+      greatest(std::forward< _Ts_ >(_vs)...) : std::forward< _T_ >(_v);
+}
 
 //! \cond
-template< typename _T_ > constexpr inline const _T_& lowest(const _T_& _v)  { return _v; }
+template< typename _T_ >
+constexpr
+inline
+auto lowest(_T_&& _v) -> decltype(_v)  // return _T_ or _T_&
+{
+  return std::forward< _T_ >(_v);
+}
 //! \endcond
 /*! \brief The counterpart of `greatest()` */
-template< typename _T_, typename... _Ts_ > constexpr inline const _T_ lowest(const _T_& _v, const _Ts_&... _vs)
-{ return lowest(_vs...) < _v ? lowest(_vs...) : _v; }
+template< typename _T_, typename... _Ts_ >
+constexpr
+inline
+auto lowest(_T_&& _v, _Ts_&&... _vs) -> std::common_type_t< _T_, _Ts_... >
+{
+  return lowest(std::forward< _Ts_ >(_vs)...) < _v ?
+      lowest(std::forward< _Ts_ >(_vs)...) : std::forward< _T_ >(_v);
+}
 
 
 //! \cond
-template< typename _T_ > constexpr auto sum(const _T_& _v) -> typename std::decay< _T_ >::type  { return _v; }
+template< typename _T_ >
+constexpr
+auto sum(_T_&& _v) -> decltype(_v)  // return _T_ or _T_&
+{
+  return std::forward< _T_ >(_v);
+}
 //! \endcond
 /*! \brief Primarily intended for summation of values from parameter packs if fold expressions are not supported. */
-template< typename _T_, typename... _Ts_ > constexpr auto sum(const _T_& _v, const _Ts_&... _vs) -> typename std::common_type< _T_, _Ts_... >::type
-{ return _v + sum(_vs...); }
+template< typename _T_, typename... _Ts_ >
+constexpr
+auto sum(_T_&& _v, _Ts_&&... _vs) -> std::common_type_t< _T_, _Ts_... >
+{
+  return _v + sum(std::forward< _Ts_ >(_vs)...);
+}
 
 // \}
 
