@@ -82,9 +82,7 @@ protected: /*types*/
     typename _Handle_::uv_interface *uv_interface_ptr = nullptr;
 #endif
     //* all the fields placed before should have immutable layout size across the handle class hierarchy *//
-    alignas(static_cast< const int >(
-        greatest(alignof(::uv_any_handle), alignof(::uv_fs_t))
-    )) typename uv_t::type uv_handle_struct = { 0,};
+    alignas(greatest(alignof(::uv_any_handle), alignof(::uv_fs_t))) typename uv_t::type uv_handle_struct = { 0,};
 
   private: /*constructors*/
     instance()

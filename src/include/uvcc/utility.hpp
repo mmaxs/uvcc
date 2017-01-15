@@ -150,7 +150,7 @@ template< std::size_t _index_, typename _T_, typename... _Ts_ > struct type_at< 
 template< typename _T_ >
 constexpr
 inline
-auto greatest(_T_&& _v) -> decltype(_v)  // return _T_ or _T_&
+auto greatest(_T_&& _v) -> decltype(_v)  // return _T_&& or _T_&
 {
   return std::forward< _T_ >(_v);
 }
@@ -168,15 +168,14 @@ constexpr
 inline
 auto greatest(_T_&& _v, _Ts_&&... _vs) -> std::common_type_t< _T_, _Ts_... >
 {
-  return _v < greatest(std::forward< _Ts_ >(_vs)...) ?
-      greatest(std::forward< _Ts_ >(_vs)...) : std::forward< _T_ >(_v);
+  return _v < greatest(std::forward< _Ts_ >(_vs)...) ? greatest(std::forward< _Ts_ >(_vs)...) : _v;
 }
 
 //! \cond
 template< typename _T_ >
 constexpr
 inline
-auto lowest(_T_&& _v) -> decltype(_v)  // return _T_ or _T_&
+auto lowest(_T_&& _v) -> decltype(_v)  // return _T_&& or _T_&
 {
   return std::forward< _T_ >(_v);
 }
@@ -187,15 +186,14 @@ constexpr
 inline
 auto lowest(_T_&& _v, _Ts_&&... _vs) -> std::common_type_t< _T_, _Ts_... >
 {
-  return lowest(std::forward< _Ts_ >(_vs)...) < _v ?
-      lowest(std::forward< _Ts_ >(_vs)...) : std::forward< _T_ >(_v);
+  return lowest(std::forward< _Ts_ >(_vs)...) < _v ? lowest(std::forward< _Ts_ >(_vs)...) : _v;
 }
 
 
 //! \cond
 template< typename _T_ >
 constexpr
-auto sum(_T_&& _v) -> decltype(_v)  // return _T_ or _T_&
+auto sum(_T_&& _v) -> decltype(_v)  // return _T_&& or _T_&
 {
   return std::forward< _T_ >(_v);
 }
