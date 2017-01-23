@@ -63,7 +63,7 @@ endif
 # alternatively, use Makefile.d/link-so.rules which basically do the above but leaving aside CXXFLAGS
 # also when Makefile.d/link-so.rules is used
 # 	if SONAME_VERSION is nonempty LDFLAGS is added with -Wl,-soname=$(notdir $(LDOUT)).$(SONAME_VERSION)
-# 	if SOFILE_VERSION is nonempty linker output is $(LDOUT).$(SOFILE_VERSION)
+# 	if both SONAME_VERSION and SOFILE_VERSION are nonempty linker output is set to $(LDOUT).$(SONAME_VERSION).$(SOFILE_VERSION)
 
 
 # AR common settings and flags

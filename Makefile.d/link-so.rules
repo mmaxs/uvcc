@@ -8,11 +8,11 @@ $(lastword $(MAKEFILE_LIST)): ;
 
 
 $(MAKECMDGOALS): private LDOUT = $(call _LIBS,lib%.so,$@)
-$(MAKECMDGOALS): private {ld-out} = $(LDOUT)$(if $(SOFILE_VERSION),.$(SOFILE_VERSION))
+$(MAKECMDGOALS): private {ld-out} = $(LDOUT)$(if $(and $(SONAME_VERSION),$(SOFILE_VERSION)),.$(SONAME_VERSION).$(SOFILE_VERSION))
 
 
-$(MAKECMDGOALS): private {ld-soname} = -Wl,-soname=$(notdir $(LDOUT)).$(SONAME_VERSION)
-$(MAKECMDGOALS): private LDFLAGS += -shared $(if $(SONAME_VERSION),$({ld-soname}))
+$(MAKECMDGOALS): private {ld-soname-flags} = -Wl,-soname=$(notdir $(LDOUT))$(if $(SONAME_VERSION),.$(SONAME_VERSION))
+$(MAKECMDGOALS): private LDFLAGS += -shared $(if $(SONAME_VERSION),$({ld-soname-flags}))
 
 
 include $(ROOT)/Makefile.d/link.rules
