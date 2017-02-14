@@ -1,6 +1,6 @@
 # vim: ft=make
 # generic makefile framework
-# Copyright (c) 2015 Mikhail Usenko <michaelus@tochka.ru>
+# Copyright (c) 2017 Mikhail Usenko <michaelus@tochka.ru>
 
 
 # don't try to rebuild this makefile
@@ -17,23 +17,23 @@ include $(ROOT)/Makefile.d/common.defs
 
 
 # the object files (adjusted to build paths)
-{OBJECT-FILES} = $(call !!,$(call _OBJS,$(CXX_FILE_SUFFIXES),$(wildcard $(SOURCES))))
+{OBJECT-FILES} = $(call !BUILD-TARGET!,$(call !OBJS!,$(CXX_FILE_SUFFIXES),$(wildcard $(SOURCES))))
 
 
 # the build subdirectory being supposed for the main goal
-{BUILD-DIR} = $(call !!,$(CURDIR))
+{BUILD-DIR} = $(call !BUILD-TARGET!,$(CURDIR))
 
 
 # use secondary expansion to make target-specific and automatic variables
-# to be properly expanded in pattern rule prerequisites
+# to be properly expanded in rule prerequisites
 .SECONDEXPANSION:
 
 
 # the rules to create/update an archive
-$(MAKECMDGOALS): private {target-build-dir} = $(call !,$@)
+$(MAKECMDGOALS): private {target-build-dir} = $(call !BUILD-DIR!,$@)
 $(MAKECMDGOALS): $$({OBJECT-FILES}) | $$({target-build-dir})
-	$(info $. *** ($@: $^))
-	$(AR) $(ARFLAGS) $(call !!,$(call _LIBS,lib%.a,$@)) $^
+	$(info $(-LINE-FEED-) *** ($@: $^))
+	$(AR) $(ARFLAGS) $(call !BUILD-TARGET!,$(call !LIB-NAME!,lib%.a,$@)) $^
 
 
 # create the subdirectory that should appears as a prerequisite

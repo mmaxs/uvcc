@@ -1,6 +1,6 @@
 # vim: ft=make
 # generic makefile framework
-# Copyright (c) 2015 Mikhail Usenko <michaelus@tochka.ru>
+# Copyright (c) 2017 Mikhail Usenko <michaelus@tochka.ru>
 
 
 # don't try to rebuild this makefile
@@ -17,17 +17,17 @@ include $(ROOT)/Makefile.d/common.defs
 
 
 # the sources, ...
-{SOURCES} = $(call _SRCS,$(CXX_FILE_SUFFIXES),$(wildcard $(SOURCES)))
+{SOURCES} = $(call !SRCS!,$(CXX_FILE_SUFFIXES),$(wildcard $(SOURCES)))
 
 
 ifneq ($({SOURCES}),)
 
 # ... their corresponding object files (adjusted to build paths), ...
-{OBJECT-FILES} = $(call !!,$(call _OBJS,$(CXX_FILE_SUFFIXES),$(wildcard $(SOURCES))))
+{OBJECT-FILES} = $(call !BUILD-TARGET!,$(call !OBJS!,$(CXX_FILE_SUFFIXES),$(wildcard $(SOURCES))))
 
 
 # ... their dependencies (with build subdirectory dependencies), ...
-{OBJECT-DEPENDENCIES} = $(foreach {file},$({SOURCES}),$(call _DEPS,$({file}),$(call !!,$(call _OBJS,$(CXX_FILE_SUFFIXES),$({file})))) | $(call !,$({file})))
+{OBJECT-DEPENDENCIES} = $(foreach {file},$({SOURCES}),$(call !DEPS!,$({file}),$(call !BUILD-TARGET!,$(call !OBJS!,$(CXX_FILE_SUFFIXES),$({file})))) | $(call !BUILD-DIR!,$({file})))
 
 
 # ... their build subdirectories, ...
@@ -43,7 +43,7 @@ $(eval $({OBJECT-DEPENDENCIES}))
 $({OBJECT-FILES}): $(MAKEFILE_LIST)
 $({OBJECT-FILES}): private {compile-parts} = $(filter-out $(addprefix %,$(CXX_HEADER_SUFFIXES)) $(MAKEFILE_LIST),$^)
 $({OBJECT-FILES}):
-	$(info $. *** ($@: $^))
+	$(info $(-LINE-FEED-) *** ($@: $^))
 	$(COMPILE.cc) $(CXXSTD) $(IFLAGS) $({compile-parts})  -o $@
 
 

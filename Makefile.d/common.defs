@@ -1,51 +1,51 @@
 # vim: ft=make
 # generic makefile framework
-# Copyright (c) 2015 Mikhail Usenko <michaelus@tochka.ru>
+# Copyright (c) 2017 Mikhail Usenko <michaelus@tochka.ru>
 
 
 # don't try to rebuild this makefile
 $(lastword $(MAKEFILE_LIST)): ;
 
 
-# $. (line feed - new line)
-define .
+# (line feed - new line)
+define -LINE-FEED-
 
 
 endef
 
 
-# !
-define !
+# (build directories)(files)
+define !BUILD-DIR!
 $(patsubst $(abspath $(ROOT))/%,$(abspath $(BUILD_ROOT))/%,$(addsuffix /,$(abspath $(dir $(filter /%,$(1)) $(addprefix $(CURDIR)/,$(filter-out /%,$(1)))))))
 endef
 
 
-# !!
-define !!
-$(join $(call !,$(1)),$(notdir $(1)))
+# (build targets)(files)
+define !BUILD-TARGET!
+$(join $(call !BUILD-DIR!,$(1)),$(notdir $(1)))
 endef
 
 
-# filtered sources
-define _SRCS
+# (source files)((source file suffixes),(files))
+define !SRCS!
 $(filter $(addprefix %,$(1)),$(strip $(2)))
 endef
 
 
-# object files
-define _OBJS
-$(foreach {suffix},$(1),$(patsubst %$({suffix}),%.o,$(call _SRCS,$({suffix}),$(2))))
+# (object files corresponded to source files)((source file suffixes),(files))
+define !OBJS!
+$(foreach {suffix},$(1),$(patsubst %$({suffix}),%.o,$(call !SRCS!,$({suffix}),$(2))))
 endef
 
 
-# object dependencies
-define _DEPS
+# (object dependencies)((files),(file build targets))
+define !DEPS!
 $(patsubst %.o:,$.%.o:,$(subst \,,$(shell $(CXX) $(CXXSTD) $(CPPFLAGS) $(IFLAGS) -MM $(1) $(addprefix -MT ,$(2)))))
 endef
 
 
-# library files
-define _LIBS
+# (library file names)((library file name pattern),(files))
+define !LIB-NAME!
 $(join $(dir $(2)),$(patsubst %,$(1),$(notdir $(2))))
 endef
 

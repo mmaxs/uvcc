@@ -1,13 +1,13 @@
 # vim: ft=make
 # generic makefile framework
-# Copyright (c) 2015 Mikhail Usenko <michaelus@tochka.ru>
+# Copyright (c) 2017 Mikhail Usenko <michaelus@tochka.ru>
 
 
 # don't try to rebuild this makefile
 $(lastword $(MAKEFILE_LIST)): ;
 
 
-$(MAKECMDGOALS): private LDOUT = $(call _LIBS,lib%.so,$@)
+$(MAKECMDGOALS): private LDOUT = $(call !LIB-NAME!,lib%.so,$@)
 $(MAKECMDGOALS): private {ld-out} = $(LDOUT)$(if $(and $(SONAME_VERSION),$(SOFILE_VERSION)),.$(SONAME_VERSION).$(SOFILE_VERSION))
 
 

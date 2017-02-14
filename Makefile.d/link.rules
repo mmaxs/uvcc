@@ -1,6 +1,6 @@
 # vim: ft=make
 # generic makefile framework
-# Copyright (c) 2015 Mikhail Usenko <michaelus@tochka.ru>
+# Copyright (c) 2017 Mikhail Usenko <michaelus@tochka.ru>
 
 
 # don't try to rebuild this makefile
@@ -17,11 +17,11 @@ include $(ROOT)/Makefile.d/common.defs
 
 
 # the object files (adjusted to build paths)
-{OBJECT-FILES} = $(call !!,$(call _OBJS,$(CXX_FILE_SUFFIXES),$(wildcard $(SOURCES))))
+{OBJECT-FILES} = $(call !BUILD-TARGET!,$(call !OBJS!,$(CXX_FILE_SUFFIXES),$(wildcard $(SOURCES))))
 
 
 # the build subdirectory being supposed for the main goal
-{BUILD-DIR} = $(call !!,$(CURDIR))
+{BUILD-DIR} = $(call !BUILD-TARGET!,$(CURDIR))
 
 
 # use secondary expansion to make target-specific and automatic variables
@@ -31,13 +31,13 @@ include $(ROOT)/Makefile.d/common.defs
 
 # the rules for linking and producing an executable or a shared library
 $(MAKECMDGOALS): private {ld-out} ?= $(if $(LDOUT),$(LDOUT),$@)
-$(MAKECMDGOALS): private {target-build-dir} = $(call !,$({ld-out}))
-$(MAKECMDGOALS): private {source-files} = $(foreach {suffix},$(CXX_FILE_SUFFIXES),$(wildcard $@$({suffix})))
-$(MAKECMDGOALS): private {object-files} = $(call !!,$(call _OBJS,$(CXX_FILE_SUFFIXES),$({source-files})))
-$(MAKECMDGOALS): private {link-parts} = $(if $(filter $({object-files}),$({OBJECT-FILES})),,$({source-files})) $({OBJECT-FILES})
-$(MAKECMDGOALS): $$({source-files}) $$({OBJECT-FILES}) $$(MAKEFILE_LIST) | $$({target-build-dir})
-	$(info $. *** ($@: $^))
-	$(LINK.cc) $(LDSTATIC) $({link-parts}) $(LDLIBS)  -o $(call !!,$({ld-out}))
+$(MAKECMDGOALS): private {target-build-dir} = $(call !BUILD-DIR!,$({ld-out}))
+$(MAKECMDGOALS): private {source-file} = $(foreach {suffix},$(CXX_FILE_SUFFIXES),$(wildcard $@$({suffix})))
+$(MAKECMDGOALS): private {object-file} = $(call !BUILD-TARGET!,$(call !OBJS!,$(CXX_FILE_SUFFIXES),$({source-file})))
+$(MAKECMDGOALS): private {link-parts} = $(if $(filter $({object-file}),$({OBJECT-FILES})),,$({source-file})) $({OBJECT-FILES})
+$(MAKECMDGOALS): $$({source-file}) $$({OBJECT-FILES}) $$(MAKEFILE_LIST) | $$({target-build-dir})
+	$(info $(-LINE-FEED-) *** ($@: $^))
+	$(LINK.cc) $(LDSTATIC) $({link-parts}) $(LDLIBS)  -o $(call !BUILD-TARGET!,$({ld-out}))
 
 
 # create the subdirectory that should appears as a prerequisite

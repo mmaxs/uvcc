@@ -1,6 +1,6 @@
 # vim: ft=make
 # generic makefile framework
-# Copyright (c) 2015 Mikhail Usenko <michaelus@tochka.ru>
+# Copyright (c) 2017 Mikhail Usenko <michaelus@tochka.ru>
 
 
 # don't try to rebuild this makefile
@@ -17,14 +17,14 @@ include $(ROOT)/Makefile.d/common.defs
 
 
 # the build subdirectory being supposed for the main goal
-{BUILD-DIR} = $(call !!,$(CURDIR))
+{BUILD-DIR} = $(call !BUILD-TARGET!,$(CURDIR))
 
 
 ifneq ($(filter $(abspath $(BUILD_ROOT))/%,$({BUILD-DIR})/),)
 
 .PHONY: clean
 clean:
-	$(info $. *** ($@: $^))
+	$(info $(-LINE-FEED-) *** ($@: $^))
 	rm -rf $({BUILD-DIR})/*
 
 else
