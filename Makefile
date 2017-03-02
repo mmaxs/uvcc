@@ -97,7 +97,7 @@ example/%:
 .PHONY: doc
 doc:
 	rm -rf doc/html/*
-	doxygen doc/Doxyfile-1.8.12
+	doxygen doc/Doxyfile-1.8.13
 
 
 
