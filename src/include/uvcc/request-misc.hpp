@@ -7,7 +7,7 @@
 
 #include <uv.h>
 #include <functional>   // function bind placeholders::
-#include <future>       // future packaged_task
+#include <future>       // shared_future packaged_task
 #include <type_traits>  // enable_if is_convertible
 
 
@@ -42,7 +42,7 @@ protected: /*types*/
   struct properties
   {
     std::packaged_task< _Result_() > task;
-    std::future< _Result_ > res;
+    std::shared_future< _Result_ > result;
   };
   //! \endcond
 
@@ -83,7 +83,7 @@ public: /*interface*/
   uv::loop loop() const noexcept  { return uv::loop(static_cast< uv_t* >(uv_req)->loop); }
 
   /*! \brief Get the result of the work. */
-  std::future< _Result_ >& result() const  { return instance::from(uv_req)->properties().res; }
+  std::shared_future< _Result_ >& result() const  { return instance::from(uv_req)->properties().result; }
 
   /*! \brief Run the request. Queue the `_Task_` to the thread pool.
       \details The given `_Task_` function is called with specified `_args` applied and is executed
@@ -104,7 +104,7 @@ public: /*interface*/
       auto &properties = instance_ptr->properties();
       using task_t = decltype(properties.task);
       properties.task = task_t(std::bind(_task, std::forward< _Args_ >(_args)...));
-      properties.res = properties.task.get_future();
+      properties.result = properties.task.get_future().share();
     }
 
     uv_status(0);

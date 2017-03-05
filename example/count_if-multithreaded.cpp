@@ -5,25 +5,25 @@
 #include <numeric>    // accumulate
 #include <iterator>   // next advance
 #include <thread>     // hardware_concurrency
-#include <future>     // future
+#include <future>     // shared_future
 #include <utility>    // move
 #include <vector>     // vector
 
 
 template< class _InputIterator_, class _UnaryPredicate_ >
-std::size_t count_if(_InputIterator_ _begin, _InputIterator_ _end, _UnaryPredicate_ _predicate)
+std::size_t count_if_multithreaded(_InputIterator_ _begin, _InputIterator_ _end, _UnaryPredicate_ _predicate)
 {
   const std::size_t length = std::distance(_begin, _end);
   const unsigned int hardware_concurrency = std::thread::hardware_concurrency() ? std::thread::hardware_concurrency() : 1;
-  constexpr const unsigned int minimum_section_length = 27;
-  const unsigned int section_length = uv::lowest(length, uv::greatest(minimum_section_length, length/hardware_concurrency));
+  const unsigned int minimum_section_length = uv::lowest(27u, length);
+  const unsigned int alloted_section_length = uv::greatest(minimum_section_length, length/hardware_concurrency);
 
-  std::vector< std::future< std::size_t > > results;
-  results.reserve(length/section_length + 1);
+  std::vector< std::shared_future< std::size_t > > results;
+  results.reserve(length/alloted_section_length + 1);
 
-  while (_begin < _end)
+  for (auto section_end = _begin; _begin < _end; _begin = section_end)
   {
-    auto section_end = std::next(_begin, section_length);
+    std::advance(section_end, alloted_section_length);
     if (section_end > _end)  section_end = _end;
 
     uv::work< std::size_t > task;
@@ -36,8 +36,6 @@ std::size_t count_if(_InputIterator_ _begin, _InputIterator_ _end, _UnaryPredica
     task.run(uv::loop::Default(), std::count_if< _InputIterator_, _UnaryPredicate_ >, _begin, section_end, _predicate);
 
     results.emplace_back(std::move(task.result()));
-
-    std::advance(_begin, section_length);
   };
 
   return std::accumulate(
@@ -54,7 +52,7 @@ int main(int _argc, char *_argv[])
   constexpr const int target_value = 111;
   std::vector< int > t(1000, target_value);
 
-  std::size_t n = ::count_if(
+  std::size_t n = count_if_multithreaded(
       t.begin(), t.end(),
       [target_value](const auto &_v){ return _v == target_value; }
   );
