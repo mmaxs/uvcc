@@ -166,7 +166,7 @@ auto greatest(_T_&& _v) -> decltype(_v)  // return _T_&& or _T_&
 template< typename _T_, typename... _Ts_ >
 constexpr
 inline
-auto greatest(_T_&& _v, _Ts_&&... _vs) -> std::common_type_t< _T_, _Ts_... >
+auto greatest(_T_&& _v, _Ts_&&... _vs) -> std::common_type_t< decltype(_v), decltype(_vs)... >  // thouhg it is anyway a decayed type
 {
   return _v < greatest(std::forward< _Ts_ >(_vs)...) ? greatest(std::forward< _Ts_ >(_vs)...) : _v;
 }
@@ -184,7 +184,7 @@ auto lowest(_T_&& _v) -> decltype(_v)  // return _T_&& or _T_&
 template< typename _T_, typename... _Ts_ >
 constexpr
 inline
-auto lowest(_T_&& _v, _Ts_&&... _vs) -> std::common_type_t< _T_, _Ts_... >
+auto lowest(_T_&& _v, _Ts_&&... _vs) -> std::common_type_t< decltype(_v), decltype(_vs)... >  // though it is anyway a decayed type
 {
   return lowest(std::forward< _Ts_ >(_vs)...) < _v ? lowest(std::forward< _Ts_ >(_vs)...) : _v;
 }
