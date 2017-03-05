@@ -12,7 +12,7 @@ $(MAKECMDGOALS): private {ld-out} = $(LDOUT)$(if $(and $(SONAME_VERSION),$(SOFIL
 
 
 $(MAKECMDGOALS): private {ld-soname-flags} = -Wl,-soname=$(notdir $(LDOUT))$(if $(SONAME_VERSION),.$(SONAME_VERSION))
-$(MAKECMDGOALS): private LDFLAGS += -shared $(if $(SONAME_VERSION),$({ld-soname-flags}))
+$(MAKECMDGOALS): private override LDFLAGS += -shared $(if $(SONAME_VERSION),$({ld-soname-flags}))
 
 
 include $(ROOT)/Makefile.d/link.rules
