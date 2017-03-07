@@ -8,6 +8,15 @@
 #include <future>     // shared_future
 #include <utility>    // move
 #include <vector>     // vector
+#include <random>     // random_device uniform_int_distribution
+
+
+template< typename _Work_ >
+void task_report(_Work_ _task)
+{
+  fprintf(stdout, "work [0x%08llX] completed, target values found: %zu\n", _task.id(), _task.result().get());
+  fflush(stdout);
+}
 
 
 template< class _InputIterator_, class _UnaryPredicate_ >
@@ -27,21 +36,20 @@ std::size_t count_if_multithreaded(_InputIterator_ _begin, _InputIterator_ _end,
     if (section_end > _end)  section_end = _end;
 
     uv::work< std::size_t > task;
-    task.on_request() = [](decltype(task) _task)
-    {
-      fprintf(stdout, "work [0x%08llX] completed\n", _task.id());
-      fflush(stdout);
-    };
+    task.on_request() = task_report< decltype(task) >;
 
+    fprintf(stdout, "work [0x%08llX] starting\n", task.id());  fflush(stdout);
     task.run(uv::loop::Default(), std::count_if< _InputIterator_, _UnaryPredicate_ >, _begin, section_end, _predicate);
 
-    results.emplace_back(std::move(task.result()));
+    results.emplace_back(task.result());
   };
 
   return std::accumulate(
       results.begin(), results.end(),
-      (std::size_t)0,
-      [](auto &_sum, auto &_value){ return _sum + _value.get(); }
+      0u,
+      [](auto &_sum, auto &_value)  {
+          return _sum + _value.get();  // automatically waiting for the section result
+      }
   );
 }
 
@@ -49,15 +57,30 @@ std::size_t count_if_multithreaded(_InputIterator_ _begin, _InputIterator_ _end,
 
 int main(int _argc, char *_argv[])
 {
-  constexpr const int target_value = 111;
-  std::vector< int > t(1000, target_value);
+
+  constexpr int target_value = 1;
+  constexpr std::size_t vector_size = 10e8;
+  constexpr std::size_t nvalues = vector_size/10-1;
+
+  fprintf(stdout, "generating a random test vector of vector_size = %zu, step 1\n", vector_size);  fflush(stdout);
+  std::vector< int > test(vector_size, ~target_value);
+  fprintf(stdout, "generating a random test vector of vector_size = %zu, step 2\n", vector_size);  fflush(stdout);
+  std::random_device seed;
+  std::uniform_int_distribution<> random(0, vector_size-1);
+  for (std::size_t i, n = nvalues; n > 0;)
+  {
+    i = random(seed);
+    if (test[i] == target_value)  continue;
+    test[i] = target_value;
+    --n;
+  };
 
   std::size_t n = count_if_multithreaded(
-      t.begin(), t.end(),
-      [target_value](const auto &_v){ return _v == target_value; }
+      test.begin(), test.end(),
+      [](const auto &_v){ return _v == target_value; }
   );
 
-  fprintf(stdout, "%zu\n", n);  fflush(stdout);
+  fprintf(stdout, "target values (nvalues = %zu) total: %zu\n", nvalues, n);  fflush(stdout);
 
   return uv::loop::Default().run(UV_RUN_DEFAULT);
 }
