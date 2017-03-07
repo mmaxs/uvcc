@@ -83,7 +83,7 @@ export
 .DEFAULT_GOAL = $@
 
 
-# project goals
+# project goals and goal specific variables
 
 %: test/% example/%;
 
@@ -94,11 +94,23 @@ example/%:
 	$(MAKE) -C example $*
 
 
-.PHONY: doc
+.PHONY: doc doc-commit
+doc doc-commit: doc-gh-pages = $(ROOT)/doc/html
+
 doc:
-	rm -rf doc/html/*
+	rm -rf $(doc-gh-pages)/*
 	doxygen doc/Doxyfile-1.8.13
 
+doc-commit:
+	cd $(doc-gh-pages); \
+	doc_version=$$(git log --format="%s" gh-pages); \
+	let ++doc_version; \
+	git checkout --orphan $$doc_version; \
+	git add .; \
+	git commit -m $$doc_version; \
+	git branch -M gh-pages; \
+	git -c gc.reflogExpireUnreachable=now -c gc.pruneExpire=now gc; \
+	git push public
 
 
 # the summary of the predefined implicit rules
