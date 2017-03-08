@@ -94,15 +94,22 @@ example/%:
 	$(MAKE) -C example $*
 
 
-.PHONY: doc doc-commit
-doc doc-commit: doc-gh-pages = $(ROOT)/doc/html
+.PHONY: doc doc-internal doc-commit
+doc doc-internal doc-commit: doc-gh-pages = $(ROOT)/doc/html
 
 doc:
-	rm -rf $(doc-gh-pages)/*
+	test "$(strip $(doc-gh-pages))"
+	rm -vIrf "$(doc-gh-pages)"/*
 	doxygen doc/Doxyfile-1.8.13
 
+doc-internal:
+	test "$(strip $(doc-gh-pages))"
+	rm -vIrf "$(doc-gh-pages)"/*
+	sed 's/^\(INTERNAL_DOCS\s*=\s*\)\S*$$/\1YES/' doc/Doxyfile-1.8.13 | doxygen -
+
 doc-commit:
-	cd $(doc-gh-pages); \
+	test "$(strip $(doc-gh-pages))" || exit; \
+	cd "$(doc-gh-pages)"; \
 	doc_version=$$(git log --format="%s" gh-pages); \
 	let ++doc_version; \
 	git checkout --orphan $$doc_version; \
