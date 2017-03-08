@@ -18,11 +18,11 @@ namespace uv
 class handle;
 
 
-/*! \defgroup doxy_loop Event loop
+/*! \defgroup doxy_group__loop Event loop
     \brief The I/O event loop.
     \sa libuv API documentation: [the I/O loop](http://docs.libuv.org/en/v1.x/design.html#the-i-o-loop). */
 
-/*! \ingroup doxy_loop
+/*! \ingroup doxy_group__loop
     \brief The I/O event loop class.
     \details All event loops (including the default one) are the instances of this class.
     \sa libuv API documentation: [`uv_loop_t`](http://docs.libuv.org/en/v1.x/loop.html#uv-loop-t-event-loop). */
@@ -256,7 +256,7 @@ void loop::walk_cb(::uv_handle_t *_uv_handle, void *_arg)
 namespace std
 {
 
-//! \ingroup doxy_loop
+//! \ingroup doxy_group__loop
 template<> inline void swap(uv::loop &_this, uv::loop &_that) noexcept  { _this.swap(_that); }
 
 }
