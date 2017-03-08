@@ -199,13 +199,13 @@ public: /*interface*/
           _file.fd(),
           nullptr
       ));
-    };
+    }
 
 
     file::instance::from(_file.uv_handle)->ref();
     instance_ptr->ref();
 
-    // instance_ptr->properties() = {static_cast< file::uv_t* >(_file)};
+    // instance_ptr->properties() = { static_cast< file::uv_t* >(_file) };
     {
       auto &properties = instance_ptr->properties();
       properties.uv_handle = static_cast< file::uv_t* >(_file);
@@ -319,7 +319,7 @@ public: /*interface*/
 #else
       _offset = lseek64(_file.fd(), 0, SEEK_CUR);
 #endif
-    };
+    }
 
     auto instance_ptr = instance::from(uv_req);
 
@@ -338,14 +338,14 @@ public: /*interface*/
           _offset,
           nullptr
       ));
-    };
+    }
 
 
     file::instance::from(_file.uv_handle)->ref();
     buffer::instance::from(_buf.uv_buf)->ref();
     instance_ptr->ref();
 
-    // instance_ptr->properties() = {static_cast< file::uv_t* >(_file), _buf.uv_buf, _offset};
+    // instance_ptr->properties() = { static_cast< file::uv_t* >(_file), _buf.uv_buf, _offset };
     {
       auto &properties = instance_ptr->properties();
       properties.uv_handle = static_cast< file::uv_t* >(_file);
@@ -471,7 +471,7 @@ public: /*interface*/
 #else
       _offset = lseek64(_file.fd(), 0, SEEK_CUR);
 #endif
-    };
+    }
 
     auto instance_ptr = instance::from(uv_req);
 
@@ -491,7 +491,7 @@ public: /*interface*/
 
       ::uv_fs_req_cleanup(static_cast< uv_t* >(uv_req));
       return ret;
-    };
+    }
 
 
     file::instance::from(_file.uv_handle)->ref();
@@ -501,7 +501,7 @@ public: /*interface*/
     std::size_t wr_size = 0;
     for (std::size_t i = 0, buf_count = _buf.count(); i < buf_count; ++i)  wr_size += _buf.len(i);
 
-    // instance_ptr->properties() = {static_cast< file::uv_t* >(_file), _buf.uv_buf, _offset, wr_size};
+    // instance_ptr->properties() = { static_cast< file::uv_t* >(_file), _buf.uv_buf, _offset, wr_size };
     {
       auto &properties = instance_ptr->properties();
       properties.uv_handle = static_cast< file::uv_t* >(_file);
@@ -654,13 +654,13 @@ public: /*interface*/
           _file.fd(),
           nullptr
       ));
-    };
+    }
 
 
     file::instance::from(_file.uv_handle)->ref();
     instance_ptr->ref();
 
-    // instance_ptr->properties() = {static_cast< file::uv_t* >(_file)};
+    // instance_ptr->properties() = { static_cast< file::uv_t* >(_file) };
     {
       auto &properties = instance_ptr->properties();
       properties.uv_handle = static_cast< file::uv_t* >(_file);
@@ -772,7 +772,7 @@ public: /*interface*/
 #else
       _offset = lseek64(_file.fd(), 0, SEEK_CUR);
 #endif
-    };
+    }
 
     auto instance_ptr = instance::from(uv_req);
 
@@ -790,13 +790,13 @@ public: /*interface*/
           _offset,
           nullptr
       ));
-    };
+    }
 
 
     file::instance::from(_file.uv_handle)->ref();
     instance_ptr->ref();
 
-    // instance_ptr->properties() = {static_cast< file::uv_t* >(_file), _offset};
+    // instance_ptr->properties() = { static_cast< file::uv_t* >(_file), _offset };
     {
       auto &properties = instance_ptr->properties();
       properties.uv_handle = static_cast< file::uv_t* >(_file);
@@ -864,11 +864,12 @@ private: /*types*/
 
   struct fd
   {
-    static constexpr const bool is_convertible = std::is_convertible< ::uv_os_fd_t, ::uv_file >::value;
-    template< bool _b_ = is_convertible > static std::enable_if_t< !_b_, ::uv_file >
-      try_convert(::uv_os_fd_t)  { return -1; }
-    template< bool _b_ = is_convertible > static std::enable_if_t<  _b_, ::uv_file >
-      try_convert(::uv_os_fd_t _os_fd)  { return _os_fd; }
+    static constexpr const bool is_convertible_v = std::is_convertible< ::uv_os_fd_t, ::uv_file >::value;
+
+    template< bool _is_convertible_ = is_convertible_v >
+    static std::enable_if_t< !_is_convertible_, ::uv_file > try_convert(::uv_os_fd_t)  { return -1; }
+    template< bool _is_convertible_ = is_convertible_v >
+    static std::enable_if_t<  _is_convertible_, ::uv_file > try_convert(::uv_os_fd_t _os_fd)  { return _os_fd; }
   };
 
 private: /*constructors*/
@@ -930,7 +931,7 @@ public: /*interface*/
 #else
       _offset = lseek64(_in.fd(), 0, SEEK_CUR);
 #endif
-    };
+    }
 
     auto instance_ptr = instance::from(uv_req);
 
@@ -949,14 +950,14 @@ public: /*interface*/
           _offset, _length,
           nullptr
       ));
-    };
+    }
 
 
     io::instance::from(_out.uv_handle)->ref();
     file::instance::from(_in.uv_handle)->ref();
     instance_ptr->ref();
 
-    // instance_ptr->properties() = {static_cast< io::uv_t* >(_out), static_cast< file::uv_t* >(_in), _offset, _length};
+    // instance_ptr->properties() = { static_cast< io::uv_t* >(_out), static_cast< file::uv_t* >(_in), _offset, _length };
     {
       auto &properties = instance_ptr->properties();
       properties.uv_handle_out = static_cast< io::uv_t* >(_out);
@@ -1099,7 +1100,7 @@ public: /*interface*/
           _path,
           nullptr
       ));
-    };
+    }
 
 
     instance_ptr->ref();
@@ -1133,13 +1134,13 @@ public: /*interface*/
           _file.fd(),
           nullptr
       ));
-    };
+    }
 
 
     file::instance::from(_file.uv_handle)->ref();
     instance_ptr->ref();
 
-    // instance_ptr->properties() = {static_cast< file::uv_t* >(_file)};
+    // instance_ptr->properties() = { static_cast< file::uv_t* >(_file) };
     {
       auto &properties = instance_ptr->properties();
       properties.uv_handle = static_cast< file::uv_t* >(_file);
@@ -1269,7 +1270,7 @@ public: /*interface*/
           _path, _mode,
           nullptr
       ));
-    };
+    }
 
 
     instance_ptr->ref();
@@ -1303,13 +1304,13 @@ public: /*interface*/
           _file.fd(), _mode,
           nullptr
       ));
-    };
+    }
 
 
     file::instance::from(_file.uv_handle)->ref();
     instance_ptr->ref();
 
-    // instance_ptr->properties() = {static_cast< file::uv_t* >(_file)};
+    // instance_ptr->properties() = { static_cast< file::uv_t* >(_file) };
     {
       auto &properties = instance_ptr->properties();
       properties.uv_handle = static_cast< file::uv_t* >(_file);
@@ -1438,7 +1439,7 @@ public: /*interface*/
           _path, _uid, _gid,
           nullptr
       ));
-    };
+    }
 
 
     instance_ptr->ref();
@@ -1472,13 +1473,13 @@ public: /*interface*/
           _file.fd(), _uid, _gid,
           nullptr
       ));
-    };
+    }
 
 
     file::instance::from(_file.uv_handle)->ref();
     instance_ptr->ref();
 
-    // instance_ptr->properties() = {static_cast< file::uv_t* >(_file)};
+    // instance_ptr->properties() = { static_cast< file::uv_t* >(_file) };
     {
       auto &properties = instance_ptr->properties();
       properties.uv_handle = static_cast< file::uv_t* >(_file);
@@ -1608,7 +1609,7 @@ public: /*interface*/
           _path, _atime, _mtime,
           nullptr
       ));
-    };
+    }
 
 
     instance_ptr->ref();
@@ -1642,13 +1643,13 @@ public: /*interface*/
           _file.fd(), _atime, _mtime,
           nullptr
       ));
-    };
+    }
 
 
     file::instance::from(_file.uv_handle)->ref();
     instance_ptr->ref();
 
-    // instance_ptr->properties() = {static_cast< file::uv_t* >(_file)};
+    // instance_ptr->properties() = { static_cast< file::uv_t* >(_file) };
     {
       auto &properties = instance_ptr->properties();
       properties.uv_handle = static_cast< file::uv_t* >(_file);
@@ -1759,7 +1760,7 @@ public: /*interface*/
           _path,
           nullptr
       ));
-    };
+    }
 
 
     instance_ptr->ref();
@@ -1856,7 +1857,7 @@ public: /*interface*/
           _path, _mode,
           nullptr
       ));
-    };
+    }
 
 
     instance_ptr->ref();
@@ -1953,7 +1954,7 @@ public: /*interface*/
           _template,
           nullptr
       ));
-    };
+    }
 
 
     instance_ptr->ref();
@@ -2050,7 +2051,7 @@ public: /*interface*/
           _path,
           nullptr
       ));
-    };
+    }
 
 
     instance_ptr->ref();
@@ -2157,7 +2158,7 @@ public: /*interface*/
           _path, 0,
           nullptr
       ));
-    };
+    }
 
 
     instance_ptr->ref();
@@ -2277,7 +2278,7 @@ public: /*interface*/
           _path, _new_path,
           nullptr
       ));
-    };
+    }
 
 
     instance_ptr->ref();
@@ -2374,7 +2375,7 @@ public: /*interface*/
           _path, _mode,
           nullptr
       ));
-    };
+    }
 
 
     instance_ptr->ref();
@@ -2511,7 +2512,7 @@ public: /*interface*/
           _path, _link_path,
           nullptr
       ));
-    };
+    }
 
 
     instance_ptr->ref();
@@ -2617,7 +2618,7 @@ public: /*interface*/
           _path,
           nullptr
       ));
-    };
+    }
 
 
     instance_ptr->ref();
@@ -2717,7 +2718,7 @@ public: /*interface*/
           _path,
           nullptr
       ));
-    };
+    }
 
 
     instance_ptr->ref();

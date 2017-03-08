@@ -222,7 +222,7 @@ public: /*interface*/
     {
       properties.rdcmd_state = rdcmd::UNKNOWN;
       instance_ptr->unref();  // release the reference on start failure
-    };
+    }
 
     return ret;
   }
@@ -266,7 +266,7 @@ public: /*interface*/
     {
       properties.rdcmd_state = rdcmd::UNKNOWN;
       instance_ptr->unref();
-    };
+    }
 
     return ret;
   }
@@ -392,7 +392,7 @@ public: /*interface*/
         {
           properties.rdcmd_state = rdcmd::UNKNOWN;
           instance_ptr->unref();
-        };
+        }
 
         break;
     case rdcmd::START:

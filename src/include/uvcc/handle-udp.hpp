@@ -225,7 +225,7 @@ void udp::alloc_cb(::uv_handle_t *_uv_handle, std::size_t _suggested_size, ::uv_
 template< typename >
 void udp::recv_cb(::uv_udp_t *_uv_handle, ssize_t _nread, const ::uv_buf_t *_uv_buf, const ::sockaddr *_sockaddr, unsigned int _flags)
 {
-  io_info supplemental_data = {_sockaddr, _flags};
+  io_info supplemental_data = { _sockaddr, _flags };
   io_read_cb(_uv_handle, _nread, _uv_buf, &supplemental_data);
 }
 

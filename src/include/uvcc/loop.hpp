@@ -116,7 +116,7 @@ public: /*constructors*/
       auto t = uv_loop;
       uv_loop = _that.uv_loop;
       if (t)  instance::from(t)->unref();
-    };
+    }
     return *this;
   }
 
@@ -129,7 +129,7 @@ public: /*constructors*/
       uv_loop = _that.uv_loop;
       _that.uv_loop = nullptr;
       if (t)  instance::from(t)->unref();
-    };
+    }
     return *this;
   }
 
@@ -224,7 +224,7 @@ public: /*interface*/
   std::enable_if_t< std::is_convertible< _Func_, on_walk_t< _Args_&&... > >::value >
   walk(_Func_&& _walk_cb, _Args_&&... _args)
   {
-    std::function< void(handle) > cb{std::bind(_walk_cb, std::placeholders::_1, std::forward< _Args_ >(_args)...)};
+    std::function< void(handle) > cb{ std::bind(_walk_cb, std::placeholders::_1, std::forward< _Args_ >(_args)...) };
     if (!cb)  return;
     ::uv_walk(uv_loop, walk_cb, &cb);
   }

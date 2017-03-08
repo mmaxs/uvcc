@@ -137,7 +137,7 @@ public: /*constructors*/
       auto t = uv_req;
       uv_req = _that.uv_req;
       if (t)  instance< request >::from(t)->unref();
-    };
+    }
     return *this;
   }
 
@@ -150,7 +150,7 @@ public: /*constructors*/
       uv_req = _that.uv_req;
       _that.uv_req = nullptr;
       if (t)  instance< request >::from(t)->unref();
-    };
+    }
     return *this;
   }
 

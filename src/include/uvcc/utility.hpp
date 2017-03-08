@@ -366,7 +366,7 @@ public: /*constructors*/
     static_assert(sizeof(type) <= _LEN_, "insufficient storage size");
     static_assert(alignof(type) <= _ALIGN_, "not adjusted storage alignment");
 
-    new(static_cast< void* >(&storage)) type{_value};
+    new(static_cast< void* >(&storage)) type{ _value };
     Destroy = default_destroy< type >::Destroy;
     type_tag = &typeid(type);
   }
@@ -377,7 +377,7 @@ public: /*constructors*/
     static_assert(sizeof(type) <= _LEN_, "insufficient storage size");
     static_assert(alignof(type) <= _ALIGN_, "not adjusted storage alignment");
 
-    new(static_cast< void* >(&storage)) type{std::move(_value)};
+    new(static_cast< void* >(&storage)) type{ std::move(_value) };
     Destroy = default_destroy< type >::Destroy;
     type_tag = &typeid(type);
   }
@@ -416,7 +416,7 @@ public: /*interface*/
 
     destroy();
 
-    new(static_cast< void* >(&storage)) type{std::forward< _Args_ >(_args)...};
+    new(static_cast< void* >(&storage)) type{ std::forward< _Args_ >(_args)... };
     Destroy = default_destroy< type >::Destroy;
     type_tag = &typeid(type);
   }
@@ -431,7 +431,7 @@ public: /*interface*/
 
     destroy();
 
-    new(static_cast< void* >(&storage)) type{_value};
+    new(static_cast< void* >(&storage)) type{ _value };
     Destroy = default_destroy< type >::Destroy;
     type_tag = &typeid(type);
   }
@@ -446,7 +446,7 @@ public: /*interface*/
 
     destroy();
 
-    new(static_cast< void* >(&storage)) type{std::move(_value)};
+    new(static_cast< void* >(&storage)) type{ std::move(_value) };
     Destroy = default_destroy< type >::Destroy;
     type_tag = &typeid(type);
   }
@@ -499,15 +499,15 @@ public: /*constructors*/
 
   template< typename... _Args_ > type_storage(_Args_&&... _args)
   {
-    new(static_cast< void* >(&storage)) value_type{std::forward< _Args_ >(_args)...};
+    new(static_cast< void* >(&storage)) value_type{ std::forward< _Args_ >(_args)... };
   }
   type_storage(const value_type &_value)
   {
-    new(static_cast< void* >(&storage)) value_type{_value};
+    new(static_cast< void* >(&storage)) value_type{ _value };
   }
   type_storage(value_type &&_value)
   {
-    new(static_cast< void* >(&storage)) value_type{std::move(_value)};
+    new(static_cast< void* >(&storage)) value_type{ std::move(_value) };
   }
 
 public: /*interface*/
@@ -557,7 +557,7 @@ public: /*constructors*/
     constexpr const std::size_t tag = is_convertible_to_one_of< _T_, _Ts_... >::value;
     using type = typename std::decay< typename type_at< tag, _Ts_... >::type >::type;
 
-    new(static_cast< void* >(&storage)) type{_value};
+    new(static_cast< void* >(&storage)) type{ _value };
     Destroy = default_destroy< type >::Destroy;
     type_tag = &typeid(type);
   }
@@ -568,7 +568,7 @@ public: /*constructors*/
     constexpr const std::size_t tag = is_convertible_to_one_of< _T_, _Ts_... >::value;
     using type = typename std::decay< typename type_at< tag, _Ts_... >::type >::type;
 
-    new(static_cast< void* >(&storage)) type{std::move(_value)};
+    new(static_cast< void* >(&storage)) type{ std::move(_value) };
     Destroy = default_destroy< type >::Destroy;
     type_tag = &typeid(type);
   }
@@ -608,7 +608,7 @@ public: /*interface*/
 
     destroy();
 
-    new(static_cast< void* >(&storage)) type{std::forward< _Args_ >(_args)...};
+    new(static_cast< void* >(&storage)) type{ std::forward< _Args_ >(_args)... };
     Destroy = default_destroy< type >::Destroy;
     type_tag = &typeid(type);
   }
@@ -623,7 +623,7 @@ public: /*interface*/
 
     destroy();
 
-    new(static_cast< void* >(&storage)) type{_value};
+    new(static_cast< void* >(&storage)) type{ _value };
     Destroy = default_destroy< type >::Destroy;
     type_tag = &typeid(type);
   }
@@ -638,7 +638,7 @@ public: /*interface*/
 
     destroy();
 
-    new(static_cast< void* >(&storage)) type{std::move(_value)};
+    new(static_cast< void* >(&storage)) type{ std::move(_value) };
     Destroy = default_destroy< type >::Destroy;
     type_tag = &typeid(type);
   }
@@ -688,7 +688,7 @@ public: /*constructors*/
     {
       destroy();
       new (this) any_ptr(std::move(_that));
-    };
+    }
     return *this;
   }
 

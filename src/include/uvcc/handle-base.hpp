@@ -168,7 +168,7 @@ public: /*constructors*/
       auto t = uv_handle;
       uv_handle = _that.uv_handle;
       if (t)  instance< handle >::from(t)->unref();
-    };
+    }
     return *this;
   }
 
@@ -181,7 +181,7 @@ public: /*constructors*/
       uv_handle = _that.uv_handle;
       _that.uv_handle = nullptr;
       if (t)  instance< handle >::from(t)->unref();
-    };
+    }
     return *this;
   }
 
@@ -301,7 +301,7 @@ struct handle::uv_handle_interface : virtual uv_interface
     {
       ::uv_close(uv_handle, nullptr);
       close_cb(uv_handle);
-    };
+    }
   }
 
   ::uv_handle_type type(void *_uv_handle) const noexcept override  { return static_cast< ::uv_handle_t* >(_uv_handle)->type; }
@@ -351,7 +351,7 @@ struct handle::uv_fs_interface : virtual uv_interface
       ::uv_fs_t req_close;
       ::uv_fs_close(nullptr, &req_close, fd, nullptr);
       ::uv_fs_req_cleanup(&req_close);
-    };
+    }
 
     auto &destroy_cb = instance_ptr->destroy_cb_storage.value();
     if (destroy_cb)  destroy_cb(uv_fs->data);

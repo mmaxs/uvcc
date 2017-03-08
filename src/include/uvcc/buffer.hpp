@@ -176,7 +176,7 @@ public: /*constructors*/
       auto t = uv_buf;
       uv_buf = _that.uv_buf;
       if (t)  instance::from(t)->unref();
-    };
+    }
     return *this;
   }
 
@@ -189,7 +189,7 @@ public: /*constructors*/
       uv_buf = _that.uv_buf;
       _that.uv_buf = nullptr;
       if (t)  instance::from(t)->unref();
-    };
+    }
     return *this;
   }
 
@@ -226,7 +226,7 @@ public: /*conversion operators*/
     ```
     buffer alloc_cb(handle, std::size_t _suggested_size)
     {
-      return buffer{_suggested_size};
+      return buffer{ _suggested_size };
     }
     ```
     */

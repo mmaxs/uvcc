@@ -137,7 +137,7 @@ public: /*constructors*/
     {
       new (this) file(_loop, _path, _flags, _mode);
       return;
-    };
+    }
 
     uv_handle = instance::create();
     instance::from(uv_handle)->properties().open_cb = _open_cb;
@@ -218,7 +218,7 @@ void file::read_cb(::uv_fs_t *_uv_req)
   {
     buffer::instance::from(buffer::instance::uv_buf::from(properties.rd.uv_buf_struct.base))->unref();
     properties.rd.uv_buf_struct = ::uv_buf_init(nullptr, 0);
-  };
+  }
 
   io_read_cb(&instance_ptr->uv_handle_struct, nread , &properties.rd.uv_buf_struct, nullptr);
 
