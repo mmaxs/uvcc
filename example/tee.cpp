@@ -40,13 +40,13 @@ int main(int _argc, char *_argv[])
     fprintf(stderr, "%s ", in.type_name());
     PRINT_UV_ERR("stdin open", in.uv_status());
     return in.uv_status();
-  };
+  }
   if (!out)
   {
     fprintf(stderr, "%s ", out.type_name());
     PRINT_UV_ERR("stdout open", out.uv_status());
     return out.uv_status();
-  };
+  }
 
   #ifdef _WIN32
   constexpr const int mode = _S_IREAD|_S_IWRITE;
@@ -72,7 +72,7 @@ int main(int _argc, char *_argv[])
             DEBUG_LOG("[buffer pool]: item #%zu of %zu\n", i+1, buf_pool.size());
             buf_pool[i].len() = default_size;
             return buf_pool[i];
-        };
+        }
 
         buf_pool.emplace_back(uv::buffer{default_size});
 
@@ -97,7 +97,7 @@ int main(int _argc, char *_argv[])
             {
               PRINT_UV_ERR("output", _io_wr.uv_status());
               in.read_stop();
-            };
+            }
 
             all_write_queues_size -= _buf.len();
             int ret = in.read_resume(all_write_queues_size <= WRITE_QUEUE_SIZE_LOWER_LIMIT);
@@ -131,7 +131,7 @@ int main(int _argc, char *_argv[])
 
           int ret = in.read_pause(all_write_queues_size >= WRITE_QUEUE_SIZE_UPPER_LIMIT);
           if (ret == 0)  DEBUG_LOG("[read paused]: all_write_queues_size=%zu\n", all_write_queues_size);
-        };
+        }
       }
   );
 

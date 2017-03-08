@@ -42,7 +42,7 @@ std::size_t count_if_multithreaded(_InputIterator_ _begin, _InputIterator_ _end,
     task.run(uv::loop::Default(), std::count_if< _InputIterator_, _UnaryPredicate_ >, _begin, section_end, _predicate);
 
     results.emplace_back(task.result());
-  };
+  }
 
   return std::accumulate(
       results.begin(), results.end(),
@@ -73,7 +73,7 @@ int main(int _argc, char *_argv[])
     if (test[i] == target_value)  continue;
     test[i] = target_value;
     --n;
-  };
+  }
 
   std::size_t n = count_if_multithreaded(
       test.begin(), test.end(),

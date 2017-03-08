@@ -39,7 +39,7 @@ int main(int _argc, char *_argv[])
   {
     PRINT_UV_ERR("stdin open", ret);
     return ret;
-  };
+  }
 
   uv_pipe_init(loop, &out, 0);
   ret = uv_pipe_open(&out, fileno(stdout));
@@ -47,7 +47,7 @@ int main(int _argc, char *_argv[])
   {
     PRINT_UV_ERR("stdout open", ret);
     return ret;
-  };
+  }
 
   rdcmd_state = RD_START;
   uv_read_start((uv_stream_t*)&in, alloc_cb, read_cb);
@@ -93,7 +93,7 @@ void read_cb(uv_stream_t *_stream, ssize_t _nread, const uv_buf_t *_buf)
     {
       rdcmd_state = RD_PAUSE;
       uv_read_stop((uv_stream_t*)&in);
-    };
+    }
   }
 }
 
@@ -105,7 +105,7 @@ void write_cb(uv_write_t *_wr, int _status)
     PRINT_UV_ERR("write", _status);
     rdcmd_state = RD_STOP;
     uv_read_stop((uv_stream_t*)&in);
-  };
+  }
 
   /* when the write request has completed it's safe to free up the memory allocated for the I/O buffer;
      see notes [2][3] */
@@ -116,7 +116,7 @@ void write_cb(uv_write_t *_wr, int _status)
   {
     rdcmd_state = RD_START;
     uv_read_start((uv_stream_t*)&in, alloc_cb, read_cb);
-  };
+  }
   
   /* delete the write request descriptor */
   free(_wr);

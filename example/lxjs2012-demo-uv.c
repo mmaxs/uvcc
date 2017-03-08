@@ -121,12 +121,12 @@ void on_read(uv_stream_t *_tcp_handle, ssize_t _nread, const uv_buf_t *_buf)
     { /* that's an error */
       abort();
     }
-  };
+  }
 
   if (_nread > 0)
   { /* print it! FTW!!! */
     fwrite(_buf->base, 1, _nread, stdout);
-  };
+  }
 
   free(_buf->base);
 }
