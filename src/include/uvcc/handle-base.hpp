@@ -53,7 +53,7 @@ protected: /*types*/
   {
     virtual ~uv_interface() = default;
 
-    virtual void destroy_instance(void*) noexcept = 0;
+    virtual void close(void*) noexcept = 0;
     virtual ::uv_handle_type type(void*) const noexcept = 0;
     virtual ::uv_loop_t* loop(void*) const noexcept = 0;
     virtual void*& data(void*) noexcept = 0;
@@ -137,7 +137,7 @@ protected: /*types*/
 #endif
 
     void ref()  { refs.inc(); }
-    void unref()  { if (refs.dec() == 0)  uv_interface_ptr->destroy_instance(&uv_handle_struct); }
+    void unref()  { if (refs.dec() == 0)  uv_interface_ptr->close(&uv_handle_struct); }
   };
   //! \endcond
 
@@ -292,7 +292,7 @@ struct handle::uv_handle_interface : virtual uv_interface
 {
   template< typename = void > static void close_cb(::uv_handle_t*);
 
-  void destroy_instance(void *_uv_handle) noexcept override
+  void close(void *_uv_handle) noexcept override
   {
     auto uv_handle = static_cast< ::uv_handle_t* >(_uv_handle);
     if (::uv_is_active(uv_handle))
@@ -301,7 +301,7 @@ struct handle::uv_handle_interface : virtual uv_interface
     {
       ::uv_close(uv_handle, nullptr);
       close_cb(uv_handle);
-    }
+    };
   }
 
   ::uv_handle_type type(void *_uv_handle) const noexcept override  { return static_cast< ::uv_handle_t* >(_uv_handle)->type; }
@@ -340,7 +340,7 @@ void handle::uv_handle_interface::close_cb(::uv_handle_t *_uv_handle)
 //! \internal
 struct handle::uv_fs_interface : virtual uv_interface
 {
-  void destroy_instance(void *_uv_fs) noexcept override
+  void close(void *_uv_fs) noexcept override
   {
     auto instance_ptr = handle::instance< handle >::from(_uv_fs);
     auto uv_fs = static_cast< ::uv_fs_t* >(_uv_fs);
