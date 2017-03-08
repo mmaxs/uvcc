@@ -47,8 +47,10 @@ protected: /*types*/
     std::size_t write_queue_size = 0;
     int is_closing = 0;
   };
+  //! \endcond
 
-  struct uv_interface : uv_fs_interface, io::uv_interface
+  //! \internal
+  struct uv_interface : handle::uv_fs_interface, io::uv_interface
   {
     static uv_interface& instance()  { static uv_interface instance;  return instance; }
 
@@ -81,7 +83,7 @@ protected: /*types*/
 
     int read_stop(void *_uv_handle) const noexcept override  { return 0; }
   };
-  //! \endcond
+  //! \endinternal
 
 private: /*types*/
   using instance = handle::instance< file >;

@@ -46,7 +46,9 @@ protected: /*types*/
   using properties = empty_t;
   constexpr static const std::size_t MAX_PROPERTY_SIZE = 136 + sizeof(::uv_buf_t) + sizeof(::uv_fs_t);
   constexpr static const std::size_t MAX_PROPERTY_ALIGN = 8;
+  //! \endcond
 
+  //! \internal
   struct uv_interface
   {
     virtual ~uv_interface() = default;
@@ -61,7 +63,9 @@ protected: /*types*/
   };
   struct uv_handle_interface;
   struct uv_fs_interface;
+  //! \endinternal
 
+  //! \cond
   template< class _Handle_ > class instance
   {
     struct uv_t
@@ -122,13 +126,13 @@ protected: /*types*/
     { return property_storage.get< typename _Handle_::properties >(); }
     typename _Handle_::uv_interface* uv_interface() const noexcept
 #ifndef HACK_UV_INTERFACE_PTR
-    { return dynamic_cast/* from virtual base */< typename _Handle_::uv_interface* >(uv_interface_ptr); }
+    { return dynamic_cast/* from a virtual base */< typename _Handle_::uv_interface* >(uv_interface_ptr); }
 #else
-    /* for any uv_interface subclass it should be a __vptr-only object with no any data members,
+    /* any uv_interface subclass is a __vptr only object with no any data members,
        there is also no needs to switch between the actual __vtable targets
-       as far as uv_interface subclasses don't override virtual functions defined in their base classes,
+       as far as uv_interface subclasses override only not defined pure virtual functions from their base classes,
        so we can just use __vptr from the concrete uv_interface leaf subclass object
-       and simply interpret it according to the one of the desired uv_interface base class context */
+       (and	simply use it according to the one of the desired uv_interface base class context if ever necessary) */
     { return uv_interface_ptr; }
 #endif
 
@@ -283,7 +287,7 @@ public: /*conversion operators*/
 };
 
 
-//! \cond
+//! \internal
 struct handle::uv_handle_interface : virtual uv_interface
 {
   template< typename = void > static void close_cb(::uv_handle_t*);
@@ -329,10 +333,11 @@ void handle::uv_handle_interface::close_cb(::uv_handle_t *_uv_handle)
   if (destroy_cb)  destroy_cb(_uv_handle->data);
 
   delete instance_ptr;
-}//! \endcond
+}
+//! \endinternal
 
 
-//! \cond
+//! \internal
 struct handle::uv_fs_interface : virtual uv_interface
 {
   void destroy_instance(void *_uv_fs) noexcept override
@@ -375,7 +380,7 @@ struct handle::uv_fs_interface : virtual uv_interface
 
   int is_active(void *_uv_fs) const noexcept override  { return 0; }
 };
-//! \endcond
+//! \endinternal
 
 
 }

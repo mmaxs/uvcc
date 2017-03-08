@@ -147,7 +147,7 @@ public: /*interface*/
   /*! \internal \note This function does not need to use the libuv function
       [`uv_default_loop()`](http://docs.libuv.org/en/v1.x/loop.html#c.uv_default_loop)
       to create, initialize, and get the default loop instance as far as that one is just an ordinary loop
-      instance stored in the global static variable. */
+      instance stored in the global static variable. \endinternal */
   static loop& Default() noexcept
   {
     static loop default_loop;
@@ -173,7 +173,8 @@ public: /*interface*/
 
   /*! \brief Set additional loop options.
       \sa libuv API documentation: [`uv_loop_configure()`](http://docs.libuv.org/en/v1.x/loop.html#c.uv_loop_configure). */
-  template< typename... _Args_ > int configure(::uv_loop_option _opt, _Args_&&... _args)
+  template< typename... _Args_ >
+  int configure(::uv_loop_option _opt, _Args_&&... _args)
   {
     return uv_status(::uv_loop_configure(uv_loop, _opt, std::forward< _Args_ >(_args)...));
   }
