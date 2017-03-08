@@ -17,6 +17,9 @@ CXX = c++
 ifdef WINDOWS
 CXX = x86_64-w64-mingw32-c++
 endif
+ifdef VERBOSE
+CXX += -v
+endif
 CXXSTD = -std=c++1y
 
 
@@ -43,7 +46,14 @@ LDFLAGS =
 LDLIBS = -luv
 ifdef WINDOWS
 LDFLAGS = -static-libgcc -static-libstdc++
-LDLIBS = -L $(LIBUV) -luv
+# all the mingw32/gcc/Windows libraries (excluding libgcc and libstdc++)
+# are forced to be always linked dynamically if the -static flag is not specified
+LDFLAGS += -static
+# and for specific so/dll file that we want to link dynamically, we should then
+# switch static linking off, specyfy the library, and then switch static linking state back on again
+#LDLIBS = -Wl,-Bdynamic -L $(LIBUV) -luv -Wl,-Bstatic
+# or instead just directly specify the desired so/dll file for linking
+LDLIBS = $(LIBUV)/libuv.dll
 endif
 
 # static linking

@@ -1,7 +1,6 @@
 
 # additional settings, sources, and prerequisites for specific targets
 ifdef WINDOWS
-LDLIBS += -lWs2_32
 endif
 
 
