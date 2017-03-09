@@ -240,8 +240,8 @@ in /example (or /test) subdirectory.
 
 On Windows you can use [Mingw-w64](http://mingw-w64.org) compiler, make utility, and the command shell that are packaged
 with [Cygwin](https://cygwin.com) or [Msys2](http://msys2.github.io) projects.
-Then add a non-empty definition for "WINDOWS" environment variable as a first command line argument:
-> make WINDOWS=1 example/SOURCE_FILE_BASE_NAME
+Then add the definition for "platform=WINDOWS" environment variable as a command line argument:
+> make platform=WINDOWS example/SOURCE_FILE_BASE_NAME
 
 You will get Windows native binaries built against the libuv Windows release saved
 in /libuv-x64-v1.9.1.build10 subdirectory. If you don't have libuv installed in your Windows system root folder
@@ -251,7 +251,7 @@ For debug builds add a non-empty definition for "DEBUG" environment variable as 
 before specifying any make target.
 > make DEBUG=1 example/SOURCE_FILE_BASE_NAME
 
-All build results will be placed in /build/example subdirectory from the uvcc root directory.
+All the build results will be placed in /build/example subdirectory from the uvcc root directory.
 
 */
 
