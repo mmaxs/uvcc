@@ -5,7 +5,7 @@ BUILD_ROOT = $(ROOT)/build
 
 
 # libuv path
-ifdef WINDOWS
+ifeq ($(platform),WINDOWS)
 LIBUV = $(ROOT)/libuv-x64-v1.9.1.build10
 endif
 
@@ -14,9 +14,11 @@ endif
 CXX_FILE_SUFFIXES = .cpp .c
 CXX_HEADER_SUFFIXES = .hpp .h
 CXX = c++
-ifdef WINDOWS
+
+ifeq ($(platform),WINDOWS)
 CXX = x86_64-w64-mingw32-c++
 endif
+
 ifdef VERBOSE
 CXX += -v
 endif
@@ -25,14 +27,17 @@ CXXSTD = -std=c++1y
 
 # preprocessor flags
 IFLAGS = -iquote $(ROOT)/src/include
-ifdef WINDOWS
+ifeq ($(platform),WINDOWS)
 IFLAGS = -iquote $(ROOT)/src/include -I $(LIBUV)/include
 endif
+
 CPPFLAGS = $(IFLAGS)
+
 ifndef DEBUG
 CPPFLAGS += -D NDEBUG
 endif
-ifdef WINDOWS
+
+ifeq ($(platform),WINDOWS)
 CPPFLAGS += -D _WIN32_WINNT=0x0601
 endif
 
@@ -43,37 +48,45 @@ CXXFLAGS = $(CXXSTD) -Wall -Wpedantic -O2 -g -pipe
 
 # linker flags
 LDFLAGS =
-LDLIBS = -luv
-ifdef WINDOWS
-LDFLAGS = -static-libgcc -static-libstdc++
-# all the mingw32/gcc/Windows libraries (excluding libgcc and libstdc++)
-# are forced to be always linked dynamically if the -static flag is not specified
-LDFLAGS += -static
-# and for specific so/dll file that we want to link dynamically, we should then
-# switch static linking off, specyfy the library, and then switch static linking state back on again
-#LDLIBS = -Wl,-Bdynamic -L $(LIBUV) -luv -Wl,-Bstatic
-# or instead just directly specify the desired so/dll file for linking
-LDLIBS = $(LIBUV)/libuv.dll
-endif
+LDLIBS =
 
 # static linking
-# use LDSTATIC variable to specify static linking options, e.g.:
-#   LDSTATIC = -static
-# or
-#   make LDSTATIC="-static -static-libgcc -static-libstdc++" <goal>
-# or define the target-specific assignment for appropriate goals in local makefiles
-#   <goal>: LDSTATIC = -static
+#  use LDSTATIC variable to specify static linking options
+#
+#  for simple applications on Windows, we normally prefer the standard C/C++ libraries
+#  to have been statically linked as far as the system usually lacks the gcc's runtime libraries,
+#  e.g.:
+#   LDSTATIC = -static-libgcc -static-libstdc++
+#  or
+#   make LDSTATIC="-static-libgcc -static-libstdc++" <goal>
+#  or define the target-specific assignment for appropriate goals in local makefiles
+#   <goal>: LDSTATIC = -static-libgcc -static-libstdc++
+#
+#  in any case all other the mingw32/gcc/OS libraries are forced to be always linked dynamically
+#  if the -static flag is not specified, which also prevents dynamic linking with shared libraries at all,
+#  therefore if there is a specific library that we want to link with dynamically, we should then
+#  switch static linking off, specify the desired library, and then switch static linking state back on again
+#  using LDLIBS variable, e.g.:
+#   LDLIBS = -Wl,-Bdynamic -L $(LIBUV) -luv -Wl,-Bstatic
+#  or, instead, just directly specify the desired .so/.dll file for dynamic linking with, e.g.:
+#   LDLIBS += $(LIBUV)/libuv.dll
+#  which can be more preferable in this case and is as good as specifing a particular .a/.lib file
+#  for static linking with some desired library, e.g.:
+#   LDLIBS += $(LIBUV)/libuv.a
 
-# linking a shared library
-# use Makefile.d/link.rules and define the target-specific assignment
-# to CXXFLAGS, LDFLAGS, and LDOUT for appropriate goals in local makefiles, e.g.
+# bulding a shared library
+#  use Makefile.d/link.rules and define the target-specific assignment
+#  to CXXFLAGS, LDFLAGS, and LDOUT for appropriate goals, e.g.
 #   <goal>: CXXFLAGS += -fPIC
-#   <goal>: private LDFLAGS += -shared
+#   <goal>: private override LDFLAGS += -shared
 #   <goal>: private LDOUT = lib$@.so
-# alternatively, use Makefile.d/link-so.rules which basically do the above but leaving aside CXXFLAGS
-# also when Makefile.d/link-so.rules is used
-# 	if SONAME_VERSION is nonempty LDFLAGS is added with -Wl,-soname=$(notdir $(LDOUT)).$(SONAME_VERSION)
-# 	if both SONAME_VERSION and SOFILE_VERSION are nonempty linker output is set to $(LDOUT).$(SONAME_VERSION).$(SOFILE_VERSION)
+#
+#  alternatively, use Makefile.d/link-so.rules which basically do the above but leaving aside CXXFLAGS
+#  (so don't forget about specifying -fpic/-fPIC options requred for compilation stage),
+#  also when Makefile.d/link-so.rules is used if SONAME_VERSION variable is nonempty, LDFLAGS is added with:
+#   -Wl,-soname=$(notdir $(LDOUT)).$(SONAME_VERSION)
+#  and if both SONAME_VERSION and SOFILE_VERSION variables are nonempty, linker output is set to
+#   $(LDOUT).$(SONAME_VERSION).$(SOFILE_VERSION)
 
 
 # AR common settings and flags

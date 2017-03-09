@@ -1,6 +1,10 @@
 
 # additional settings, sources, and prerequisites for specific targets
-ifdef WINDOWS
+ifeq ($(platform),WINDOWS)
+LDSTATIC += -static-libgcc -static-libstdc++ -static
+LDLIBS += $(LIBUV)/libuv.dll
+else
+LDLIBS += -luv
 endif
 
 

@@ -37,7 +37,7 @@ $(MAKECMDGOALS): private {object-file} = $(call !BUILD-TARGET!,$(call !OBJS!,$(C
 $(MAKECMDGOALS): private {link-parts} = $(if $(filter $({object-file}),$({OBJECT-FILES})),,$({source-file})) $({OBJECT-FILES})
 $(MAKECMDGOALS): $$({source-file}) $$({OBJECT-FILES}) $$(MAKEFILE_LIST) | $$({target-build-dir})
 	$(info $(-LINE-FEED-) *** ($@: $^))
-	$(LINK.cc) $(LDSTATIC) $({link-parts}) $(LDLIBS)  -o $(call !BUILD-TARGET!,$({ld-out}))
+	$(LINK.cc) $({link-parts}) $(LDSTATIC) $(LDLIBS)  -o $(call !BUILD-TARGET!,$({ld-out}))
 
 
 # create the subdirectory that should appears as a prerequisite
