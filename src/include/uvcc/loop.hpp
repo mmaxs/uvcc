@@ -9,6 +9,7 @@
 #include <functional>   // function bind placeholders::
 #include <type_traits>  // is_standard_layout enable_if is_convertible
 #include <utility>      // swap() forward()
+#include <stdexcept>    // runtime_error
 
 
 namespace uv
@@ -62,7 +63,12 @@ private: /*types*/
     instance()  { uv_error = ::uv_loop_init(&uv_loop_struct); }
 
   public: /*constructors*/
-    ~instance()  { uv_error = ::uv_loop_close(&uv_loop_struct); }
+    ~instance() noexcept(false)
+    {
+      uv_error = ::uv_loop_close(&uv_loop_struct);
+      if (uv_error == UV_EBUSY)  // not finished executing
+        throw std::runtime_error(__PRETTY_FUNCTION__);
+    }
 
     instance(const instance&) = delete;
     instance& operator =(const instance&) = delete;

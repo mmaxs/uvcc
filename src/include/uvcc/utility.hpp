@@ -256,8 +256,8 @@ public: /*interface*/
   {
     auto c = count.load(std::memory_order_relaxed);
     do
-      if (c == 0)   throw std::runtime_error(__PRETTY_FUNCTION__);  /*
-      // perhaps constructing/copying from a reference just becoming a dangling one */
+      if (c == 0)  // perhaps constructing/copying from a reference just becoming a dangling one
+        throw std::runtime_error(__PRETTY_FUNCTION__);
     while (!count.compare_exchange_weak(c, c+1, std::memory_order_relaxed, std::memory_order_relaxed));
     return c+1;
   }
