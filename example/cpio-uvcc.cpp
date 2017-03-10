@@ -10,12 +10,11 @@
 } while (0)
 
 
-
 uv::pipe in(uv::loop::Default(), fileno(stdin)),
          out(uv::loop::Default(), fileno(stdout));
 
-constexpr const std::size_t WRITE_QUEUE_SIZE_UPPER_LIMIT = 500*1024*1024,
-                            WRITE_QUEUE_SIZE_LOWER_LIMIT =  10*1024*1024;
+constexpr std::size_t WRITE_QUEUE_SIZE_UPPER_LIMIT = 500*1024*1024,
+                      WRITE_QUEUE_SIZE_LOWER_LIMIT =  10*1024*1024;
 
 
 void read_cb(uv::io, ssize_t, uv::buffer, int64_t, void*);

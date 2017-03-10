@@ -82,7 +82,7 @@ int main(int _argc, char *_argv[])
     if (!peer)  PRINT_UV_ERR("read start", peer.uv_status());
   };
 
-  // add the connection request for processing
+  // attach the connect request to the loop
   conn.run(peer, server_addr);
 
   return uv::loop::Default().run(UV_RUN_DEFAULT);

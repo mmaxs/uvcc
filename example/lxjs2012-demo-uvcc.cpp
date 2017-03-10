@@ -8,10 +8,11 @@
 #include <cstdio>
 
 
-#define PRINT_UV_ERR(prefix, code)  do {\
-    fflush(stdout);\
-    fprintf(stderr, "%s: %s (%i): %s\n", prefix, ::uv_err_name(code), (int)(code), ::uv_strerror(code));\
-    fflush(stderr);\
+#define PRINT_UV_ERR(code, prefix, ...)  do {\
+  fflush(stdout);\
+  fprintf(stderr, (prefix), ##__VA_ARGS__);\
+  fprintf(stderr, ": %s (%i): %s\n", ::uv_err_name(code), (int)(code), ::uv_strerror(code));\
+  fflush(stderr);\
 } while (0)
 
 
@@ -27,7 +28,7 @@ int main(int _argc, char *_argv[])
   {
     if (!_gai_req)
     {
-      PRINT_UV_ERR("getaddrinfo", _gai_req.uv_status());
+      PRINT_UV_ERR(_gai_req.uv_status(), "getaddrinfo");
       return;
     }
 
@@ -54,7 +55,7 @@ void connect_cb(uv::connect _connect_req)
 {
   if (!_connect_req)
   {
-    PRINT_UV_ERR("connect", _connect_req.uv_status());
+    PRINT_UV_ERR(_connect_req.uv_status(), "connect");
     return;
   }
 
@@ -72,7 +73,7 @@ void connect_cb(uv::connect _connect_req)
 
   // write the HTTP request to the tcp stream
   uv::write wr;
-  wr.on_request() = [](uv::write _wr, uv::buffer){ if (!_wr)  PRINT_UV_ERR("write", _wr.uv_status()); };
+  wr.on_request() = [](uv::write _wr, uv::buffer){ if (!_wr)  PRINT_UV_ERR(_wr.uv_status(), "write"); };
   wr.run(tcp_handle, buf);
 
   // start reading from the tcp stream
@@ -85,7 +86,7 @@ void connect_cb(uv::connect _connect_req)
         if (_nread < 0)
         {
           _io.read_stop();
-          if (_nread != UV_EOF)  PRINT_UV_ERR("read", _nread);
+          if (_nread != UV_EOF)  PRINT_UV_ERR(_nread, "read");
         }
         else if (_nread > 0)
         {

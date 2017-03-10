@@ -22,8 +22,8 @@ void write_cb(uv_write_t*, int);
 
 
 /* define queue size limits and transfer control states */
-constexpr const size_t WRITE_QUEUE_SIZE_UPPER_LIMIT = 500*1024*1024,
-                       WRITE_QUEUE_SIZE_LOWER_LIMIT =  10*1024*1024;
+const size_t WRITE_QUEUE_SIZE_UPPER_LIMIT = 500*1024*1024,
+             WRITE_QUEUE_SIZE_LOWER_LIMIT =  10*1024*1024;
 enum { RD_UNKNOWN, RD_STOP, RD_PAUSE, RD_START } rdcmd_state = RD_UNKNOWN;
 
 
