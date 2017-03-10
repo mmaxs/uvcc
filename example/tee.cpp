@@ -112,6 +112,11 @@ int main(int _argc, char *_argv[])
         }
       }
   );
+  if (!in)
+  {
+    PRINT_UV_ERR(in.uv_status(), "stdin read request initiation (%s)", in.type_name());
+    return in.uv_status();
+  }
 
   return uv::loop::Default().run(UV_RUN_DEFAULT);
 }

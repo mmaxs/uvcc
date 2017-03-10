@@ -3,10 +3,11 @@
 #include <cstdio>
 
 
-#define PRINT_UV_ERR(prefix, code)  do {\
-    fflush(stdout);\
-    fprintf(stderr, "%s: %s (%i): %s\n", prefix, ::uv_err_name(code), (int)(code), ::uv_strerror(code));\
-    fflush(stderr);\
+#define PRINT_UV_ERR(code, prefix, ...)  do {\
+  fflush(stdout);\
+  fprintf(stderr, (prefix), ##__VA_ARGS__);\
+  fprintf(stderr, ": %s (%i): %s\n", ::uv_err_name(code), (int)(code), ::uv_strerror(code));\
+  fflush(stderr);\
 } while (0)
 
 
@@ -25,12 +26,12 @@ int main(int _argc, char *_argv[])
 {
   if (!in)
   {
-    PRINT_UV_ERR("stdin open", in.uv_status());
+    PRINT_UV_ERR(in.uv_status(), "stdin open");
     return in.uv_status();
   }
   if (!out)
   {
-    PRINT_UV_ERR("stdout open", out.uv_status());
+    PRINT_UV_ERR(out.uv_status(), "stdout open");
     return out.uv_status();
   }
 
@@ -49,7 +50,7 @@ void read_cb(uv::io _io, ssize_t _nread, uv::buffer _buffer, int64_t, void*)
   if (_nread < 0)
   {
     _io.read_stop();
-    if (_nread != UV_EOF)  PRINT_UV_ERR("read", _nread);
+    if (_nread != UV_EOF)  PRINT_UV_ERR(_nread, "read");
   }
   else if (_nread > 0)
   {
@@ -68,7 +69,7 @@ void write_cb(uv::write _wr, uv::buffer)
 {
   if (!_wr)
   {
-    PRINT_UV_ERR("write", _wr.uv_status());
+    PRINT_UV_ERR(_wr.uv_status(), "write");
     in.read_stop();
   }
 

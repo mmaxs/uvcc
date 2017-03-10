@@ -4,10 +4,11 @@
 #include <stdio.h>
 
 
-#define PRINT_UV_ERR(prefix, code)  do {\
-    fflush(stdout);\
-    fprintf(stderr, "%s: %s (%i): %s\n", prefix, uv_err_name(code), (int)(code), uv_strerror(code));\
-    fflush(stderr);\
+#define PRINT_UV_ERR(code, prefix, ...)  do {\
+  fflush(stdout);\
+  fprintf(stderr, (prefix), ##__VA_ARGS__);\
+  fprintf(stderr, ": %s (%i): %s\n", uv_err_name(code), (int)(code), uv_strerror(code));\
+  fflush(stderr);\
 } while (0)
 
 
@@ -37,7 +38,7 @@ int main(int _argc, char *_argv[])
   ret = uv_pipe_open(&in, fileno(stdin));
   if (ret < 0)
   {
-    PRINT_UV_ERR("stdin open", ret);
+    PRINT_UV_ERR(ret, "stdin open");
     return ret;
   }
 
@@ -45,7 +46,7 @@ int main(int _argc, char *_argv[])
   ret = uv_pipe_open(&out, fileno(stdout));
   if (ret < 0)
   {
-    PRINT_UV_ERR("stdout open", ret);
+    PRINT_UV_ERR(ret, "stdout open");
     return ret;
   }
 
@@ -69,7 +70,7 @@ void read_cb(uv_stream_t *_stream, ssize_t _nread, const uv_buf_t *_buf)
   if (_nread < 0)
   {
     uv_read_stop(_stream);
-    if (_nread != UV_EOF)  PRINT_UV_ERR("read", _nread);
+    if (_nread != UV_EOF)  PRINT_UV_ERR(_nread, "read");
   }
   else if (_nread > 0)
   {
@@ -102,7 +103,7 @@ void write_cb(uv_write_t *_wr, int _status)
 {
   if (_status < 0)
   {
-    PRINT_UV_ERR("write", _status);
+    PRINT_UV_ERR(_status, "write");
     rdcmd_state = RD_STOP;
     uv_read_stop((uv_stream_t*)&in);
   }

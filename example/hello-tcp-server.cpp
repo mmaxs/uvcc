@@ -3,10 +3,11 @@
 #include <cstdio>
 
 
-#define PRINT_UV_ERR(prefix, code)  do {\
-    fflush(stdout);\
-    fprintf(stderr, "%s: %s (%i): %s\n", prefix, ::uv_err_name(code), (int)(code), ::uv_strerror(code));\
-    fflush(stderr);\
+#define PRINT_UV_ERR(code, prefix, ...)  do {\
+  fflush(stdout);\
+  fprintf(stderr, (prefix), ##__VA_ARGS__);\
+  fprintf(stderr, ": %s (%i): %s\n", ::uv_err_name(code), (int)(code), ::uv_strerror(code));\
+  fflush(stderr);\
 } while (0)
 
 
@@ -21,7 +22,7 @@ int main(int _argc, char *_argv[])
   int status = uv::init(listen_addr, ip, port);  // IP agnostic address initialization
   if (status != 0)
   {
-    PRINT_UV_ERR("address init", status);
+    PRINT_UV_ERR(status, "ip address");
     return status;
   }
   /* here is the example for direct IPv4 address initialization:
@@ -35,7 +36,7 @@ int main(int _argc, char *_argv[])
   server.bind(listen_addr);
   if (!server)
   {
-    PRINT_UV_ERR("socket bind", server.uv_status());
+    PRINT_UV_ERR(server.uv_status(), "tcp socket bind");
     return server.uv_status();
   }
 
@@ -50,16 +51,17 @@ int main(int _argc, char *_argv[])
       {
         if (!_server)
         {
-          PRINT_UV_ERR("incoming connection", _server.uv_status());
+          PRINT_UV_ERR(_server.uv_status(), "incoming connection");
           return;
         }
         auto client = static_cast< uv::tcp&& >(_server.accept());
-        if (!client)  PRINT_UV_ERR("accept", client.uv_status());
+        if (!client)  PRINT_UV_ERR(client.uv_status(), "accept");
 
         // dispatch to send a greeting
         uv::write wr;
-        wr.on_request() = [](uv::write _wr, uv::buffer){ if (!_wr)  PRINT_UV_ERR("write", _wr.uv_status()); };
+        wr.on_request() = [](uv::write _wr, uv::buffer){ if (!_wr)  PRINT_UV_ERR(_wr.uv_status(), "write"); };
         wr.run(client, greeting);
+        if (!wr)  PRINT_UV_ERR(wr.uv_status(), "write initiation");
 
         // shutdown the write side of the connection
         uv::shutdown shut_wr;
@@ -75,7 +77,7 @@ int main(int _argc, char *_argv[])
               if (_nread < 0)
               {
                 _io.read_stop();
-                if (_nread != UV_EOF)  PRINT_UV_ERR("read", _nread);
+                if (_nread != UV_EOF)  PRINT_UV_ERR(_nread, "read");
               }
               else if (_nread > 0)
               {
@@ -85,12 +87,12 @@ int main(int _argc, char *_argv[])
               }
             }
         );
-        if (!client)  PRINT_UV_ERR("read start", client.uv_status());
+        if (!client)  PRINT_UV_ERR(client.uv_status(), "read initiation");
       }
   );
   if (!server)
   {
-    PRINT_UV_ERR("listen", server.uv_status());
+    PRINT_UV_ERR(server.uv_status(), "listen");
     return server.uv_status();
   }
 

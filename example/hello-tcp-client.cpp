@@ -3,10 +3,11 @@
 #include <cstdio>
 
 
-#define PRINT_UV_ERR(prefix, code)  do {\
-    fflush(stdout);\
-    fprintf(stderr, "%s: %s (%i): %s\n", prefix, ::uv_err_name(code), (int)(code), ::uv_strerror(code));\
-    fflush(stderr);\
+#define PRINT_UV_ERR(code, prefix, ...)  do {\
+  fflush(stdout);\
+  fprintf(stderr, (prefix), ##__VA_ARGS__);\
+  fprintf(stderr, ": %s (%i): %s\n", ::uv_err_name(code), (int)(code), ::uv_strerror(code));\
+  fflush(stderr);\
 } while (0)
 
 
@@ -21,7 +22,7 @@ int main(int _argc, char *_argv[])
   int status = uv::init(server_addr, ip, port);
   if (status != 0)
   {
-    PRINT_UV_ERR("address init", status);
+    PRINT_UV_ERR(status, "ip address");
     return status;
   }
 
@@ -29,7 +30,7 @@ int main(int _argc, char *_argv[])
   uv::tcp peer(uv::loop::Default(), server_addr.ss_family);
   if (!peer)
   {
-    PRINT_UV_ERR("tcp socket init", peer.uv_status());
+    PRINT_UV_ERR(peer.uv_status(), "tcp socket");
     return peer.uv_status();
   }
 
@@ -44,7 +45,7 @@ int main(int _argc, char *_argv[])
   {
     if (!_conn)
     {
-      PRINT_UV_ERR("connect request", _conn.uv_status());
+      PRINT_UV_ERR(_conn.uv_status(), "connect");
       return;
     }
     // a tcp stream for the connection
@@ -52,8 +53,9 @@ int main(int _argc, char *_argv[])
 
     // dispatch to send a greeting
     uv::write wr;
-    wr.on_request() = [](uv::write _wr, uv::buffer){ if (!_wr)  PRINT_UV_ERR("write", _wr.uv_status()); };
+    wr.on_request() = [](uv::write _wr, uv::buffer){ if (!_wr)  PRINT_UV_ERR(_wr.uv_status(), "write"); };
     wr.run(peer, greeting);
+    if (!wr)  PRINT_UV_ERR(wr.uv_status(), "write initiation");
 
     // shutdown the write side of the connection
     uv::shutdown shut_wr;
@@ -69,7 +71,7 @@ int main(int _argc, char *_argv[])
           if (_nread < 0)
           {
             _io.read_stop();
-            if (_nread != UV_EOF)  PRINT_UV_ERR("read request", _nread);
+            if (_nread != UV_EOF)  PRINT_UV_ERR(_nread, "read");
           }
           else if (_nread > 0)
           {
@@ -79,11 +81,16 @@ int main(int _argc, char *_argv[])
           }
         }
     );
-    if (!peer)  PRINT_UV_ERR("read start", peer.uv_status());
+    if (!peer)  PRINT_UV_ERR(peer.uv_status(), "read initiation");
   };
 
   // attach the connect request to the loop
   conn.run(peer, server_addr);
+  if (!conn)
+  {
+    PRINT_UV_ERR(conn.uv_status(), "connect initiation");
+    return conn.uv_status();
+  }
 
   return uv::loop::Default().run(UV_RUN_DEFAULT);
 }
