@@ -33,7 +33,9 @@ endif
 
 CPPFLAGS = $(IFLAGS)
 
-ifndef DEBUG
+ifdef DEBUG
+CPPFLAGS += -D DEBUG=$(DEBUG)
+else
 CPPFLAGS += -D NDEBUG
 endif
 
