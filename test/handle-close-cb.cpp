@@ -1,6 +1,11 @@
 
+
+#define DEBUG 2
+
 #include "uvcc.hpp"
 #include <cstdio>
+
+#pragma GCC diagnostic ignored "-Wunused-variable"
 
 
 #define PRINT_UV_ERR(code, prefix, ...)  do {\
@@ -10,10 +15,42 @@
   fflush(stderr);\
 } while (0)
 
+struct A
+{
+  A()
+  {
+    fprintf(stderr, "%s\n", __PRETTY_FUNCTION__);
+    fflush(stderr);
+  }
+  ~A()
+  {
+    fprintf(stderr, "%s\n", __PRETTY_FUNCTION__);
+    fflush(stderr);
+  }
+};
+
+A a;
 uv::loop &L = uv::loop::Default();
+
+void ccb(void *_data)
+{
+  fprintf(stderr, "destroy callback for the ");
+  uv::debug::print_handle(static_cast< ::uv_handle_t* >(_data));
+}
+
 
 int main(int _argc, char *_argv[])
 {
+  L.on_exit() = [](uv::loop _loop)
+  {
+    fprintf(stderr, "loop after exit walk: begin\n");
+    uv::debug::print_loop_handles(static_cast< ::uv_loop_t* >(_loop));
+    fprintf(stderr, "loop after exit walk: end\n");
+    fflush(stderr);
+  };
+
+
+#if 0  
   // obtain server's address and initialize a sockaddr structure
   sockaddr_storage server_addr;
 
@@ -26,15 +63,21 @@ int main(int _argc, char *_argv[])
     PRINT_UV_ERR(status, "ip address");
     return status;
   }
-
+#endif
+//{
   // initialize a tcp socket
-  uv::tcp peer(uv::loop::Default(), server_addr.ss_family);
+  uv::tcp peer(uv::loop::Default(), /*server_addr.ss_family*/AF_INET);
   if (!peer)
   {
     PRINT_UV_ERR(peer.uv_status(), "tcp socket");
     return peer.uv_status();
   }
-
+  peer.data() = static_cast< ::uv_handle_t* >(peer);
+  peer.on_destroy() = ccb;
+  fprintf(stderr, "create a ");
+  uv::debug::print_handle(static_cast< ::uv_handle_t* >(peer));
+//}
+#if 0
   // fill in the buffer with greeting message
   uv::buffer greeting;
   greeting.base() = const_cast< char* >("client: Hello from uvcc!\n");
@@ -92,27 +135,18 @@ int main(int _argc, char *_argv[])
     PRINT_UV_ERR(conn.uv_status(), "connect initiation");
     return conn.uv_status();
   }
+#endif
 
-  L.on_exit() = [](uv::loop _loop)
-  {
-    fprintf(stderr, "loop after exit walk: begin\n");
-    uv::debug::print_loop_handles(static_cast< ::uv_loop_t* >(_loop));
-    fprintf(stderr, "loop after exit walk: end\n");
-    fflush(stderr);
-  };
-
-  //::uv_print_all_handles(::uv_default_loop()/*(uv_loop_t*)L*/, stderr);  // segmentation fault
-  //fflush(stderr);
-  L/*uv::loop::Default()*/.run(UV_RUN_DEFAULT);
-
+  L.run(UV_RUN_DEFAULT);
+#if 0
   ::uv_unref(static_cast<::uv_handle_t*>(peer));
-  fprintf(stderr, "un-reference the loop for ");
+  fprintf(stderr, "un-reference ");
   uv::debug::print_handle(static_cast<::uv_handle_t*>(peer));
   fprintf(stderr, "loop walk: begin\n");
   uv::debug::print_loop_handles(static_cast< ::uv_loop_t* >(L));
   fprintf(stderr, "loop walk: end\n");
   fflush(stderr);
-
+#endif
 #if 0
   fprintf(stderr, "- loop exit -\n");
   //::uv_print_all_handles(::uv_default_loop()/*(uv_loop_t*)L*/, stderr);  // segmentation fault
