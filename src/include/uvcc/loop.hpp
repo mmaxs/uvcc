@@ -2,6 +2,7 @@
 #ifndef UVCC_LOOP__HPP
 #define UVCC_LOOP__HPP
 
+#include "uvcc/debug.hpp"
 #include "uvcc/utility.hpp"
 
 #include <uv.h>
@@ -61,17 +62,43 @@ private: /*types*/
     uv_t uv_loop_struct = { 0,};
 
   private: /*constructors*/
-    instance()  { uv_error = ::uv_loop_init(&uv_loop_struct); }
+    instance()
+    {
+      uv_error = ::uv_loop_init(&uv_loop_struct);
+#if defined(DEBUG) && (DEBUG > 1)
+      fprintf(stderr, "loop instance [0x%08llX] has been created: uv_error=%i\n", (uintptr_t)this, uv_error);
+      fflush(stderr);
+#endif
+    }
 
   public: /*constructors*/
     ~instance() noexcept(false)
     {
+#if defined(DEBUG) && (DEBUG > 1)
+      fprintf(stderr, "loop instance [0x%08llX] destroying: begin\n", (uintptr_t)this);
+
+      fprintf(stderr, "loop instance [0x%08llX] premortem walk: begin\n", (uintptr_t)this);
+      debug::print_loop_handles(&uv_loop_struct);
+      fprintf(stderr, "loop instance [0x%08llX] premortem walk: end\n", (uintptr_t)this);
+      fflush(stderr);
+#endif
+
       uv_error = ::uv_loop_close(&uv_loop_struct);
-      if (uv_error == UV_EBUSY)  // a not finished executing loop
+      if (uv_error == UV_EBUSY)
       {
-        if (!std::uncaught_exception())  // try to not make a bad situation worse
+        // it is a not finished executing loop or there are
+        // handles (and perhaps requests?) associated with the loop
+        // that are not closed by the time the loop instance destroying
+        if (!std::uncaught_exception())
+          // if this is a consequence of an exception, try to not make the bad
+          // situation even worse, otherwise throw
           throw std::runtime_error(__PRETTY_FUNCTION__);
       }
+
+#if defined(DEBUG) && (DEBUG > 1)
+      fprintf(stderr, "loop instance [0x%08llX] destroying: end\n", (uintptr_t)this);
+      fflush(stderr);
+#endif
     }
 
     instance(const instance&) = delete;
@@ -97,8 +124,29 @@ private: /*types*/
       return reinterpret_cast< instance* >(reinterpret_cast< char* >(_uv_loop) - offsetof(instance, uv_loop_struct));
     }
 
-    void ref()  { refs.inc(); }
-    void unref()  { if (refs.dec() == 0)  destroy(); }
+    void ref()
+    {
+#if defined(DEBUG) && (DEBUG > 1)
+      fprintf(stderr, "INC nrefs to loop instance [0x%08llX]\n", (uintptr_t)this);
+      fflush(stderr);
+#endif
+      refs.inc();
+    }
+    void unref()
+    {
+#if defined(DEBUG) && (DEBUG > 1)
+      fprintf(stderr, "DEC nrefs to loop instance [0x%08llX]\n", (uintptr_t)this);
+      fflush(stderr);
+#endif
+      if (refs.dec() == 0)
+      {
+#if defined(DEBUG) && (DEBUG > 1)
+        fprintf(stderr, "nrefs to loop instance [0x%08llX] becomes zero, call for destroying it\n", (uintptr_t)this);
+        fflush(stderr);
+#endif
+        destroy();
+      }
+    }
   };
 
 private: /*data*/

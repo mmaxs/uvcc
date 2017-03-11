@@ -187,7 +187,8 @@ public: /*constructors*/
   tcp(uv::loop &_loop, unsigned int _flags = AF_UNSPEC)
   {
     uv_handle = instance::create();
-    uv_status(::uv_tcp_init_ex(static_cast< uv::loop::uv_t* >(_loop), static_cast< uv_t* >(uv_handle), _flags));
+    if (uv_status(::uv_tcp_init_ex(static_cast< uv::loop::uv_t* >(_loop), static_cast< uv_t* >(uv_handle), _flags)) != 0)  return;
+    instance::from(uv_handle)->book_loop();
   }
   /*! \brief Create a handle object from an existing native platform depended TCP socket descriptor.
       \sa libuv API documentation: [`uv_tcp_open()`](http://docs.libuv.org/en/v1.x/tcp.html#c.uv_tcp_open),
@@ -198,6 +199,7 @@ public: /*constructors*/
     if (uv_status(::uv_tcp_init(static_cast< uv::loop::uv_t* >(_loop), static_cast< uv_t* >(uv_handle))) != 0)  return;
     if (uv_status(::uv_tcp_open(static_cast< uv_t* >(uv_handle), _socket)) != 0)  return;
     if (_set_blocking)  set_blocking(_set_blocking);
+    instance::from(uv_handle)->book_loop();
   }
 
 public: /*interface*/

@@ -45,7 +45,15 @@ class signal;
 //! \cond
 template< typename _UV_T_ > struct uv_handle_traits  {};
 //! \endcond
+#if defined(DEBUG)
+#define XX(X, x) template<> struct uv_handle_traits< uv_##x##_t >\
+{\
+  using type = x;\
+  static constexpr const char *type_name = #x;\
+};
+#else
 #define XX(X, x) template<> struct uv_handle_traits< uv_##x##_t > { using type = x; };
+#endif
 UV_HANDLE_TYPE_MAP(XX)
 #undef XX
 //! \}
