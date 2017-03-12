@@ -1,21 +1,77 @@
 
 #ifndef UVCC_DEBUG__HPP
 #define UVCC_DEBUG__HPP
-#ifdef DEBUG
+//! \cond
 
 #include <uv.h>
 #include <cstdio>
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-function"
 
-//! \cond
+
+#define MAKE_LITERAL_STRING_VERBATIM(...)  #__VA_ARGS__
+#define MAKE_LITERAL_STRING_AFTER_EXPANDING(...)  MAKE_LITERAL_STRING_VERBATIM(__VA_ARGS__)
+
+#define CONCATENATE_VERBATIM(left, right)  left ## right
+#define CONCATENATE_AFTER_EXPANDING(left, right)  CONCATENATE_VERBATIM(left, right)
+
+
+#ifdef UVCC_DEBUG
+
+#define UVCC_DEBUG_PRINTF(printf_args...)  do {\
+    int n = fprintf(stderr, "" printf_args);\
+    fprintf(stderr, "%sfunction=%s file=%s line=%d\n", n?": ":"", __PRETTY_FUNCTION__, __FILE__, __LINE__);\
+    fflush(stderr);\
+} while (0)
+
+#define UVCC_DEBUG_LOG(log_condition, printf_args...)  do {\
+    if ((log_condition))\
+    {\
+      fflush(stdout);\
+      fprintf(stderr, "[debug] ");\
+      UVCC_DEBUG_PRINTF(printf_args);\
+    }\
+} while (0)
+
+#define UVCC_DEBUG_CHECK_ENTRY(printf_args...)  do {\
+    fflush(stdout);\
+    fprintf(stderr, "[debug] enter function/block: ");\
+    UVCC_DEBUG_PRINTF(printf_args);\
+} while (0)
+
+
+#define UVCC_DEBUG_CHECK_EXIT(printf_args...)  do {\
+    fflush(stdout);\
+    fprintf(stderr, "[debug] exit from function/block: ");\
+    UVCC_DEBUG_PRINTF(printf_args);\
+} while (0)
+
+#define UVCC_DEBUG_CHECK_CONDITION(condition, context...)  do {\
+    fflush(stdout);\
+    fprintf(stderr, "[debug] condition (%s) is %s: ",\
+        MAKE_LITERAL_STRING_VERBATIM(condition), (condition)?"true":"false"\
+    );\
+    UVCC_DEBUG_PRINTF(context);\
+} while (0)
+
+#else
+
+#define UVCC_DEBUG_PRINTF(...)
+#define UVCC_DEBUG_LOG(log_condition, ...)  (void)(log_condition)
+#define UVCC_DEBUG_CHECK_ENTRY(...)
+#define UVCC_DEBUG_CHECK_EXIT(...)
+#define UVCC_DEBUG_CHECK_CONDITION(condition, ...)  (void)(condition)
+
+#endif
+
+
 namespace uv
-{
-namespace
 {
 namespace debug
 {
 
-
+static
 const char* handle_type_name(void *_uv_handle)
 {
   const char *ret;
@@ -30,6 +86,7 @@ const char* handle_type_name(void *_uv_handle)
   return ret;
 }
 
+static
 void print_handle(void *_uv_handle)
 {
   auto h = static_cast< ::uv_handle_t* >(_uv_handle);
@@ -40,6 +97,7 @@ void print_handle(void *_uv_handle)
   fflush(stderr);
 }
 
+static
 void print_loop_handles(void *_uv_loop_handle)
 {
   auto walk_cb = [](::uv_handle_t *_h, void*){ print_handle(_h); };
@@ -49,8 +107,9 @@ void print_loop_handles(void *_uv_loop_handle)
 
 }
 }
-}
-//! \endcond
 
-#endif
+
+#pragma GCC diagnostic pop
+
+//! \endcond
 #endif

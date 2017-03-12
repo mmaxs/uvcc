@@ -1,5 +1,10 @@
 
 # additional settings, sources, and prerequisites for specific targets
+
+ifndef DEBUG
+CPPFLAGS += -D NDEBUG
+endif
+
 ifeq ($(platform),WINDOWS)
 LDSTATIC += -static-libgcc -static-libstdc++ -static
 LDLIBS += $(LIBUV)/libuv.dll

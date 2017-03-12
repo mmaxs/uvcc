@@ -33,8 +33,8 @@ endif
 
 CPPFLAGS = $(IFLAGS)
 
-ifdef DEBUG
-CPPFLAGS += -D DEBUG=$(DEBUG)
+ifdef UVCC_DEBUG
+CPPFLAGS += -D UVCC_DEBUG = $(UVCC_DEBUG)
 else
 CPPFLAGS += -D NDEBUG
 endif
@@ -46,6 +46,9 @@ endif
 
 # compiler flags
 CXXFLAGS = $(CXXSTD) -Wall -Wpedantic -O2 -g -pipe
+ifdef UVCC_DEBUG
+CXXFLAGS += -Wno-variadic-macros -Wno-format-zero-length
+endif
 
 
 # linker flags
