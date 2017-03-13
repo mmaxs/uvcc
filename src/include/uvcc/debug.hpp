@@ -6,9 +6,8 @@
 #include <uv.h>
 #include <cstdio>
 
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wunused-function"
 
+#ifdef UVCC_DEBUG
 
 #define MAKE_LITERAL_STRING_VERBATIM(...)  #__VA_ARGS__
 #define MAKE_LITERAL_STRING_AFTER_EXPANDING(...)  MAKE_LITERAL_STRING_VERBATIM(__VA_ARGS__)
@@ -17,55 +16,64 @@
 #define CONCATENATE_AFTER_EXPANDING(left, right)  CONCATENATE_VERBATIM(left, right)
 
 
-#ifdef UVCC_DEBUG
-
-#define UVCC_DEBUG_PRINTF(printf_args...)  do {\
-    int n = fprintf(stderr, "" printf_args);\
-    fprintf(stderr, "%sfunction=%s file=%s line=%d\n", n?": ":"", __PRETTY_FUNCTION__, __FILE__, __LINE__);\
-    fflush(stderr);\
-} while (0)
-
-#define UVCC_DEBUG_LOG(log_condition, printf_args...)  do {\
+#define uvcc_debug_log_if(log_condition, printf_args...)  do {\
     if ((log_condition))\
     {\
       fflush(stdout);\
-      fprintf(stderr, "[debug] ");\
-      UVCC_DEBUG_PRINTF(printf_args);\
+      fprintf(stderr, "[debug]");\
+      int n = fprintf(stderr, " " printf_args);\
+      if (n-1)\
+        fprintf(stderr, "\n");\
+      else\
+        fprintf(stderr, "log: function=%s file=%s line=%d\n", __PRETTY_FUNCTION__, __FILE__, __LINE__);\
+      fflush(stderr);\
     }\
 } while (0)
 
-#define UVCC_DEBUG_CHECK_ENTRY(printf_args...)  do {\
+#define uvcc_debug_check_entry(printf_args...)  do {\
     fflush(stdout);\
-    fprintf(stderr, "[debug] enter function/block: ");\
-    UVCC_DEBUG_PRINTF(printf_args);\
+    fprintf(stderr, "[debug] enter function/block:");\
+    int n = fprintf(stderr, " " printf_args);\
+    fprintf(stderr, "%sfunction=%s file=%s line=%d\n", (n-1)?": ":"", __PRETTY_FUNCTION__, __FILE__, __LINE__);\
+    fflush(stderr);\
 } while (0)
 
-
-#define UVCC_DEBUG_CHECK_EXIT(printf_args...)  do {\
+#define uvcc_debug_check_exit(printf_args...)  do {\
     fflush(stdout);\
-    fprintf(stderr, "[debug] exit from function/block: ");\
-    UVCC_DEBUG_PRINTF(printf_args);\
+    fprintf(stderr, "[debug] exit from function/block:");\
+    int n = fprintf(stderr, " " printf_args);\
+    fprintf(stderr, "%sfunction=%s file=%s line=%d\n", (n-1)?": ":"", __PRETTY_FUNCTION__, __FILE__, __LINE__);\
+    fflush(stderr);\
 } while (0)
 
-#define UVCC_DEBUG_CHECK_CONDITION(condition, context...)  do {\
+#define uvcc_debug_check_condition(condition, context_printf_args...)  do {\
     fflush(stdout);\
-    fprintf(stderr, "[debug] condition (%s) is %s: ",\
-        MAKE_LITERAL_STRING_VERBATIM(condition), (condition)?"true":"false"\
-    );\
-    UVCC_DEBUG_PRINTF(context);\
+    fprintf(stderr, "[debug] condition (%s):", MAKE_LITERAL_STRING_VERBATIM(condition));\
+    int n = fprintf(stderr, " " context_printf_args);\
+    fprintf(stderr, "%s%s\n", (n-1)?": ":"", (condition)?"true":"false");\
+    fflush(stderr);\
 } while (0)
+
+#define uvcc_debug_do_if(log_condition, operators...)  do {\
+    if ((log_condition))\
+    {\
+      operators;\
+    }\
+} while(0)
 
 #else
 
-#define UVCC_DEBUG_PRINTF(...)
-#define UVCC_DEBUG_LOG(log_condition, ...)  (void)(log_condition)
-#define UVCC_DEBUG_CHECK_ENTRY(...)
-#define UVCC_DEBUG_CHECK_EXIT(...)
-#define UVCC_DEBUG_CHECK_CONDITION(condition, ...)  (void)(condition)
+#define uvcc_debug_log_if(log_condition, ...)  (void)(log_condition)
+#define uvcc_debug_check_entry(...)
+#define uvcc_debug_check_exit(...)
+#define uvcc_debug_check_condition(condition, ...)  (void)(condition)
+#define uvcc_debug_do_if(log_condition, ...)  (void)(log_condition)
 
 #endif
 
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-function"
 namespace uv
 {
 namespace debug
@@ -91,7 +99,7 @@ void print_handle(void *_uv_handle)
 {
   auto h = static_cast< ::uv_handle_t* >(_uv_handle);
   fprintf(stderr,
-      "%s handle [0x%08llX]: has_ref=%i is_active=%i is_closing=%i\n",
+      "[debug] %s handle [0x%08llX]: has_ref=%i is_active=%i is_closing=%i\n",
       handle_type_name(h), (uintptr_t)h, ::uv_has_ref(h), ::uv_is_active(h), ::uv_is_closing(h)
   );
   fflush(stderr);
@@ -107,8 +115,6 @@ void print_loop_handles(void *_uv_loop_handle)
 
 }
 }
-
-
 #pragma GCC diagnostic pop
 
 //! \endcond

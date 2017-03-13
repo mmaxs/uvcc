@@ -26,7 +26,7 @@ int main(int _argc, char *_argv[])
     PRINT_UV_ERR(status, "ip address");
     return status;
   }
-
+//{
   // initialize a tcp socket
   uv::tcp peer(uv::loop::Default(), server_addr.ss_family);
   if (!peer)
@@ -92,7 +92,7 @@ int main(int _argc, char *_argv[])
     PRINT_UV_ERR(conn.uv_status(), "connect initiation");
     return conn.uv_status();
   }
-
+//}
   L.on_exit() = [](uv::loop _loop)
   {
     fprintf(stderr, "loop after exit walk: begin\n");
@@ -104,7 +104,7 @@ int main(int _argc, char *_argv[])
   //::uv_print_all_handles(::uv_default_loop()/*(uv_loop_t*)L*/, stderr);  // segmentation fault
   //fflush(stderr);
   L/*uv::loop::Default()*/.run(UV_RUN_DEFAULT);
-
+#if 0
   ::uv_unref(static_cast<::uv_handle_t*>(peer));
   fprintf(stderr, "un-reference the loop for ");
   uv::debug::print_handle(static_cast<::uv_handle_t*>(peer));
@@ -112,7 +112,7 @@ int main(int _argc, char *_argv[])
   uv::debug::print_loop_handles(static_cast< ::uv_loop_t* >(L));
   fprintf(stderr, "loop walk: end\n");
   fflush(stderr);
-
+#endif
 #if 0
   fprintf(stderr, "- loop exit -\n");
   //::uv_print_all_handles(::uv_default_loop()/*(uv_loop_t*)L*/, stderr);  // segmentation fault

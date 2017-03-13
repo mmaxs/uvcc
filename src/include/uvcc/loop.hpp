@@ -74,14 +74,10 @@ private: /*types*/
   public: /*constructors*/
     ~instance() noexcept(false)
     {
-#if defined(DEBUG) && (DEBUG > 1)
-      fprintf(stderr, "loop instance [0x%08llX] destroying: begin\n", (uintptr_t)this);
-
-      fprintf(stderr, "loop instance [0x%08llX] premortem walk: begin\n", (uintptr_t)this);
-      debug::print_loop_handles(&uv_loop_struct);
-      fprintf(stderr, "loop instance [0x%08llX] premortem walk: end\n", (uintptr_t)this);
-      fflush(stderr);
-#endif
+      uvcc_debug_check_entry("loop instance [0x%08llX]", (uintptr_t)this);
+      uvcc_debug_log_if(true, "loop instance [0x%08llX] premortem walk begin", (uintptr_t)this);
+      uvcc_debug_do_if(true, debug::print_loop_handles(&uv_loop_struct));
+      uvcc_debug_log_if(true, "loop instance [0x%08llX] premortem walk end", (uintptr_t)this);
 
       uv_error = ::uv_loop_close(&uv_loop_struct);
       if (uv_error == UV_EBUSY)
@@ -95,10 +91,7 @@ private: /*types*/
           throw std::runtime_error(__PRETTY_FUNCTION__);
       }
 
-#if defined(DEBUG) && (DEBUG > 1)
-      fprintf(stderr, "loop instance [0x%08llX] destroying: end\n", (uintptr_t)this);
-      fflush(stderr);
-#endif
+      uvcc_debug_check_exit("loop instance [0x%08llX]", (uintptr_t)this);
     }
 
     instance(const instance&) = delete;
@@ -126,26 +119,15 @@ private: /*types*/
 
     void ref()
     {
-#if defined(DEBUG) && (DEBUG > 1)
-      fprintf(stderr, "INC nrefs to loop instance [0x%08llX]\n", (uintptr_t)this);
-      fflush(stderr);
-#endif
+      uvcc_debug_check_entry("loop instance [0x%08llX]", (uintptr_t)this);
       refs.inc();
     }
     void unref()
     {
-#if defined(DEBUG) && (DEBUG > 1)
-      fprintf(stderr, "DEC nrefs to loop instance [0x%08llX]\n", (uintptr_t)this);
-      fflush(stderr);
-#endif
-      if (refs.dec() == 0)
-      {
-#if defined(DEBUG) && (DEBUG > 1)
-        fprintf(stderr, "nrefs to loop instance [0x%08llX] becomes zero, call for destroying it\n", (uintptr_t)this);
-        fflush(stderr);
-#endif
-        destroy();
-      }
+      uvcc_debug_check_entry("loop instance [0x%08llX]", (uintptr_t)this);
+      auto nrefs = refs.dec();
+      uvcc_debug_check_condition(nrefs == 0, "nrefs to loop instance [0x%08llX] becomes zero?", (uintptr_t)this);
+      if (nrefs == 0)  destroy();
     }
   };
 
