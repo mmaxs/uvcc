@@ -74,7 +74,7 @@ private: /*types*/
   public: /*constructors*/
     ~instance() noexcept(false)
     {
-      uvcc_debug_check_entry("loop instance [0x%08llX]", (uintptr_t)this);
+      uvcc_debug_function_enter("loop instance [0x%08llX]", (uintptr_t)this);
       uvcc_debug_log_if(true, "loop instance [0x%08llX] premortem walk begin", (uintptr_t)this);
       uvcc_debug_do_if(true, debug::print_loop_handles(&uv_loop_struct));
       uvcc_debug_log_if(true, "loop instance [0x%08llX] premortem walk end", (uintptr_t)this);
@@ -91,7 +91,7 @@ private: /*types*/
           throw std::runtime_error(__PRETTY_FUNCTION__);
       }
 
-      uvcc_debug_check_exit("loop instance [0x%08llX]", (uintptr_t)this);
+      uvcc_debug_function_return("loop instance [0x%08llX]", (uintptr_t)this);
     }
 
     instance(const instance&) = delete;
@@ -119,14 +119,14 @@ private: /*types*/
 
     void ref()
     {
-      uvcc_debug_check_entry("loop instance [0x%08llX]", (uintptr_t)this);
+      uvcc_debug_function_enter("loop instance [0x%08llX]", (uintptr_t)this);
       refs.inc();
     }
     void unref()
     {
-      uvcc_debug_check_entry("loop instance [0x%08llX]", (uintptr_t)this);
+      uvcc_debug_function_enter("loop instance [0x%08llX]", (uintptr_t)this);
       auto nrefs = refs.dec();
-      uvcc_debug_check_condition(nrefs == 0, "nrefs to loop instance [0x%08llX] becomes zero?", (uintptr_t)this);
+      uvcc_debug_check_condition(nrefs == 0, "nrefs to loop instance [0x%08llX] become zero?", (uintptr_t)this);
       if (nrefs == 0)  destroy();
     }
   };

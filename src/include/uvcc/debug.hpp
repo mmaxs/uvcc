@@ -22,7 +22,7 @@
       fflush(stdout);\
       fprintf(stderr, "[debug]");\
       int n = fprintf(stderr, " " printf_args);\
-      if (n-1)\
+      if (n > 1)\
         fprintf(stderr, "\n");\
       else\
         fprintf(stderr, "log: function=%s file=%s line=%d\n", __PRETTY_FUNCTION__, __FILE__, __LINE__);\
@@ -30,27 +30,28 @@
     }\
 } while (0)
 
-#define uvcc_debug_check_entry(printf_args...)  do {\
+#define uvcc_debug_function_enter(printf_args...)  do {\
     fflush(stdout);\
-    fprintf(stderr, "[debug] enter function/block:");\
-    int n = fprintf(stderr, " " printf_args);\
-    fprintf(stderr, "%sfunction=%s file=%s line=%d\n", (n-1)?": ":"", __PRETTY_FUNCTION__, __FILE__, __LINE__);\
+    fprintf(stderr, "[debug] enter function %s", __PRETTY_FUNCTION__);\
+    if (sizeof(MAKE_LITERAL_STRING_AFTER_EXPANDING(printf_args)) > 0)  fprintf(stderr, ": " printf_args);\
+    fprintf(stderr, "\n");\
     fflush(stderr);\
 } while (0)
 
-#define uvcc_debug_check_exit(printf_args...)  do {\
+#define uvcc_debug_function_return(printf_args...)  do {\
     fflush(stdout);\
-    fprintf(stderr, "[debug] exit from function/block:");\
-    int n = fprintf(stderr, " " printf_args);\
-    fprintf(stderr, "%sfunction=%s file=%s line=%d\n", (n-1)?": ":"", __PRETTY_FUNCTION__, __FILE__, __LINE__);\
+    fprintf(stderr, "[debug] return from function %s", __PRETTY_FUNCTION__);\
+    if (sizeof(MAKE_LITERAL_STRING_AFTER_EXPANDING(printf_args)) > 0)  fprintf(stderr, ": " printf_args);\
+    fprintf(stderr, "\n");\
     fflush(stderr);\
 } while (0)
 
 #define uvcc_debug_check_condition(condition, context_printf_args...)  do {\
+    bool c = (condition);\
     fflush(stdout);\
     fprintf(stderr, "[debug] condition (%s):", MAKE_LITERAL_STRING_VERBATIM(condition));\
     int n = fprintf(stderr, " " context_printf_args);\
-    fprintf(stderr, "%s%s\n", (n-1)?": ":"", (condition)?"true":"false");\
+    fprintf(stderr, "%s%s\n", (n-1)?": ":"", c?"true":"false");\
     fflush(stderr);\
 } while (0)
 
