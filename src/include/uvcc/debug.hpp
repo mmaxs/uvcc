@@ -3,9 +3,10 @@
 #define UVCC_DEBUG__HPP
 //! \cond
 
-#include <uv.h>
 #include <cstddef>  // ptrdiff_t
 #include <cstdio>
+
+#include <uv.h>
 
 
 #ifdef UVCC_DEBUG

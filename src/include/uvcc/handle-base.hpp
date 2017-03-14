@@ -95,35 +95,20 @@ protected: /*types*/
     {
       property_storage.reset< typename _Handle_::properties >();
       uv_interface_ptr = &_Handle_::uv_interface::instance();
-#if defined(DEBUG) && (DEBUG > 1)
-      fprintf(stderr, "handle instance for %s handle [0x%08llX] has been created\n",
-          debug::handle_type_name(&uv_handle_struct), (uintptr_t)&uv_handle_struct
-      );
-      fflush(stderr);
-#endif
+      uvcc_debug_function_return("instance [0x%08tX] for handle [0x%08tX]", (ptrdiff_t)this, (ptrdiff_t)&uv_handle_struct);
     }
     template< typename... _Args_ > instance(_Args_&&... _args)
     {
       property_storage.reset< typename _Handle_::properties >(std::forward< _Args_ >(_args)...);
       uv_interface_ptr = &_Handle_::uv_interface::instance();
-#if defined(DEBUG) && (DEBUG > 1)
-      fprintf(stderr, "handle instance for %s handle [0x%08llX] has been created\n",
-          debug::handle_type_name(&uv_handle_struct), (uintptr_t)&uv_handle_struct
-      );
-      fflush(stderr);
-#endif
+      uvcc_debug_function_return("instance [0x%08tX] for handle [0x%08tX]", (ptrdiff_t)this, (ptrdiff_t)&uv_handle_struct);
     }
 
   public: /* constructors*/
     ~instance()
     {
+      uvcc_debug_function_enter("instance [0x%08tX] for handle [0x%08tX]", (ptrdiff_t)this, (ptrdiff_t)&uv_handle_struct);
       unbook_loop();
-#if defined(DEBUG) && (DEBUG > 1)
-      fprintf(stderr, "handle instance with %s handle [0x%08llX] has been destroyed\n",
-          debug::handle_type_name(&uv_handle_struct), (uintptr_t)&uv_handle_struct
-      );
-      fflush(stderr);
-#endif
     }
 
     instance(const instance&) = delete;
@@ -162,32 +147,15 @@ protected: /*types*/
 
     void ref()
     {
-#if defined(DEBUG) && (DEBUG > 1)
-      fprintf(stderr, "INC nrefs to %s handle [0x%08llX]\n",
-          debug::handle_type_name(&uv_handle_struct), (uintptr_t)&uv_handle_struct
-      );
-      fflush(stderr);
-#endif
+      //uvcc_debug_function_enter("handle [0x%08tX]", (ptrdiff_t)&uv_handle_struct);
       refs.inc();
     }
     void unref()
     {
-#if defined(DEBUG) && (DEBUG > 1)
-      fprintf(stderr, "DEC nrefs to %s handle [0x%08llX]\n",
-          debug::handle_type_name(&uv_handle_struct), (uintptr_t)&uv_handle_struct
-      );
-      fflush(stderr);
-#endif
-      if (refs.dec() == 0)
-      {
-#if defined(DEBUG) && (DEBUG > 1)
-        fprintf(stderr, "nrefs to %s handle [0x%08llX] becomes zero, call for closing the handle\n",
-            debug::handle_type_name(&uv_handle_struct), (uintptr_t)&uv_handle_struct
-        );
-        fflush(stderr);
-#endif
-        uv_interface_ptr->close(&uv_handle_struct);
-      }
+      //uvcc_debug_function_enter("handle [0x%08tX]", (ptrdiff_t)&uv_handle_struct);
+      auto nrefs = refs.dec();
+      //uvcc_debug_condition(nrefs == 0, "nrefs to handle [0x%08tX] become zero?", (ptrdiff_t)&uv_handle_struct);
+      if (nrefs == 0)  uv_interface_ptr->close(&uv_handle_struct);
     }
 
     void book_loop()
@@ -195,24 +163,14 @@ protected: /*types*/
       unbook_loop();
       loop_instance_ptr = loop::instance::from(uv_interface_ptr->loop(&uv_handle_struct));
       loop_instance_ptr->ref();
-#if defined(DEBUG) && (DEBUG > 1)
-      fprintf(stderr, "%s handle [0x%08llX] has booked the loop instance [0x%08llX]\n",
-          debug::handle_type_name(&uv_handle_struct), (uintptr_t)&uv_handle_struct, (uintptr_t)loop_instance_ptr
-      );
-      fflush(stderr);
-#endif
+      //uvcc_debug_function_return("handle [0x%08t], loop [0x%08tX]", (ptrdiff_t)&uv_handle_struct, (ptrdiff_t)&loop_instance_ptr->uv_loop_struct);
     }
     void unbook_loop()
     {
       if (loop_instance_ptr)
       {
         loop_instance_ptr->unref();
-#if defined(DEBUG) && (DEBUG > 1)
-        fprintf(stderr, "%s handle [0x%08llX] has unbooked the loop instance [0x%08llX]\n",
-            debug::handle_type_name(&uv_handle_struct), (uintptr_t)&uv_handle_struct, (uintptr_t)loop_instance_ptr
-        );
-        fflush(stderr);
-#endif
+        //uvcc_debug_function_return("handle [0x%08t], loop [0x%08tX]", (ptrdiff_t)&uv_handle_struct, (ptrdiff_t)&loop_instance_ptr->uv_loop_struct);
         loop_instance_ptr = nullptr;
       }
     }
@@ -372,12 +330,7 @@ struct handle::uv_handle_interface : virtual uv_interface
 
   void close(void *_uv_handle) noexcept override
   {
-#if defined(DEBUG) && (DEBUG > 1)
-    fprintf(stderr, "%s handle [0x%08llX] closing at '%s'\n",
-        debug::handle_type_name(_uv_handle), (uintptr_t)_uv_handle, __PRETTY_FUNCTION__
-    );
-    fflush(stderr);
-#endif
+    uvcc_debug_function_enter("%s handle [0x%08tX]", debug::handle_type_name((::uv_handle_t*)_uv_handle), (ptrdiff_t)_uv_handle);
     auto uv_handle = static_cast< ::uv_handle_t* >(_uv_handle);
     //if (::uv_is_active(uv_handle))
       ::uv_close(uv_handle, close_cb);
@@ -411,12 +364,8 @@ struct handle::uv_handle_interface : virtual uv_interface
 template< typename >
 void handle::uv_handle_interface::close_cb(::uv_handle_t *_uv_handle)
 {
-#if defined(DEBUG) && (DEBUG > 1)
-    fprintf(stderr, "%s handle [0x%08llX] closing at '%s'\n",
-        debug::handle_type_name(_uv_handle), (uintptr_t)_uv_handle, __PRETTY_FUNCTION__
-    );
-    fflush(stderr);
-#endif
+  uvcc_debug_function_enter("%s handle [0x%08tX]", debug::handle_type_name(_uv_handle), (ptrdiff_t)_uv_handle);
+
   auto instance_ptr = handle::instance< handle >::from(_uv_handle);
 
   auto &destroy_cb = instance_ptr->destroy_cb_storage.value();

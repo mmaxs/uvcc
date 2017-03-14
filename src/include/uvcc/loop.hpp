@@ -65,16 +65,16 @@ private: /*types*/
     instance()
     {
       uv_error = ::uv_loop_init(&uv_loop_struct);
-      //uvcc_debug_function_return("loop [0x%08tX] has been created: uv_error=%i", (ptrdiff_t)&uv_loop_struct, uv_error);
+      //uvcc_debug_function_return("instance [0x%08tX] for loop [0x%08tX]: uv_error=%i", (ptrdiff_t)this, (ptrdiff_t)&uv_loop_struct, uv_error);
     }
 
   public: /*constructors*/
     ~instance() noexcept(false)
     {
+      //uvcc_debug_function_enter("instance [0x%08tX] for loop [0x%08tX]", (ptrdiff_t)this, (ptrdiff_t)&uv_loop_struct);
       /*uvcc_debug_do_if(true, {
-          uvcc_debug_function_enter("loop [0x%08tX]", (ptrdiff_t)&uv_loop_struct);
           uvcc_debug_log_if(true, "loop [0x%08tX] premortem walk:", (ptrdiff_t)&uv_loop_struct);
-          debug::print_loop_handles(&uv_loop_struct);
+          debug::print_loop_handles(&uv_loop_struct)
       });*/
 
       uv_error = ::uv_loop_close(&uv_loop_struct);

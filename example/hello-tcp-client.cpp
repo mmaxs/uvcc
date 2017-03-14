@@ -1,9 +1,7 @@
 
 #include "uvcc.hpp"
-#ifdef DEBUG
-#define UVCC_DEBUG
+#ifdef UVCC_DEBUG
 #include "uvcc/debug.hpp"
-#undef UVCC_DEBUG
 #endif
 
 #include <cstdio>
@@ -32,7 +30,7 @@ int main(int _argc, char *_argv[])
     PRINT_UV_ERR(status, "ip address");
     return status;
   }
-//{
+{
   // initialize a tcp socket
   uv::tcp peer(uv::loop::Default(), server_addr.ss_family);
   if (!peer)
@@ -98,7 +96,7 @@ int main(int _argc, char *_argv[])
     PRINT_UV_ERR(conn.uv_status(), "connect initiation");
     return conn.uv_status();
   }
-//}
+}
 
   L.on_exit() = [](uv::loop _loop)
   {
@@ -106,12 +104,6 @@ int main(int _argc, char *_argv[])
         uvcc_debug_log_if(true, "loop [0x%08tX] on exit walk:", (ptrdiff_t)static_cast< uv::loop::uv_t* >(_loop));
         uv::debug::print_loop_handles(static_cast< uv::loop::uv_t* >(_loop));
     });
-    /*
-    fprintf(stderr, "loop after exit walk: begin\n");
-    uv::debug::print_loop_handles(static_cast< ::uv_loop_t* >(_loop));
-    fprintf(stderr, "loop after exit walk: end\n");
-    fflush(stderr);
-    */
   };
 
   //::uv_print_all_handles(::uv_default_loop()/*(uv_loop_t*)L*/, stderr);  // segmentation fault

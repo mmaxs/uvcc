@@ -1,7 +1,9 @@
 
 # additional settings, sources, and prerequisites for specific targets
 
-ifndef DEBUG
+ifdef DEBUG
+CPPFLAGS += -U NDEBUG
+else
 CPPFLAGS += -D NDEBUG
 endif
 

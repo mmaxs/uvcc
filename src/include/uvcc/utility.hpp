@@ -2,7 +2,7 @@
 #ifndef UVCC_UTILITY__HPP
 #define UVCC_UTILITY__HPP
 
-//#include "uvcc/debug.hpp"
+#include "uvcc/debug.hpp"
 
 #include <cstddef>      // nullptr_t
 #include <type_traits>  // is_void is_convertible enable_if_t decay common_type aligned_storage
@@ -46,8 +46,7 @@ template< typename _T_ > struct default_delete
     static_assert(!std::is_void< value_type >::value, "void type");
     static_assert(sizeof(value_type) > 0, "incomplete type");
     delete static_cast< value_type* >(_);
-    fprintf(stderr, "0x%08tX\n", (ptrdiff_t)_);
-    //uvcc_debug_function_return();
+    //uvcc_debug_function_return("object [0x%08tX]", (ptrdiff_t)_);
   }
 };
 
@@ -78,7 +77,7 @@ template< typename _T_ > struct default_destroy
     static_assert(!std::is_void< value_type >::value, "void type");
     static_assert(sizeof(value_type) > 0, "incomplete type");
     static_cast< value_type* >(_)->~value_type();
-    //uvcc_debug_function_return();
+    //uvcc_debug_function_return("object [0x%08tX]", (ptrdiff_t)_);
   }
 };
 
