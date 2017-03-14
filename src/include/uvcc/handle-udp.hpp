@@ -49,7 +49,7 @@ protected: /*types*/
   struct properties : io::properties  {};
   //! \endcond
 
-  //! \internal
+  //! \cond
   struct uv_interface : handle::uv_handle_interface, io::uv_interface
   {
     static uv_interface& instance()  { static uv_interface instance;  return instance; }
@@ -66,7 +66,7 @@ protected: /*types*/
     int read_stop(void *_uv_handle) const noexcept override
     { return ::uv_udp_recv_stop(static_cast< ::uv_udp_t* >(_uv_handle)); }
   };
-  //! \endinternal
+  //! \endcond
 
 private: /*types*/
   using instance = handle::instance< udp >;

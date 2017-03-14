@@ -70,14 +70,14 @@ protected: /*types*/
   };
   //! \endcond
 
-  //! \internal
+  //! \cond
   struct uv_interface : virtual handle::uv_interface
   {
     virtual std::size_t write_queue_size(void*) const noexcept = 0;
     virtual int read_start(void*, int64_t) const noexcept = 0;
     virtual int read_stop(void*) const noexcept = 0;
   };
-  //! \endinternal
+  //! \endcond
 
 private: /*types*/
   using instance = handle::instance< io >;

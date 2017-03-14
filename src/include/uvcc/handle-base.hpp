@@ -49,7 +49,7 @@ protected: /*types*/
   constexpr static const std::size_t MAX_PROPERTY_ALIGN = 8;
   //! \endcond
 
-  //! \internal
+  //! \cond
   struct uv_interface
   {
     virtual ~uv_interface() = default;
@@ -64,7 +64,7 @@ protected: /*types*/
   };
   struct uv_handle_interface;
   struct uv_fs_interface;
-  //! \endinternal
+  //! \endcond
 
   //! \cond
   template< class _Handle_ > class instance
@@ -323,7 +323,7 @@ public: /*conversion operators*/
 };
 
 
-//! \internal
+//! \cond
 struct handle::uv_handle_interface : virtual uv_interface
 {
   template< typename = void > static void close_cb(::uv_handle_t*);
@@ -374,10 +374,10 @@ void handle::uv_handle_interface::close_cb(::uv_handle_t *_uv_handle)
 
   delete instance_ptr;
 }
-//! \endinternal
+//! \endcond
 
 
-//! \internal
+//! \cond
 struct handle::uv_fs_interface : virtual uv_interface
 {
   void close(void *_uv_fs) noexcept override
@@ -422,7 +422,7 @@ struct handle::uv_fs_interface : virtual uv_interface
 
   int is_active(void *_uv_fs) const noexcept override  { return 0; }
 };
-//! \endinternal
+//! \endcond
 
 
 }
