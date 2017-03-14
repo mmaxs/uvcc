@@ -2,6 +2,8 @@
 #ifndef UVCC_UTILITY__HPP
 #define UVCC_UTILITY__HPP
 
+//#include "uvcc/debug.hpp"
+
 #include <cstddef>      // nullptr_t
 #include <type_traits>  // is_void is_convertible enable_if_t decay common_type aligned_storage
 #include <atomic>       // atomic memory_order_* atomic_flag ATOMIC_FLAG_INIT
@@ -44,7 +46,8 @@ template< typename _T_ > struct default_delete
     static_assert(!std::is_void< value_type >::value, "void type");
     static_assert(sizeof(value_type) > 0, "incomplete type");
     delete static_cast< value_type* >(_);
-    //fprintf(stderr, "%s\n", __PRETTY_FUNCTION__); fflush(stderr);
+    fprintf(stderr, "0x%08tX\n", (ptrdiff_t)_);
+    //uvcc_debug_function_return();
   }
 };
 
@@ -75,7 +78,7 @@ template< typename _T_ > struct default_destroy
     static_assert(!std::is_void< value_type >::value, "void type");
     static_assert(sizeof(value_type) > 0, "incomplete type");
     static_cast< value_type* >(_)->~value_type();
-    //fprintf(stderr, "%s\n", __PRETTY_FUNCTION__); fflush(stderr);
+    //uvcc_debug_function_return();
   }
 };
 

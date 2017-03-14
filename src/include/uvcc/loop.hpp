@@ -65,19 +65,17 @@ private: /*types*/
     instance()
     {
       uv_error = ::uv_loop_init(&uv_loop_struct);
-#if defined(DEBUG) && (DEBUG > 1)
-      fprintf(stderr, "loop instance [0x%08llX] has been created: uv_error=%i\n", (uintptr_t)this, uv_error);
-      fflush(stderr);
-#endif
+      //uvcc_debug_function_return("loop [0x%08tX] has been created: uv_error=%i", (ptrdiff_t)&uv_loop_struct, uv_error);
     }
 
   public: /*constructors*/
     ~instance() noexcept(false)
     {
-      uvcc_debug_function_enter("loop instance [0x%08llX]", (uintptr_t)this);
-      uvcc_debug_log_if(true, "loop instance [0x%08llX] premortem walk begin", (uintptr_t)this);
-      uvcc_debug_do_if(true, debug::print_loop_handles(&uv_loop_struct));
-      uvcc_debug_log_if(true, "loop instance [0x%08llX] premortem walk end", (uintptr_t)this);
+      /*uvcc_debug_do_if(true, {
+          uvcc_debug_function_enter("loop [0x%08tX]", (ptrdiff_t)&uv_loop_struct);
+          uvcc_debug_log_if(true, "loop [0x%08tX] premortem walk:", (ptrdiff_t)&uv_loop_struct);
+          debug::print_loop_handles(&uv_loop_struct);
+      });*/
 
       uv_error = ::uv_loop_close(&uv_loop_struct);
       if (uv_error == UV_EBUSY)
@@ -90,8 +88,6 @@ private: /*types*/
           // situation even worse, otherwise throw
           throw std::runtime_error(__PRETTY_FUNCTION__);
       }
-
-      uvcc_debug_function_return("loop instance [0x%08llX]", (uintptr_t)this);
     }
 
     instance(const instance&) = delete;
@@ -119,17 +115,18 @@ private: /*types*/
 
     void ref()
     {
-      uvcc_debug_function_enter("loop instance [0x%08llX]", (uintptr_t)this);
+      //uvcc_debug_function_enter("loop [0x%08tX]", (ptrdiff_t)&uv_loop_struct);
       refs.inc();
     }
     void unref()
     {
-      uvcc_debug_function_enter("loop instance [0x%08llX]", (uintptr_t)this);
+      //uvcc_debug_function_enter("loop [0x%08tX]", (ptrdiff_t)&uv_loop_struct);
       auto nrefs = refs.dec();
-      uvcc_debug_check_condition(nrefs == 0, "nrefs to loop instance [0x%08llX] become zero?", (uintptr_t)this);
+      //uvcc_debug_condition(nrefs == 0, "nrefs to loop [0x%08tX] become zero?", (ptrdiff_t)&uv_loop_struct);
       if (nrefs == 0)  destroy();
     }
   };
+  friend typename loop::instance* debug::instance<>(loop&) noexcept;
 
 private: /*data*/
   uv_t *uv_loop;
