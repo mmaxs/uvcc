@@ -65,17 +65,17 @@ private: /*types*/
     instance()
     {
       uv_error = ::uv_loop_init(&uv_loop_struct);
-      //uvcc_debug_function_return("instance [0x%08tX] for loop [0x%08tX]: uv_error=%i", (ptrdiff_t)this, (ptrdiff_t)&uv_loop_struct, uv_error);
+      uvcc_debug_function_return("instance [0x%08tX] for loop [0x%08tX]: uv_error=%i", (ptrdiff_t)this, (ptrdiff_t)&uv_loop_struct, uv_error);
     }
 
   public: /*constructors*/
     ~instance() noexcept(false)
     {
-      //uvcc_debug_function_enter("instance [0x%08tX] for loop [0x%08tX]", (ptrdiff_t)this, (ptrdiff_t)&uv_loop_struct);
-      /*uvcc_debug_do_if(true, {
-          uvcc_debug_log_if(true, "loop [0x%08tX] premortem walk:", (ptrdiff_t)&uv_loop_struct);
-          debug::print_loop_handles(&uv_loop_struct)
-      });*/
+      uvcc_debug_function_enter("instance [0x%08tX] for loop [0x%08tX]", (ptrdiff_t)this, (ptrdiff_t)&uv_loop_struct);
+      uvcc_debug_do_if(true, {
+          uvcc_debug_log_if(true, "walk on loop [0x%08tX] destroying...", (ptrdiff_t)&uv_loop_struct);
+          debug::print_loop_handles(&uv_loop_struct);
+      });
 
       uv_error = ::uv_loop_close(&uv_loop_struct);
       if (uv_error == UV_EBUSY)
@@ -115,14 +115,14 @@ private: /*types*/
 
     void ref()
     {
-      //uvcc_debug_function_enter("loop [0x%08tX]", (ptrdiff_t)&uv_loop_struct);
+      uvcc_debug_function_enter("loop [0x%08tX]", (ptrdiff_t)&uv_loop_struct);
       refs.inc();
     }
     void unref()
     {
-      //uvcc_debug_function_enter("loop [0x%08tX]", (ptrdiff_t)&uv_loop_struct);
+      uvcc_debug_function_enter("loop [0x%08tX]", (ptrdiff_t)&uv_loop_struct);
       auto nrefs = refs.dec();
-      //uvcc_debug_condition(nrefs == 0, "nrefs to loop [0x%08tX] become zero?", (ptrdiff_t)&uv_loop_struct);
+      uvcc_debug_condition(nrefs == 0, "nrefs to loop [0x%08tX] = %li", (ptrdiff_t)&uv_loop_struct, nrefs);
       if (nrefs == 0)  destroy();
     }
   };
@@ -225,6 +225,11 @@ public: /*interface*/
   int run(::uv_run_mode _mode)
   {
     int ret = uv_status(::uv_run(uv_loop, _mode));
+
+    uvcc_debug_do_if(true, {
+        uvcc_debug_log_if(true, "walk on loop [0x%08tX] exiting (uv_error=%i)...", (ptrdiff_t)uv_loop, ret);
+        uv::debug::print_loop_handles(uv_loop);
+    });
 
     auto &exit_cb = instance::from(uv_loop)->exit_cb_storage.value();
     if (exit_cb)  exit_cb(loop(uv_loop));

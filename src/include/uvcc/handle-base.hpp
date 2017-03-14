@@ -147,30 +147,30 @@ protected: /*types*/
 
     void ref()
     {
-      //uvcc_debug_function_enter("handle [0x%08tX]", (ptrdiff_t)&uv_handle_struct);
+      uvcc_debug_function_enter("handle [0x%08tX]", (ptrdiff_t)&uv_handle_struct);
       refs.inc();
     }
     void unref()
     {
-      //uvcc_debug_function_enter("handle [0x%08tX]", (ptrdiff_t)&uv_handle_struct);
+      uvcc_debug_function_enter("handle [0x%08tX]", (ptrdiff_t)&uv_handle_struct);
       auto nrefs = refs.dec();
-      //uvcc_debug_condition(nrefs == 0, "nrefs to handle [0x%08tX] become zero?", (ptrdiff_t)&uv_handle_struct);
+      uvcc_debug_condition(nrefs == 0, "nrefs to handle [0x%08tX] = %li", (ptrdiff_t)&uv_handle_struct, nrefs);
       if (nrefs == 0)  uv_interface_ptr->close(&uv_handle_struct);
     }
 
     void book_loop()
     {
+      uvcc_debug_function_enter("handle [0x%08tX], loop [0x%08tX]", (ptrdiff_t)&uv_handle_struct, (ptrdiff_t)&loop_instance_ptr->uv_loop_struct);
       unbook_loop();
       loop_instance_ptr = loop::instance::from(uv_interface_ptr->loop(&uv_handle_struct));
       loop_instance_ptr->ref();
-      //uvcc_debug_function_return("handle [0x%08t], loop [0x%08tX]", (ptrdiff_t)&uv_handle_struct, (ptrdiff_t)&loop_instance_ptr->uv_loop_struct);
     }
     void unbook_loop()
     {
+      uvcc_debug_do_if(loop_instance_ptr, uvcc_debug_function_enter("handle [0x%08tX], loop [0x%08tX]", (ptrdiff_t)&uv_handle_struct, (ptrdiff_t)&loop_instance_ptr->uv_loop_struct););
       if (loop_instance_ptr)
       {
         loop_instance_ptr->unref();
-        //uvcc_debug_function_return("handle [0x%08t], loop [0x%08tX]", (ptrdiff_t)&uv_handle_struct, (ptrdiff_t)&loop_instance_ptr->uv_loop_struct);
         loop_instance_ptr = nullptr;
       }
     }
@@ -331,6 +331,7 @@ struct handle::uv_handle_interface : virtual uv_interface
   void close(void *_uv_handle) noexcept override
   {
     uvcc_debug_function_enter("%s handle [0x%08tX]", debug::handle_type_name((::uv_handle_t*)_uv_handle), (ptrdiff_t)_uv_handle);
+
     auto uv_handle = static_cast< ::uv_handle_t* >(_uv_handle);
     //if (::uv_is_active(uv_handle))
       ::uv_close(uv_handle, close_cb);
@@ -381,6 +382,8 @@ struct handle::uv_fs_interface : virtual uv_interface
 {
   void close(void *_uv_fs) noexcept override
   {
+    uvcc_debug_function_enter("fs handle [0x%08tX]", (ptrdiff_t)_uv_fs);
+
     auto instance_ptr = handle::instance< handle >::from(_uv_fs);
     auto uv_fs = static_cast< ::uv_fs_t* >(_uv_fs);
     auto fd = static_cast< ::uv_file >(uv_fs->result);

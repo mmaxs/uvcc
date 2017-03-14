@@ -14,7 +14,6 @@
   fflush(stderr);\
 } while (0)
 
-uv::loop &L = uv::loop::Default();
 
 int main(int _argc, char *_argv[])
 {
@@ -30,7 +29,8 @@ int main(int _argc, char *_argv[])
     PRINT_UV_ERR(status, "ip address");
     return status;
   }
-{
+
+//{
   // initialize a tcp socket
   uv::tcp peer(uv::loop::Default(), server_addr.ss_family);
   if (!peer)
@@ -96,53 +96,10 @@ int main(int _argc, char *_argv[])
     PRINT_UV_ERR(conn.uv_status(), "connect initiation");
     return conn.uv_status();
   }
-}
+//}
 
-  L.on_exit() = [](uv::loop _loop)
-  {
-    uvcc_debug_do_if(true, {
-        uvcc_debug_log_if(true, "loop [0x%08tX] on exit walk:", (ptrdiff_t)static_cast< uv::loop::uv_t* >(_loop));
-        uv::debug::print_loop_handles(static_cast< uv::loop::uv_t* >(_loop));
-    });
-  };
+  uv::loop::Default().run(UV_RUN_DEFAULT);
 
-  //::uv_print_all_handles(::uv_default_loop()/*(uv_loop_t*)L*/, stderr);  // segmentation fault
-  //fflush(stderr);
-  L/*uv::loop::Default()*/.run(UV_RUN_DEFAULT);
-#if 0
-  ::uv_unref(static_cast<::uv_handle_t*>(peer));
-  fprintf(stderr, "un-reference the loop for ");
-  uv::debug::print_handle(static_cast<::uv_handle_t*>(peer));
-  fprintf(stderr, "loop walk: begin\n");
-  uv::debug::print_loop_handles(static_cast< ::uv_loop_t* >(L));
-  fprintf(stderr, "loop walk: end\n");
-  fflush(stderr);
-#endif
-#if 0
-  fprintf(stderr, "- loop exit -\n");
-  //::uv_print_all_handles(::uv_default_loop()/*(uv_loop_t*)L*/, stderr);  // segmentation fault
-  //fflush(stderr);
-  L.walk([](uv::handle _handle){
-      fprintf(stderr,
-          "0x%08llX:%s (uvref:%i active:%i closing:%i nrefs:%li)\n",
-          (uintptr_t)_handle.fileno(), _handle.type_name(), ::uv_has_ref((::uv_handle_t*)_handle), _handle.is_active(), _handle.is_closing(), _handle.nrefs()
-      );
-      fflush(stderr);
-  });
-  fprintf(stderr, "loop alive:%i\n", L.is_alive());  fflush(stderr);
-
-  ::uv_unref(static_cast<::uv_handle_t*>(peer));
-  fprintf(stderr, "- handle unref -\n");
-  //::uv_print_all_handles(::uv_default_loop()/*(uv_loop_t*)L*/, stderr);  // segmentation fault
-  //fflush(stderr);
-  L.walk([](uv::handle _handle){
-      fprintf(stderr,
-          "0x%08llX:%s (uvref:%i active:%i closing:%i nrefs:%li)\n",
-          (uintptr_t)_handle.fileno(), _handle.type_name(), ::uv_has_ref((::uv_handle_t*)_handle), _handle.is_active(), _handle.is_closing(), _handle.nrefs()
-      );
-      fflush(stderr);
-  });
-  fprintf(stderr, "loop alive:%i\n", L.is_alive());  fflush(stderr);
-#endif
+  uvcc_debug_function_return();
   return 0;
 }

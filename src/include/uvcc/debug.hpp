@@ -34,16 +34,16 @@
 
 #define uvcc_debug_function_enter(printf_args...)  do {\
     std::fflush(stdout);\
-    std::fprintf(stderr, "[debug] enter function %s", __PRETTY_FUNCTION__);\
-    if (sizeof(MAKE_LITERAL_STRING_AFTER_EXPANDING(printf_args)) > 0)  std::fprintf(stderr, ": " printf_args);\
+    std::fprintf(stderr, "[debug] enter function: %s", __PRETTY_FUNCTION__);\
+    if (sizeof(MAKE_LITERAL_STRING_AFTER_EXPANDING(printf_args)) > 1)  std::fprintf(stderr, ": " printf_args);\
     std::fprintf(stderr, "\n");\
     std::fflush(stderr);\
 } while (0)
 
 #define uvcc_debug_function_return(printf_args...)  do {\
     std::fflush(stdout);\
-    std::fprintf(stderr, "[debug] return from function %s", __PRETTY_FUNCTION__);\
-    if (sizeof(MAKE_LITERAL_STRING_AFTER_EXPANDING(printf_args)) > 0)  std::fprintf(stderr, ": " printf_args);\
+    std::fprintf(stderr, "[debug] return from function: %s", __PRETTY_FUNCTION__);\
+    if (sizeof(MAKE_LITERAL_STRING_AFTER_EXPANDING(printf_args)) > 1)  std::fprintf(stderr, ": " printf_args);\
     std::fprintf(stderr, "\n");\
     std::fflush(stderr);\
 } while (0)
@@ -53,7 +53,7 @@
     std::fflush(stdout);\
     std::fprintf(stderr, "[debug] condition (%s):", MAKE_LITERAL_STRING_VERBATIM(condition));\
     int n = std::fprintf(stderr, " " context_printf_args);\
-    std::fprintf(stderr, "%s-> %s\n", (n-1)?" ":"", c?"true":"false");\
+    std::fprintf(stderr, "%s%s\n", (n > 1)?": ":"", c?"TRUE":"false");\
     std::fflush(stderr);\
 } while (0)
 
@@ -67,9 +67,9 @@
 #else
 
 #define uvcc_debug_log_if(log_condition, ...)  (void)(log_condition)
-#define uvcc_debug_check_entry(...)
-#define uvcc_debug_check_exit(...)
-#define uvcc_debug_check_condition(condition, ...)  (void)(condition)
+#define uvcc_debug_function_enter(...)
+#define uvcc_debug_function_return(...)
+#define uvcc_debug_condition(condition, ...)  (void)(condition)
 #define uvcc_debug_do_if(log_condition, ...)  (void)(log_condition)
 
 #endif
