@@ -4,9 +4,9 @@
 #include <stdio.h>
 
 
-#define PRINT_UV_ERR(code, prefix, ...)  do {\
+#define PRINT_UV_ERR(code, printf_args...)  do {\
   fflush(stdout);\
-  fprintf(stderr, (prefix), ##__VA_ARGS__);\
+  fprintf(stderr, "" printf_args);\
   fprintf(stderr, ": %s (%i): %s\n", uv_err_name(code), (int)(code), uv_strerror(code));\
   fflush(stderr);\
 } while (0)

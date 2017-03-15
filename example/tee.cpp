@@ -15,13 +15,13 @@
     }\
 } while (0)
 #else
-#define DEBUG_LOG(condition, ...)  (void)((condition))
+#define DEBUG_LOG(condition, ...)  (void)(condition)
 #endif
 
 
-#define PRINT_UV_ERR(code, prefix, ...)  do {\
+#define PRINT_UV_ERR(code, printf_args...)  do {\
   fflush(stdout);\
-  fprintf(stderr, (prefix), ##__VA_ARGS__);\
+  fprintf(stderr, "" printf_args);\
   fprintf(stderr, ": %s (%i): %s\n", ::uv_err_name(code), (int)(code), ::uv_strerror(code));\
   fflush(stderr);\
 } while (0)
@@ -30,7 +30,7 @@
 uv::io in = uv::io::guess_handle(uv::loop::Default(), fileno(stdin)),
        out = uv::io::guess_handle(uv::loop::Default(), fileno(stdout));
 
-constexpr std::size_t WRITE_QUEUE_SIZE_UPPER_LIMIT =  4*8192,
+constexpr std::size_t WRITE_QUEUE_SIZE_UPPER_LIMIT = 14*8192,
                       WRITE_QUEUE_SIZE_LOWER_LIMIT =  2*8192;
 std::size_t all_write_queues_size = 0;
 
@@ -108,7 +108,7 @@ int main(int _argc, char *_argv[])
           }
 
           int ret = in.read_pause(all_write_queues_size >= WRITE_QUEUE_SIZE_UPPER_LIMIT);
-          DEBUG_LOG(ret == 0, "[read paused]: all_write_queues_size=%zu\n", all_write_queues_size);
+          DEBUG_LOG(ret == 0, "[debug] read paused (all_write_queues_size=%zu)\n", all_write_queues_size);
         }
       }
   );
@@ -132,13 +132,13 @@ uv::buffer alloc_cb(uv::handle, std::size_t)
   {
       buf_pool[i].len() = default_size;  // restore the buffer capacity size
 
-      DEBUG_LOG(true, "[buffer pool]: item #%zu of %zu\n", i+1, buf_pool.size());
+      DEBUG_LOG(true, "[debug] buffer pool (size=%zu): spare item #%zu\n", buf_pool.size(), i+1);
       return buf_pool[i];
   }
 
   buf_pool.emplace_back(uv::buffer{ default_size });
 
-  DEBUG_LOG(true, "[buffer pool]: new item #%zu\n", buf_pool.size());
+  DEBUG_LOG(true, "[debug] buffer pool (size=%zu): new item #%zu\n", buf_pool.size(), buf_pool.size());
   return buf_pool.back();
 }
 
@@ -155,6 +155,6 @@ void write_cb(_WriteReq_ _wr, uv::buffer _buf)
   all_write_queues_size -= _buf.len();
 
   int ret = in.read_resume(all_write_queues_size <= WRITE_QUEUE_SIZE_LOWER_LIMIT);
-  DEBUG_LOG(ret == 0, "[read resumed]: all_write_queues_size=%zu\n", all_write_queues_size);
+  DEBUG_LOG(ret == 0, "[debug] read resumed (all_write_queues_size=%zu)\n", all_write_queues_size);
 }
 
