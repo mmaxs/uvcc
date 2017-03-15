@@ -7,7 +7,7 @@ else
 CPPFLAGS += -D NDEBUG
 endif
 
-CXXFLAGS += -Wall -Wpedantic -Wno-variadic-macros -Wno-format-zero-length
+WFLAGS += -Wall -Wpedantic -Wno-variadic-macros -Wno-format-zero-length
 
 ifeq ($(platform),WINDOWS)
 LDSTATIC += -static-libgcc -static-libstdc++ -static

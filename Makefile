@@ -10,48 +10,49 @@ LIBUV = $(ROOT)/libuv-x64-v1.9.1.build10
 endif
 
 
-# CXX common settings and flags
+# CXX common settings and flags: CXX CXXSTD
 CXX_FILE_SUFFIXES = .cpp .c
 CXX_HEADER_SUFFIXES = .hpp .h
-CXX = c++
 
+CXX = c++
 ifeq ($(platform),WINDOWS)
 CXX = x86_64-w64-mingw32-c++
 endif
-
 ifdef VERBOSE
 CXX += -v
 endif
+
 CXXSTD = -std=c++1y
 
 
-# preprocessor flags
-IFLAGS = -iquote $(ROOT)/src/include
-ifeq ($(platform),WINDOWS)
-IFLAGS = -iquote $(ROOT)/src/include -I $(LIBUV)/include
-endif
-
-CPPFLAGS = $(IFLAGS)
-
+# preprocessor flags: CPPFLAGS IFLAGS
+CPPFLAGS =
 ifdef UVCC_DEBUG
 CPPFLAGS += -D UVCC_DEBUG=$(UVCC_DEBUG)
 else
 CPPFLAGS += -D NDEBUG
 endif
-
 ifeq ($(platform),WINDOWS)
 CPPFLAGS += -D _WIN32_WINNT=0x0601
 endif
 
-
-# compiler flags
-CXXFLAGS = $(CXXSTD) -Wall -Wpedantic -O2 -g -pipe
-ifdef UVCC_DEBUG
-CXXFLAGS += -Wno-variadic-macros -Wno-format-zero-length
+IFLAGS = -iquote $(ROOT)/src/include
+ifeq ($(platform),WINDOWS)
+IFLAGS = -iquote $(ROOT)/src/include -I $(LIBUV)/include
 endif
 
 
-# linker flags
+# compiler flags: CXXFLAGS WFLAGS
+CXXFLAGS = $(CXXSTD) -O2 -g -pipe
+
+ifdef UVCC_DEBUG
+WFLAGS += -Wall -Wpedantic -Wno-variadic-macros
+else
+WFLAGS += -Wall -Wpedantic
+endif
+
+
+# linker flags: LDFLAGS LDLIBS
 LDFLAGS =
 LDLIBS =
 
@@ -67,8 +68,8 @@ LDLIBS =
 #  or define the target-specific assignment for appropriate goals in local makefiles
 #   <goal>: LDSTATIC = -static-libgcc -static-libstdc++
 #
-#  in any case all other the mingw32/gcc/OS libraries are forced to be always linked dynamically
-#  if the -static flag is not specified, which also prevents dynamic linking with shared libraries at all,
+#  in any case all other the mingw32/gcc/OS libraries are forced to be always linked dynamically when
+#  the -static flag is not specified, which also prevents dynamic linking with shared libraries at all,
 #  therefore if there is a specific library that we want to link with dynamically, we should then
 #  switch static linking off, specify the desired library, and then switch static linking state back on again
 #  using LDLIBS variable, e.g.:
@@ -79,7 +80,7 @@ LDLIBS =
 #  for static linking with some desired library, e.g.:
 #   LDLIBS += $(LIBUV)/libuv.a
 
-# bulding a shared library
+# building a shared library
 #  use Makefile.d/link.rules and define the target-specific assignment
 #  to CXXFLAGS, LDFLAGS, and LDOUT for appropriate goals, e.g.
 #   <goal>: CXXFLAGS += -fPIC
