@@ -5,8 +5,9 @@
 #include "uvcc/debug.hpp"
 #include "uvcc/utility.hpp"
 
-#include <uv.h>
 #include <cstddef>      // offsetof
+#include <uv.h>
+
 #include <functional>   // function bind placeholders::
 #include <type_traits>  // is_standard_layout enable_if is_convertible
 #include <utility>      // swap() forward()

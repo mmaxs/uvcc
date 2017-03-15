@@ -8,12 +8,14 @@
 #include "uvcc/loop.hpp"
 
 #include <uv.h>
-#include <functional>   // function
+
 #ifdef _WIN32
 #include <io.h>         // _telli64()
 #else
 #include <unistd.h>     // lseek64()
 #endif
+
+#include <functional>   // function
 
 
 namespace uv

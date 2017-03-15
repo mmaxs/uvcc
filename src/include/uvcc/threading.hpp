@@ -2,9 +2,10 @@
 #ifndef UVCC_THREAD__HPP
 #define UVCC_THREAD__HPP
 
-#include <uv.h>
-#include <stdexcept>  // runtime_error
 #include <cstdint>    // intptr_t
+#include <uv.h>
+
+#include <stdexcept>  // runtime_error
 
 
 namespace uv

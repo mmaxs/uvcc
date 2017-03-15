@@ -4,10 +4,11 @@
 
 #include "uvcc/utility.hpp"
 
-#include <uv.h>
 #include <cstddef>      // size_t offsetof
 #include <cstdint>      // uintptr_t
 #include <cstring>      // memset()
+#include <uv.h>
+
 #include <functional>   // function
 #include <type_traits>  // is_standard_layout
 #include <utility>      // forward() swap()

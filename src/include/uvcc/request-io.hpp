@@ -10,8 +10,9 @@
 #include "uvcc/request-udp.hpp"
 #include "uvcc/buffer.hpp"
 
-#include <uv.h>
 #include <cstring>      // memset()
+#include <uv.h>
+
 #include <functional>   // function
 
 

@@ -7,8 +7,9 @@
 #include "uvcc/buffer.hpp"
 #include "uvcc/loop.hpp"
 
-#include <uv.h>
 #include <cstddef>      // size_t
+#include <uv.h>
+
 #include <functional>   // function
 #include <mutex>        // lock_guard
 

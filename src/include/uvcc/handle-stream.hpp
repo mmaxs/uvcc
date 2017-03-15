@@ -8,8 +8,9 @@
 #include "uvcc/buffer.hpp"
 #include "uvcc/loop.hpp"
 
-#include <uv.h>
 #include <cstddef>      // size_t
+#include <uv.h>
+
 #include <functional>   // function
 #include <string>       // string
 #include <type_traits>  // enable_if_t

@@ -7,8 +7,9 @@
 #include "uvcc/handle-io.hpp"
 #include "uvcc/loop.hpp"
 
-#include <uv.h>
 #include <cstddef>      // size_t
+#include <uv.h>
+
 #include <type_traits>  // enable_if_t
 
 

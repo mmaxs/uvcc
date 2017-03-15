@@ -2,9 +2,10 @@
 #ifndef UVCC_NETSTRUCT__HPP
 #define UVCC_NETSTRUCT__HPP
 
-#include <uv.h>
 #include <cstring>       // memset()
 #include <cstdlib>       // atoi()
+#include <uv.h>
+
 #ifdef _WIN32
 #include <Winsock2.h>    // sockaddr_storage sockaddr_in sockaddr_in6
 #include <Ws2tcpip.h>    // addrinfo AI_ADDRCONFIG

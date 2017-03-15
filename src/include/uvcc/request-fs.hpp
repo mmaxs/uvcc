@@ -10,13 +10,15 @@
 #include "uvcc/loop.hpp"
 
 #include <uv.h>
-#include <functional>   // function
-#include <type_traits>  // enable_if_t is_convertible
+
 #ifdef _WIN32
 #include <io.h>         // _telli64()
 #else
 #include <unistd.h>     // lseek64()
 #endif
+
+#include <functional>   // function
+#include <type_traits>  // enable_if_t is_convertible
 #include <string>       // string
 
 

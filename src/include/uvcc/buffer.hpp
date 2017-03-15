@@ -4,8 +4,9 @@
 
 #include "uvcc/utility.hpp"
 
-#include <uv.h>
 #include <cstddef>           // size_t offsetof max_align_t
+#include <uv.h>
+
 #include <type_traits>       // is_standard_layout
 #include <utility>           // swap()
 #include <initializer_list>  // initializer_list

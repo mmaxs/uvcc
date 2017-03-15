@@ -6,15 +6,17 @@
 #include "uvcc/utility.hpp"
 #include "uvcc/loop.hpp"
 
-#include <uv.h>
 #include <cstddef>      // size_t offsetof
 #include <cstdint>      // uintptr_t
-#include <functional>   // function
-#include <type_traits>  // is_standard_layout
-#include <utility>      // forward() swap()
+#include <uv.h>
+
 #ifdef _WIN32
 #include <io.h>         // _get_osfhandle()
 #endif
+
+#include <functional>   // function
+#include <type_traits>  // is_standard_layout
+#include <utility>      // forward() swap()
 
 
 #define HACK_UV_INTERFACE_PTR  1
