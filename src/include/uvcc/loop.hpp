@@ -79,15 +79,36 @@ private: /*types*/
       });
 
       uv_error = ::uv_loop_close(&uv_loop_struct);
-      if (uv_error == UV_EBUSY)
+      auto loop_not_closed = (uv_error == UV_EBUSY);
+      uvcc_debug_condition(loop_not_closed, "loop [0x%08tX]", (ptrdiff_t)&uv_loop_struct);
+
+      if (loop_not_closed)  // this may be because of:
       {
-        // it is a not finished executing loop or there are
-        // handles (and perhaps requests?) associated with the loop
-        // that are not closed by the time the loop instance destroying
-        if (!std::uncaught_exception())
-          // if this is a consequence of an exception, try to not make the bad
-          // situation even worse, otherwise throw
+        // 1) it is not a really finished executing loop, and all variables
+        //    referencing this loop have been destroyed during stack unwinding
+        if (std::uncaught_exception())  // so, if this is a consequence of an exception, try to not make the bad situation even worse
+          return;
+
+        // 2) there are registered callbacks from closed handles
+        //    (that should be nullptrs by the by, if the loop didn't run when the handles was being closed)
+        uvcc_debug_log_if(true, "try at loop [0x%08tX] premortal one shot nonblocking run", (ptrdiff_t)&uv_loop_struct);
+        uv_error = ::uv_run(&uv_loop_struct, UV_RUN_NOWAIT);  // so, simply try to dispose of them
+
+        if (uv_error)
+        {
+        // 3) there are handles (and perhaps requests?) associated with the loop
+        //    that are in deed not closed by the time the loop instance destroying
+        // 4) it is in deed a running loop because of some weird things
           throw std::runtime_error(__PRETTY_FUNCTION__);
+        }
+        else
+        {
+          uv_error = ::uv_loop_close(&uv_loop_struct);
+          loop_not_closed = (uv_error == UV_EBUSY);
+          uvcc_debug_condition(loop_not_closed, "loop [0x%08tX]", (ptrdiff_t)&uv_loop_struct);
+
+          if (loop_not_closed)  throw std::runtime_error(__PRETTY_FUNCTION__);
+        }
       }
     }
 
@@ -123,7 +144,7 @@ private: /*types*/
     {
       uvcc_debug_function_enter("loop [0x%08tX]", (ptrdiff_t)&uv_loop_struct);
       auto nrefs = refs.dec();
-      uvcc_debug_condition(nrefs == 0, "nrefs to loop [0x%08tX] = %li", (ptrdiff_t)&uv_loop_struct, nrefs);
+      uvcc_debug_condition(nrefs == 0, "(nrefs to loop [0x%08tX])=%li", (ptrdiff_t)&uv_loop_struct, nrefs);
       if (nrefs == 0)  destroy();
     }
   };

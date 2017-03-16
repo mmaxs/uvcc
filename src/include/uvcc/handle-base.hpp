@@ -156,7 +156,7 @@ protected: /*types*/
     {
       uvcc_debug_function_enter("handle [0x%08tX]", (ptrdiff_t)&uv_handle_struct);
       auto nrefs = refs.dec();
-      uvcc_debug_condition(nrefs == 0, "nrefs to handle [0x%08tX] = %li", (ptrdiff_t)&uv_handle_struct, nrefs);
+      uvcc_debug_condition(nrefs == 0, "(nrefs to handle [0x%08tX])=%li", (ptrdiff_t)&uv_handle_struct, nrefs);
       if (nrefs == 0)  uv_interface_ptr->close(&uv_handle_struct);
     }
 
@@ -332,16 +332,19 @@ struct handle::uv_handle_interface : virtual uv_interface
 
   void close(void *_uv_handle) noexcept override
   {
-    uvcc_debug_function_enter("%s handle [0x%08tX]", debug::handle_type_name((::uv_handle_t*)_uv_handle), (ptrdiff_t)_uv_handle);
-
     auto uv_handle = static_cast< ::uv_handle_t* >(_uv_handle);
-    //if (::uv_is_active(uv_handle))
+    uvcc_debug_function_enter("%s handle [0x%08tX]", debug::handle_type_name(uv_handle), (ptrdiff_t)uv_handle);
+
+    auto loop_alive = ::uv_loop_alive(uv_handle->loop);
+    uvcc_debug_condition(loop_alive, "is loop [0x%08tX] associated with handle [0x%08tX] alive", (ptrdiff_t)uv_handle->loop, (ptrdiff_t)uv_handle);
+    if (loop_alive)
       ::uv_close(uv_handle, close_cb);
-    /*else
+    else
     {
+      uvcc_debug_log_if(true, "handle [0x%08tX]: call close callback synchronously", (ptrdiff_t)uv_handle);
       ::uv_close(uv_handle, nullptr);
       close_cb(uv_handle);
-    }*/
+    }
   }
 
   ::uv_handle_type type(void *_uv_handle) const noexcept override  { return static_cast< ::uv_handle_t* >(_uv_handle)->type; }

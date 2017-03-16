@@ -198,9 +198,9 @@ public: /*constructors*/
   {
     uv_handle = instance::create();
     if (uv_status(::uv_tcp_init(static_cast< uv::loop::uv_t* >(_loop), static_cast< uv_t* >(uv_handle))) != 0)  return;
+    instance::from(uv_handle)->book_loop();
     if (uv_status(::uv_tcp_open(static_cast< uv_t* >(uv_handle), _socket)) != 0)  return;
     if (_set_blocking)  set_blocking(_set_blocking);
-    instance::from(uv_handle)->book_loop();
   }
 
 public: /*interface*/
