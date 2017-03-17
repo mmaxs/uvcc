@@ -101,8 +101,8 @@ public: /*interface*/
 
     instance_ptr->ref();
 
+    auto &properties = instance_ptr->properties();
     {
-      auto &properties = instance_ptr->properties();
       using task_t = decltype(properties.task);
       properties.task = task_t(std::bind(_task, std::forward< _Args_ >(_args)...));
       properties.result = properties.task.get_future().share();
@@ -113,7 +113,11 @@ public: /*interface*/
         static_cast< uv::loop::uv_t* >(_loop), static_cast< uv_t* >(uv_req),
         work_cb<>, after_work_cb<>
     );
-    if (uv_ret < 0)  uv_status(uv_ret);
+    if (uv_ret < 0)
+    {
+      uv_status(uv_ret);
+      instance_ptr->unref();
+    }
 
     return uv_ret;
   }
