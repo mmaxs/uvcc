@@ -322,6 +322,10 @@ public: /*conversion operators*/
   explicit operator       uv_t*()       noexcept  { return instance< handle >::from(uv_handle)->uv_interface()->type(uv_handle) == UV_FILE ? nullptr : static_cast<       uv_t* >(uv_handle); }
 
   explicit operator bool() const noexcept  { return (uv_status() >= 0); }  /*!< \brief Equivalent to `(uv_status() >= 0)`. */
+
+public: /*comparison operators*/
+  friend bool operator ==(const handle &_lhs, const handle _rhs) noexcept  { return (_lhs.uv_handle == _rhs.uv_handle); }
+  friend bool operator !=(const handle &_lhs, const handle _rhs) noexcept  { return !(_lhs == _rhs); }
 };
 
 
