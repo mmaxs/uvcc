@@ -1,5 +1,9 @@
 
 #include "uvcc.hpp"
+#ifdef UVCC_DEBUG
+#include "uvcc/debug.hpp"
+#endif
+
 #include <cstdio>
 #include <vector>
 #include <fcntl.h>  // O_*
@@ -92,7 +96,10 @@ int main(int _argc, char *_argv[])
           if (io_wr)
             all_write_queues_size += _buf.len();
           else
+          {
+            _io.read_stop();
             PRINT_UV_ERR(io_wr.uv_status(), "stdout write request initiation (%s)", out.type_name());
+          }
 
           // write to files
           for (auto &file : files)
@@ -118,7 +125,10 @@ int main(int _argc, char *_argv[])
     return in.uv_status();
   }
 
-  return uv::loop::Default().run(UV_RUN_DEFAULT);
+  auto ret = uv::loop::Default().run(UV_RUN_DEFAULT);
+
+  uvcc_debug_function_return();
+  return ret;
 }
 
 
@@ -146,11 +156,15 @@ uv::buffer alloc_cb(uv::handle, std::size_t)
 template< class _WriteReq_ >
 void write_cb(_WriteReq_ _wr, uv::buffer _buf)
 {
-  if (!_wr)  PRINT_UV_ERR(_wr.uv_status(),
+  if (!_wr)
+  {
+    if (_wr.handle() == out)  in.read_stop();
+    PRINT_UV_ERR(_wr.uv_status(),
       "%s write (%s)",
       _wr.handle().type() == UV_FILE ? "file" : "stdout",
       _wr.handle().type() == UV_FILE ? static_cast< uv::file&& >(_wr.handle()).path() : _wr.handle().type_name()
-  );
+    );
+  }
 
   all_write_queues_size -= _buf.len();
 

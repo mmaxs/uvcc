@@ -98,8 +98,8 @@ int main(int _argc, char *_argv[])
   }
 //}
 
-  uv::loop::Default().run(UV_RUN_DEFAULT);
+  auto ret = uv::loop::Default().run(UV_RUN_DEFAULT);
 
   uvcc_debug_function_return();
-  return 0;
+  return ret;
 }
