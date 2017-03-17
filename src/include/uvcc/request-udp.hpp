@@ -107,12 +107,11 @@ public: /*interface*/
     buffer::instance::from(_buf.uv_buf)->ref();
     instance_ptr->ref();
 
+    auto &properties = instance_ptr->properties();
     {
-      auto &properties = instance_ptr->properties();
       properties.uv_buf = _buf.uv_buf;
       init(properties.peer, reinterpret_cast< const ::sockaddr& >(_sockaddr));
     }
-
 
     uv_status(0);
     auto uv_ret = ::uv_udp_send(
@@ -121,7 +120,13 @@ public: /*interface*/
         reinterpret_cast< const ::sockaddr* >(&_sockaddr),
         udp_send_cb
     );
-    if (uv_ret < 0)  uv_status(uv_ret);
+    if (uv_ret < 0)
+    {
+      uv_status(uv_ret);
+      udp::instance::from(_udp.uv_handle)->unref();
+      buffer::instance::from(_buf.uv_buf)->unref();
+      instance_ptr->unref();
+    }
 
     return uv_ret;
   }
