@@ -188,7 +188,10 @@ public: /*constructors*/
   tcp(uv::loop &_loop, unsigned int _flags = AF_UNSPEC)
   {
     uv_handle = instance::create();
-    if (uv_status(::uv_tcp_init_ex(static_cast< uv::loop::uv_t* >(_loop), static_cast< uv_t* >(uv_handle), _flags)) != 0)  return;
+
+    auto uv_err = ::uv_tcp_init_ex(static_cast< uv::loop::uv_t* >(_loop), static_cast< uv_t* >(uv_handle), _flags);
+    if (uv_status(uv_err) != 0)  return;
+
     instance::from(uv_handle)->book_loop();
   }
   /*! \brief Create a handle object from an existing native platform depended TCP socket descriptor.
@@ -197,9 +200,15 @@ public: /*constructors*/
   tcp(uv::loop &_loop, ::uv_os_sock_t _socket, bool _set_blocking)
   {
     uv_handle = instance::create();
-    if (uv_status(::uv_tcp_init(static_cast< uv::loop::uv_t* >(_loop), static_cast< uv_t* >(uv_handle))) != 0)  return;
+
+    auto uv_err = ::uv_tcp_init(static_cast< uv::loop::uv_t* >(_loop), static_cast< uv_t* >(uv_handle));
+    if (uv_status(uv_err) != 0)  return;
+
     instance::from(uv_handle)->book_loop();
-    if (uv_status(::uv_tcp_open(static_cast< uv_t* >(uv_handle), _socket)) != 0)  return;
+
+    uv_err = ::uv_tcp_open(static_cast< uv_t* >(uv_handle), _socket);
+    if (uv_status(uv_err) != 0)  return;
+
     if (_set_blocking)  set_blocking(_set_blocking);
   }
 
@@ -326,7 +335,12 @@ public: /*constructors*/
   pipe(uv::loop &_loop, const char* _name, bool _ipc = false)
   {
     uv_handle = instance::create();
-    if (uv_status(::uv_pipe_init(static_cast< uv::loop::uv_t* >(_loop), static_cast< uv_t* >(uv_handle), _ipc)) != 0)  return;
+
+    auto uv_err = ::uv_pipe_init(static_cast< uv::loop::uv_t* >(_loop), static_cast< uv_t* >(uv_handle), _ipc);
+    if (uv_status(uv_err) != 0)  return;
+
+    instance::from(uv_handle)->book_loop();
+
     uv_status(::uv_pipe_bind(static_cast< uv_t* >(uv_handle), _name));
   }
   /*! \brief Create a pipe object from an existing OS native pipe descriptor.
@@ -334,8 +348,15 @@ public: /*constructors*/
   pipe(uv::loop &_loop, ::uv_file _fd, bool _ipc = false, bool _set_blocking = false)
   {
     uv_handle = instance::create();
-    if (uv_status(::uv_pipe_init(static_cast< uv::loop::uv_t* >(_loop), static_cast< uv_t* >(uv_handle), _ipc)) != 0)  return;
-    if (uv_status(::uv_pipe_open(static_cast< uv_t* >(uv_handle), _fd)) != 0)  return;
+
+    auto uv_err = ::uv_pipe_init(static_cast< uv::loop::uv_t* >(_loop), static_cast< uv_t* >(uv_handle), _ipc);
+    if (uv_status(uv_err) != 0)  return;
+
+    instance::from(uv_handle)->book_loop();
+
+    uv_err = ::uv_pipe_open(static_cast< uv_t* >(uv_handle), _fd);
+    if (uv_status(uv_err) != 0)  return;
+
     if (_set_blocking)  set_blocking(_set_blocking);
   }
 
@@ -454,7 +475,12 @@ public: /*constructors*/
   tty(uv::loop &_loop, ::uv_file _fd, bool _readable, bool _set_blocking = false)
   {
     uv_handle = instance::create();
-    if (uv_status(::uv_tty_init(static_cast< uv::loop::uv_t* >(_loop), static_cast< uv_t* >(uv_handle), _fd, _readable)) != 0)  return;
+
+    auto uv_err = ::uv_tty_init(static_cast< uv::loop::uv_t* >(_loop), static_cast< uv_t* >(uv_handle), _fd, _readable);
+    if (uv_status(uv_err) != 0)  return;
+
+    instance::from(uv_handle)->book_loop();
+
     if (_set_blocking)  set_blocking(_set_blocking);
   }
 
@@ -498,6 +524,7 @@ inline stream stream::accept() const
           static_cast< ::uv_pipe_t* >(client.uv_handle),
           static_cast< ::uv_pipe_t* >(uv_handle)->ipc
       ));
+      if (client) handle::instance< pipe >::from(client.uv_handle)->book_loop();
       break;
   case UV_TCP:
       client.uv_handle = handle::instance< tcp >::create();
@@ -505,6 +532,7 @@ inline stream stream::accept() const
           static_cast< ::uv_tcp_t* >(uv_handle)->loop,
           static_cast< ::uv_tcp_t* >(client.uv_handle)
       ));
+      if (client) handle::instance< tcp >::from(client.uv_handle)->book_loop();
       break;
   case UV_TTY:
       client.uv_status(UV_ENOTSUP);
@@ -516,8 +544,11 @@ inline stream stream::accept() const
 
   if (!client)
     uv_status(client.uv_status());
-  else if (uv_status(::uv_accept(static_cast< uv_t* >(uv_handle), static_cast< uv_t* >(client))) < 0)
-    client.uv_status(uv_status());
+  else
+  {
+    auto uv_err = ::uv_accept(static_cast< uv_t* >(uv_handle), static_cast< uv_t* >(client));
+    if (uv_status(uv_err) < 0)  client.uv_status(uv_err);
+  }
 
   return client;
 }
@@ -536,6 +567,7 @@ inline stream pipe::accept_pending_handle() const
           static_cast< ::uv_pipe_t* >(fd.uv_handle),
           static_cast< uv_t* >(uv_handle)->ipc
       ));
+      if (fd) handle::instance< pipe >::from(fd.uv_handle)->book_loop();
       break;
   case UV_TCP:
       fd.uv_handle = handle::instance< tcp >::create();
@@ -543,6 +575,7 @@ inline stream pipe::accept_pending_handle() const
           static_cast< uv_t* >(uv_handle)->loop,
           static_cast< ::uv_tcp_t* >(fd.uv_handle)
       ));
+      if (fd) handle::instance< tcp >::from(fd.uv_handle)->book_loop();
       break;
   default:
       fd.uv_status(UV_EBADF);
@@ -551,8 +584,11 @@ inline stream pipe::accept_pending_handle() const
 
   if (!fd)
     uv_status(fd.uv_status());
-  else if (uv_status(::uv_accept(static_cast< ::uv_stream_t* >(uv_handle), static_cast< ::uv_stream_t* >(fd))) < 0)
-    fd.uv_status(uv_status());
+  else
+  {
+    auto uv_err = ::uv_accept(static_cast< ::uv_stream_t* >(uv_handle), static_cast< ::uv_stream_t* >(fd));
+    if (uv_status(uv_err) < 0)  fd.uv_status(uv_err);
+  }
 
   return fd;
 }

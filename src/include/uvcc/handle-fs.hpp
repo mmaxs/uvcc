@@ -125,6 +125,8 @@ public: /*constructors*/
   file(uv::loop &_loop, const char *_path, int _flags, int _mode)
   {
     uv_handle = instance::create();
+    instance::from(uv_handle)->book_loop();
+
     uv_status(::uv_fs_open(
         static_cast< uv::loop::uv_t* >(_loop), static_cast< uv_t* >(uv_handle),
         _path, _flags, _mode,
@@ -143,16 +145,17 @@ public: /*constructors*/
 
     uv_handle = instance::create();
     instance::from(uv_handle)->properties().open_cb = _open_cb;
+    instance::from(uv_handle)->book_loop();
 
     instance::from(uv_handle)->ref();
 
     uv_status(0);
-    int ret = ::uv_fs_open(
+    auto uv_ret = ::uv_fs_open(
         static_cast< uv::loop::uv_t* >(_loop), static_cast< uv_t* >(uv_handle),
         _path, _flags, _mode,
         open_cb
     );
-    if (!ret)  uv_status(ret);
+    if (uv_ret < 0)  uv_status(uv_ret);
   }
   /*! \brief Create a file object from an existing file descriptor. */
   file(uv::loop &_loop, ::uv_file _fd) : file(static_cast< uv::loop::uv_t* >(_loop), _fd, nullptr)  {}

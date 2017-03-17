@@ -96,6 +96,7 @@ public: /*constructors*/
   {
     uv_handle = instance::create();
     uv_status(::uv_udp_init_ex(static_cast< uv::loop::uv_t* >(_loop), static_cast< uv_t* >(uv_handle), _flags));
+    instance::from(uv_handle)->book_loop();
   }
   /*! \details Create a handle object from an existing native platform depended datagram socket descriptor.
       \sa libuv API documentation: [`uv_udp_open()`](http://docs.libuv.org/en/v1.x/udp.html#c.uv_udp_open),
@@ -103,7 +104,12 @@ public: /*constructors*/
   udp(uv::loop &_loop, ::uv_os_sock_t _socket)
   {
     uv_handle = instance::create();
-    if (uv_status(::uv_udp_init(static_cast< uv::loop::uv_t* >(_loop), static_cast< uv_t* >(uv_handle))) != 0)  return;
+
+    auto uv_err = ::uv_udp_init(static_cast< uv::loop::uv_t* >(_loop), static_cast< uv_t* >(uv_handle));
+    if (uv_status(uv_err) != 0)  return;
+
+    instance::from(uv_handle)->book_loop();
+
     uv_status(::uv_udp_open(static_cast< uv_t* >(uv_handle), _socket));
   }
 
