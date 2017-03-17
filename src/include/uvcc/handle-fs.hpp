@@ -100,6 +100,7 @@ private: /*constructors*/
   explicit file(uv::loop::uv_t *_loop, ::uv_file _fd, const char *_path)
   {
     uv_handle = instance::create();
+    instance::from(uv_handle)->book_loop();
     static_cast< uv_t* >(uv_handle)->loop = _loop;
     static_cast< uv_t* >(uv_handle)->result = _fd;
     static_cast< uv_t* >(uv_handle)->path = _path;
@@ -239,8 +240,8 @@ void file::read_cb(::uv_fs_t *_uv_req)
   case rdcmd::RESUME:
       {
         instance_ptr->uv_error = 0;
-        int ret = file_read(instance_ptr);
-        if (!ret)  instance_ptr->uv_error = ret;
+        auto uv_ret = file_read(instance_ptr);
+        if (uv_ret < 0)  instance_ptr->uv_error = uv_ret;
       }
       break;
   }
