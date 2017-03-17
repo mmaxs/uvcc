@@ -60,11 +60,11 @@ through the `.data` pointer before the last variable referencing this object has
 For the `uv::handle` calss the destroy callback functionality is based on the underlying libuv API
 [`uv_close_cb`](http://docs.libuv.org/en/v1.x/handle.html#c.uv_close_cb) facilities.
 The handle close callback passed to [`uv_close()`](http://docs.libuv.org/en/v1.x/handle.html#c.uv_close)
-goes through the event loop and is called asynchronously after the `uv_close()` call. But it wouldn't be executed if the handle
-to be closed is not an "active" handle (libuv API function [`uv_is_active()`](http://docs.libuv.org/en/v1.x/handle.html#c.uv_is_active)
-returns zero on such handles). Instead, uvcc's destroy callback is called in any case whenever the last variable
-referencing this handle is destroyed. If the handle is not "active" the destroy callback runs synchronously as part of the
-variable's destructor.
+goes through the event loop and is called asynchronously after the `uv_close()` call. But it wouldn't be executed if the loop
+with which the handle to be closed is associated is not running or will not be running anymore (e.g. because of the loop has exited
+after processing all active handles and requests, and the program has come to the end). Instead, uvcc's destroy callback is called
+in any case whenever the last variable referencing this handle is destroyed. If the loop is not running the destroy callback
+will be executed synchronously as part of the handle instance's destructor.
 
 For the other two classes (`uv::request` and `uv::loop`) the destroy callbacks are a uvcc specific feature and they are executed
 as part of the variable's destructor.
