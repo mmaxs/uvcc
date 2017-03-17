@@ -162,14 +162,18 @@ protected: /*types*/
 
     void book_loop()
     {
-      uvcc_debug_function_enter("handle [0x%08tX], loop [0x%08tX]", (ptrdiff_t)&uv_handle_struct, (ptrdiff_t)&loop_instance_ptr->uv_loop_struct);
+      uvcc_debug_function_enter(
+          "handle [0x%08tX], loop [0x%08tX]", (ptrdiff_t)&uv_handle_struct, (ptrdiff_t)uv_interface_ptr->loop(&uv_handle_struct)
+      );
       unbook_loop();
       loop_instance_ptr = loop::instance::from(uv_interface_ptr->loop(&uv_handle_struct));
       loop_instance_ptr->ref();
     }
     void unbook_loop()
     {
-      uvcc_debug_do_if(loop_instance_ptr, uvcc_debug_function_enter("handle [0x%08tX], loop [0x%08tX]", (ptrdiff_t)&uv_handle_struct, (ptrdiff_t)&loop_instance_ptr->uv_loop_struct););
+      uvcc_debug_do_if(loop_instance_ptr,
+          uvcc_debug_function_enter("handle [0x%08tX], loop [0x%08tX]", (ptrdiff_t)&uv_handle_struct, (ptrdiff_t)&loop_instance_ptr->uv_loop_struct)
+      );
       if (loop_instance_ptr)
       {
         loop_instance_ptr->unref();

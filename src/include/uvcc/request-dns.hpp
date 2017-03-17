@@ -79,13 +79,14 @@ private: /*functions*/
     ::uv_freeaddrinfo(static_cast< uv_t* >(uv_req)->addrinfo);  // assuming that *uv_req or this particular field has initially been nulled
 
     uv_status(0);
-    int ret = ::uv_getaddrinfo(
+    auto uv_ret = ::uv_getaddrinfo(
         static_cast< uv::loop::uv_t* >(_loop), static_cast< uv_t* >(uv_req),
         request_cb ? static_cast< ::uv_getaddrinfo_cb >(getaddrinfo_cb) : nullptr,
         _hostname, _service, _hints
     );
-    if (!ret)  uv_status(ret);
-    return ret;
+    if (uv_ret < 0)  uv_status(uv_ret);
+
+    return uv_ret;
   }
 
 public: /*interface*/
@@ -210,13 +211,14 @@ public: /*interface*/
     if (request_cb)  instance_ptr->ref();
 
     uv_status(0);
-    int ret =::uv_getnameinfo(
+    auto uv_ret = ::uv_getnameinfo(
         static_cast< uv::loop::uv_t* >(_loop), static_cast< uv_t* >(uv_req),
         request_cb ? static_cast< ::uv_getnameinfo_cb >(getnameinfo_cb) : nullptr,
         reinterpret_cast< const ::sockaddr* >(&_sa), _NI_FLAGS
     );
-    if (!ret)  uv_status(ret);
-    return ret;
+    if (uv_ret < 0)  uv_status(uv_ret);
+
+    return uv_ret;
   }
 
 public: /*conversion operators*/

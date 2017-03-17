@@ -80,13 +80,14 @@ public: /*interface*/
     instance::from(uv_req)->ref();
 
     uv_status(0);
-    int ret = ::uv_tcp_connect(
+    auto uv_ret = ::uv_tcp_connect(
         static_cast< uv_t* >(uv_req), static_cast< tcp::uv_t* >(_tcp),
         reinterpret_cast< const ::sockaddr* >(&_sockaddr),
         connect_cb
     );
-    if (!ret)  uv_status(ret);
-    return ret;
+    if (uv_ret < 0)  uv_status(uv_ret);
+
+    return uv_ret;
   }
   /*! \brief Run the request for `uv::pipe` stream.
       \sa libuv API documentation: [`uv_pipe_connect()`](http://docs.libuv.org/en/v1.x/pipe.html#c.uv_pipe_connect). */
@@ -196,13 +197,14 @@ public: /*interface*/
 
 
     uv_status(0);
-    int ret = ::uv_write(
+    auto uv_ret = ::uv_write(
         static_cast< uv_t* >(uv_req), static_cast< stream::uv_t* >(_stream),
         static_cast< const buffer::uv_t* >(_buf), _buf.count(),
         write_cb
     );
-    if (!ret)  uv_status(ret);
-    return ret;
+    if (uv_ret < 0)  uv_status(uv_ret);
+
+    return uv_ret;
   }
   /*! \brief The overload for sending handles over a pipe.
       \sa libuv API documentation: [`uv_write2()`](http://docs.libuv.org/en/v1.x/stream.html#c.uv_write2). */
@@ -222,14 +224,15 @@ public: /*interface*/
     }
 
     uv_status(0);
-    int ret = ::uv_write2(
+    auto uv_ret = ::uv_write2(
         static_cast< uv_t* >(uv_req), static_cast< stream::uv_t* >(_pipe),
         static_cast< const buffer::uv_t* >(_buf), _buf.count(),
         static_cast< stream::uv_t* >(_send_handle),
         write2_cb
     );
-    if (!ret)  uv_status(ret);
-    return ret;
+    if (uv_ret < 0)  uv_status(uv_ret);
+
+    return uv_ret;
   }
 
   /*! \details The wrapper for a corresponding libuv function.
@@ -327,9 +330,10 @@ public: /*interface*/
     instance::from(uv_req)->ref();
 
     uv_status(0);
-    int ret = ::uv_shutdown(static_cast< uv_t* >(uv_req), static_cast< stream::uv_t* >(_stream), shutdown_cb);
-    if (!ret)  uv_status(ret);
-    return ret;
+    auto uv_ret = ::uv_shutdown(static_cast< uv_t* >(uv_req), static_cast< stream::uv_t* >(_stream), shutdown_cb);
+    if (uv_ret)  uv_status(uv_ret);
+
+    return uv_ret;
   }
 
 public: /*conversion operators*/

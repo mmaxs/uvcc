@@ -106,7 +106,7 @@ public: /*constructors*/
     uv_handle = instance::create();
 
     auto uv_err = ::uv_udp_init(static_cast< uv::loop::uv_t* >(_loop), static_cast< uv_t* >(uv_handle));
-    if (uv_status(uv_err) != 0)  return;
+    if (uv_status(uv_err) < 0)  return;
 
     instance::from(uv_handle)->book_loop();
 

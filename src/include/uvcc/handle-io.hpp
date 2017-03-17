@@ -216,16 +216,15 @@ public: /*interface*/
     properties.rdsize = _size;
 
     uv_status(0);
-    int ret = instance_ptr->uv_interface()->read_start(uv_handle, _offset);
-    if (!ret)  uv_status(ret);
-
-    if (ret < 0)
+    auto uv_ret = instance_ptr->uv_interface()->read_start(uv_handle, _offset);
+    if (uv_ret < 0)
     {
+      uv_status(uv_ret);
       properties.rdcmd_state = rdcmd::UNKNOWN;
       instance_ptr->unref();  // release the reference on start failure
     }
 
-    return ret;
+    return uv_ret;
   }
   /*! \brief Restart reading incoming data from the I/O endpoint using `_alloc_cb` and `_read_cb`
       functions having been explicitly set before or provided with the previous `read_start()` call.
@@ -260,16 +259,15 @@ public: /*interface*/
     properties.rdsize = _size;
 
     uv_status(0);
-    int ret = instance_ptr->uv_interface()->read_start(uv_handle, _offset);
-    if (!ret)  uv_status(ret);
-
-    if (ret < 0)
+    auto uv_ret = instance_ptr->uv_interface()->read_start(uv_handle, _offset);
+    if (uv_ret < 0)
     {
+      uv_status(uv_ret);
       properties.rdcmd_state = rdcmd::UNKNOWN;
       instance_ptr->unref();
     }
 
-    return ret;
+    return uv_ret;
   }
 
   /*! \brief Stop reading data from the I/O endpoint.
@@ -285,7 +283,7 @@ public: /*interface*/
     auto rdcmd_state = properties.rdcmd_state;
     properties.rdcmd_state = rdcmd::STOP;
 
-    int ret = uv_status(instance_ptr->uv_interface()->read_stop(uv_handle));
+    auto uv_ret = uv_status(instance_ptr->uv_interface()->read_stop(uv_handle));
 
     switch (rdcmd_state)
     {
@@ -299,7 +297,7 @@ public: /*interface*/
         break;
     }
 
-    return ret;
+    return uv_ret;
   }
 
   /*! \brief Pause reading data from the I/O endpoint.
@@ -387,10 +385,9 @@ public: /*interface*/
 
         uv_status(0);
         ret = instance_ptr->uv_interface()->read_start(uv_handle, properties.rdoffset);
-        if (!ret)  uv_status(ret);
-
         if (ret < 0)
         {
+          uv_status(ret);
           properties.rdcmd_state = rdcmd::UNKNOWN;
           instance_ptr->unref();
         }

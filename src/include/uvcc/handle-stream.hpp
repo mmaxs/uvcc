@@ -103,9 +103,9 @@ public: /*interface*/
   {
     instance::from(uv_handle)->properties().connection_cb = _connection_cb;
     uv_status(0);
-    int ret = ::uv_listen(static_cast< uv_t* >(uv_handle), _backlog, connection_cb);
-    if (!ret)  uv_status(ret);
-    return ret;
+    auto uv_ret = ::uv_listen(static_cast< uv_t* >(uv_handle), _backlog, connection_cb);
+    if (uv_ret < 0)  uv_status(uv_ret);
+    return uv_ret;
   }
   /*! \brief Accept incoming connections.
       \details The function returns `stream` instance that actually is an object of one of the stream subtype:
@@ -190,7 +190,7 @@ public: /*constructors*/
     uv_handle = instance::create();
 
     auto uv_err = ::uv_tcp_init_ex(static_cast< uv::loop::uv_t* >(_loop), static_cast< uv_t* >(uv_handle), _flags);
-    if (uv_status(uv_err) != 0)  return;
+    if (uv_status(uv_err) < 0)  return;
 
     instance::from(uv_handle)->book_loop();
   }
@@ -202,12 +202,12 @@ public: /*constructors*/
     uv_handle = instance::create();
 
     auto uv_err = ::uv_tcp_init(static_cast< uv::loop::uv_t* >(_loop), static_cast< uv_t* >(uv_handle));
-    if (uv_status(uv_err) != 0)  return;
+    if (uv_status(uv_err) < 0)  return;
 
     instance::from(uv_handle)->book_loop();
 
     uv_err = ::uv_tcp_open(static_cast< uv_t* >(uv_handle), _socket);
-    if (uv_status(uv_err) != 0)  return;
+    if (uv_status(uv_err) < 0)  return;
 
     if (_set_blocking)  set_blocking(_set_blocking);
   }
@@ -337,7 +337,7 @@ public: /*constructors*/
     uv_handle = instance::create();
 
     auto uv_err = ::uv_pipe_init(static_cast< uv::loop::uv_t* >(_loop), static_cast< uv_t* >(uv_handle), _ipc);
-    if (uv_status(uv_err) != 0)  return;
+    if (uv_status(uv_err) < 0)  return;
 
     instance::from(uv_handle)->book_loop();
 
@@ -350,12 +350,12 @@ public: /*constructors*/
     uv_handle = instance::create();
 
     auto uv_err = ::uv_pipe_init(static_cast< uv::loop::uv_t* >(_loop), static_cast< uv_t* >(uv_handle), _ipc);
-    if (uv_status(uv_err) != 0)  return;
+    if (uv_status(uv_err) < 0)  return;
 
     instance::from(uv_handle)->book_loop();
 
     uv_err = ::uv_pipe_open(static_cast< uv_t* >(uv_handle), _fd);
-    if (uv_status(uv_err) != 0)  return;
+    if (uv_status(uv_err) < 0)  return;
 
     if (_set_blocking)  set_blocking(_set_blocking);
   }
@@ -374,7 +374,7 @@ public: /*interface*/
 #endif
     std::string name(len, '\0');
     while (
-        uv_status(::uv_pipe_getsockname(static_cast< uv_t* >(uv_handle), const_cast< char* >(name.c_str()), &len)) != 0
+        uv_status(::uv_pipe_getsockname(static_cast< uv_t* >(uv_handle), const_cast< char* >(name.c_str()), &len)) < 0
       and
         uv_status() == UV_ENOBUFS
     )  name.resize(len, '\0');
@@ -390,7 +390,7 @@ public: /*interface*/
 #endif
     std::string name(len, '\0');
     while (
-        uv_status(::uv_pipe_getpeername(static_cast< uv_t* >(uv_handle), const_cast< char* >(name.c_str()), &len)) != 0
+        uv_status(::uv_pipe_getpeername(static_cast< uv_t* >(uv_handle), const_cast< char* >(name.c_str()), &len)) < 0
       and
         uv_status() == UV_ENOBUFS
     )  name.resize(len, '\0');
@@ -477,7 +477,7 @@ public: /*constructors*/
     uv_handle = instance::create();
 
     auto uv_err = ::uv_tty_init(static_cast< uv::loop::uv_t* >(_loop), static_cast< uv_t* >(uv_handle), _fd, _readable);
-    if (uv_status(uv_err) != 0)  return;
+    if (uv_status(uv_err) < 0)  return;
 
     instance::from(uv_handle)->book_loop();
 

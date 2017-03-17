@@ -115,14 +115,15 @@ public: /*interface*/
 
 
     uv_status(0);
-    int ret = ::uv_udp_send(
+    auto uv_ret = ::uv_udp_send(
         static_cast< uv_t* >(uv_req), static_cast< udp::uv_t* >(_udp),
         static_cast< const buffer::uv_t* >(_buf), _buf.count(),
         reinterpret_cast< const ::sockaddr* >(&_sockaddr),
         udp_send_cb
     );
-    if (!ret)  uv_status(ret);
-    return ret;
+    if (uv_ret < 0)  uv_status(uv_ret);
+
+    return uv_ret;
   }
 
   /*! \details The wrapper for a corresponding libuv function.

@@ -246,17 +246,17 @@ public: /*interface*/
       be "blocked" until the second started loop ends and the function returns. */
   int run(::uv_run_mode _mode)
   {
-    int ret = uv_status(::uv_run(uv_loop, _mode));
+    auto uv_ret = uv_status(::uv_run(uv_loop, _mode));
 
     uvcc_debug_do_if(true, {
-        uvcc_debug_log_if(true, "walk on loop [0x%08tX] exiting (uv_error=%i)...", (ptrdiff_t)uv_loop, ret);
+        uvcc_debug_log_if(true, "walk on loop [0x%08tX] exiting (uv_error=%i)...", (ptrdiff_t)uv_loop, uv_ret);
         uv::debug::print_loop_handles(uv_loop);
     });
 
     auto &exit_cb = instance::from(uv_loop)->exit_cb_storage.value();
     if (exit_cb)  exit_cb(loop(uv_loop));
 
-    return ret;
+    return uv_ret;
   }
 
   /*! \brief Stop the event loop.

@@ -214,13 +214,14 @@ public: /*interface*/
     }
 
     uv_status(0);
-    int ret = ::uv_fs_close(
+    auto uv_ret = ::uv_fs_close(
         static_cast< file::uv_t* >(_file)->loop, static_cast< uv_t* >(uv_req),
         _file.fd(),
         close_cb
     );
-    if (!ret)  uv_status(ret);
-    return ret;
+    if (uv_ret < 0)  uv_status(uv_ret);
+
+    return uv_ret;
   }
 
 public: /*conversion operators*/
@@ -356,15 +357,16 @@ public: /*interface*/
     }
 
     uv_status(0);
-    int ret = ::uv_fs_read(
+    auto uv_ret = ::uv_fs_read(
         static_cast< file::uv_t* >(_file)->loop, static_cast< uv_t* >(uv_req),
         _file.fd(),
         static_cast< const buffer::uv_t* >(_buf), _buf.count(),
         _offset,
         read_cb
     );
-    if (!ret)  uv_status(ret);
-    return ret;
+    if (uv_ret < 0)  uv_status(uv_ret);
+
+    return uv_ret;
   }
 
 public: /*conversion operators*/
@@ -463,8 +465,6 @@ public: /*interface*/
       The `_offset` value of < 0 means using of the current file position. */
   int run(file &_file, const buffer &_buf, int64_t _offset)
   {
-    int ret = 0;
-
     if (_offset < 0)
     {
 #ifdef _WIN32
@@ -483,7 +483,7 @@ public: /*interface*/
       properties.uv_handle = static_cast< file::uv_t* >(_file);
       properties.offset = _offset;
 
-      ret = uv_status(::uv_fs_write(
+      auto uv_ret = uv_status(::uv_fs_write(
           static_cast< file::uv_t* >(_file)->loop, static_cast< uv_t* >(uv_req),
           _file.fd(),
           static_cast< const buffer::uv_t* >(_buf), _buf.count(),
@@ -492,7 +492,7 @@ public: /*interface*/
       ));
 
       ::uv_fs_req_cleanup(static_cast< uv_t* >(uv_req));
-      return ret;
+      return uv_ret;
     }
 
 
@@ -515,15 +515,16 @@ public: /*interface*/
     file::instance::from(_file.uv_handle)->properties().write_queue_size += wr_size;
 
     uv_status(0);
-    ret = ::uv_fs_write(
+    auto uv_ret = ::uv_fs_write(
         static_cast< file::uv_t* >(_file)->loop, static_cast< uv_t* >(uv_req),
         _file.fd(),
         static_cast< const buffer::uv_t* >(_buf), _buf.count(),
         _offset,
         write_cb
     );
-    if (!ret)  uv_status(ret);
-    return ret;
+    if (uv_ret < 0)  uv_status(uv_ret);
+
+    return uv_ret;
   }
 
   /*! \brief Try to execute the request _synchronously_ if it can be completed immediately...
@@ -535,7 +536,7 @@ public: /*interface*/
   {
     if (_file.write_queue_size() != 0)  return uv_status(UV_EAGAIN);
 
-    int ret = uv_status(::uv_fs_write(
+    auto uv_ret = uv_status(::uv_fs_write(
         static_cast< file::uv_t* >(_file)->loop, static_cast< uv_t* >(uv_req),
         _file.fd(),
         static_cast< const buffer::uv_t* >(_buf), _buf.count(),
@@ -544,7 +545,7 @@ public: /*interface*/
     ));
 
     ::uv_fs_req_cleanup(static_cast< uv_t* >(uv_req));
-    return ret;
+    return uv_ret;
   }
 
 public: /*conversion operators*/
@@ -642,7 +643,7 @@ public: /*interface*/
       \note If the request callback is empty (has not been set), the request runs _synchronously_. */
   int run(file &_file, bool _flush_all_metadata = false)
   {
-    auto uv_fsync_function = _flush_all_metadata ? ::uv_fs_fsync : uv_fs_fdatasync;
+    auto uv_fs_sync_func_ptr = _flush_all_metadata ? ::uv_fs_fsync : ::uv_fs_fdatasync;
     auto instance_ptr = instance::from(uv_req);
 
     ::uv_fs_req_cleanup(static_cast< uv_t* >(uv_req));  // assuming that *uv_req has initially been nulled
@@ -651,7 +652,7 @@ public: /*interface*/
     {
       instance_ptr->properties().uv_handle = static_cast< file::uv_t* >(_file);
 
-      return uv_status(uv_fsync_function(
+      return uv_status(uv_fs_sync_func_ptr(
           static_cast< file::uv_t* >(_file)->loop, static_cast< uv_t* >(uv_req),
           _file.fd(),
           nullptr
@@ -669,13 +670,14 @@ public: /*interface*/
     }
 
     uv_status(0);
-    int ret = uv_fsync_function(
+    auto uv_ret = uv_fs_sync_func_ptr(
         static_cast< file::uv_t* >(_file)->loop, static_cast< uv_t* >(uv_req),
         _file.fd(),
         sync_cb
     );
-    if (!ret)  uv_status(ret);
-    return ret;
+    if (uv_ret < 0)  uv_status(uv_ret);
+
+    return uv_ret;
   }
 
 public: /*conversion operators*/
@@ -806,14 +808,15 @@ public: /*interface*/
     }
 
     uv_status(0);
-    int ret = ::uv_fs_ftruncate(
+    auto uv_ret = ::uv_fs_ftruncate(
         static_cast< file::uv_t* >(_file)->loop, static_cast< uv_t* >(uv_req),
         _file.fd(),
         _offset,
         truncate_cb
     );
-    if (!ret)  uv_status(ret);
-    return ret;
+    if (uv_ret < 0)  uv_status(uv_ret);
+
+    return uv_ret;
   }
 
 public: /*conversion operators*/
@@ -971,14 +974,15 @@ public: /*interface*/
     if (_out.type() == UV_FILE)  file::instance::from(_out.uv_handle)->properties().write_queue_size += _length;
 
     uv_status(0);
-    int ret = ::uv_fs_sendfile(
+    int uv_ret = ::uv_fs_sendfile(
         static_cast< file::uv_t* >(_in)->loop, static_cast< uv_t* >(uv_req),
         out, _in.fd(),
         _offset, _length,
         sendfile_cb
     );
-    if (!ret)  uv_status(ret);
-    return ret;
+    if (uv_ret < 0)  uv_status(uv_ret);
+
+    return uv_ret;
   }
 
 public: /*conversion operators*/
@@ -1088,7 +1092,7 @@ public: /*interface*/
       \note If the request callback is empty (has not been set), the request runs _synchronously_. */
   int run(uv::loop &_loop, const char* _path, bool _follow_symlinks = false)
   {
-    auto uv_stat_function = _follow_symlinks ? ::uv_fs_stat : uv_fs_lstat;
+    auto uv_fs_stat_func_ptr = _follow_symlinks ? ::uv_fs_stat : ::uv_fs_lstat;
     auto instance_ptr = instance::from(uv_req);
 
     ::uv_fs_req_cleanup(static_cast< uv_t* >(uv_req));  // assuming that *uv_req has initially been nulled
@@ -1097,7 +1101,7 @@ public: /*interface*/
 
     if (!instance_ptr->request_cb_storage.value())
     {
-      return uv_status(uv_stat_function(
+      return uv_status(uv_fs_stat_func_ptr(
           static_cast< uv::loop::uv_t* >(_loop), static_cast< uv_t* >(uv_req),
           _path,
           nullptr
@@ -1108,13 +1112,14 @@ public: /*interface*/
     instance_ptr->ref();
 
     uv_status(0);
-    int ret = uv_stat_function(
+    auto uv_ret = uv_fs_stat_func_ptr(
         static_cast< uv::loop::uv_t* >(_loop), static_cast< uv_t* >(uv_req),
         _path,
         stat_cb
     );
-    if (!ret)  uv_status(ret);
-    return ret;
+    if (uv_ret < 0)  uv_status(uv_ret);
+
+    return uv_ret;
   }
 
   /*! \brief Run the request. Get status information about the open `_file`.
@@ -1149,13 +1154,14 @@ public: /*interface*/
     }
 
     uv_status(0);
-    int ret = ::uv_fs_fstat(
+    auto uv_ret = ::uv_fs_fstat(
         static_cast< file::uv_t* >(_file)->loop, static_cast< uv_t* >(uv_req),
         _file.fd(),
         stat_cb
     );
-    if (!ret)  uv_status(ret);
-    return ret;
+    if (uv_ret < 0)  uv_status(uv_ret);
+
+    return uv_ret;
   }
 
 public: /*conversion operators*/
@@ -1278,13 +1284,14 @@ public: /*interface*/
     instance_ptr->ref();
 
     uv_status(0);
-    int ret = ::uv_fs_chmod(
+    auto uv_ret = ::uv_fs_chmod(
         static_cast< uv::loop::uv_t* >(_loop), static_cast< uv_t* >(uv_req),
         _path, _mode,
         chmod_cb
     );
-    if (!ret)  uv_status(ret);
-    return ret;
+    if (uv_ret < 0)  uv_status(uv_ret);
+
+    return uv_ret;
   }
 
   /*! \brief Run the request. Change permissions of the open `_file`.
@@ -1319,13 +1326,14 @@ public: /*interface*/
     }
 
     uv_status(0);
-    int ret = ::uv_fs_fchmod(
+    auto uv_ret = ::uv_fs_fchmod(
         static_cast< file::uv_t* >(_file)->loop, static_cast< uv_t* >(uv_req),
         _file.fd(), _mode,
         chmod_cb
     );
-    if (!ret)  uv_status(ret);
-    return ret;
+    if (uv_ret < 0)  uv_status(uv_ret);
+
+    return uv_ret;
   }
 
 public: /*conversion operators*/
@@ -1447,13 +1455,14 @@ public: /*interface*/
     instance_ptr->ref();
 
     uv_status(0);
-    int ret = ::uv_fs_chown(
+    auto uv_ret = ::uv_fs_chown(
         static_cast< uv::loop::uv_t* >(_loop), static_cast< uv_t* >(uv_req),
         _path, _uid, _gid,
         chown_cb
     );
-    if (!ret)  uv_status(ret);
-    return ret;
+    if (uv_ret < 0)  uv_status(uv_ret);
+
+    return uv_ret;
   }
 
   /*! \brief Run the request. Change the owner and group of the open `_file`.
@@ -1488,13 +1497,14 @@ public: /*interface*/
     }
 
     uv_status(0);
-    int ret = ::uv_fs_fchown(
+    auto uv_ret = ::uv_fs_fchown(
         static_cast< file::uv_t* >(_file)->loop, static_cast< uv_t* >(uv_req),
         _file.fd(), _uid, _gid,
         chown_cb
     );
-    if (!ret)  uv_status(ret);
-    return ret;
+    if (uv_ret < 0)  uv_status(uv_ret);
+
+    return uv_ret;
   }
 
 public: /*conversion operators*/
@@ -1617,13 +1627,14 @@ public: /*interface*/
     instance_ptr->ref();
 
     uv_status(0);
-    int ret = ::uv_fs_utime(
+    auto uv_ret = ::uv_fs_utime(
         static_cast< uv::loop::uv_t* >(_loop), static_cast< uv_t* >(uv_req),
         _path, _atime, _mtime,
         utime_cb
     );
-    if (!ret)  uv_status(ret);
-    return ret;
+    if (uv_ret < 0)  uv_status(uv_ret);
+
+    return uv_ret;
   }
 
   /*! \brief Run the request. Change last access and modification times for the open `_file`.
@@ -1658,13 +1669,14 @@ public: /*interface*/
     }
 
     uv_status(0);
-    int ret = ::uv_fs_futime(
+    auto uv_ret = ::uv_fs_futime(
         static_cast< file::uv_t* >(_file)->loop, static_cast< uv_t* >(uv_req),
         _file.fd(), _atime, _mtime,
         utime_cb
     );
-    if (!ret)  uv_status(ret);
-    return ret;
+    if (uv_ret < 0)  uv_status(uv_ret);
+
+    return uv_ret;
   }
 
 public: /*conversion operators*/
@@ -1768,13 +1780,14 @@ public: /*interface*/
     instance_ptr->ref();
 
     uv_status(0);
-    int ret = ::uv_fs_unlink(
+    auto uv_ret = ::uv_fs_unlink(
         static_cast< uv::loop::uv_t* >(_loop), static_cast< uv_t* >(uv_req),
         _path,
         unlink_cb
     );
-    if (!ret)  uv_status(ret);
-    return ret;
+    if (uv_ret < 0)  uv_status(uv_ret);
+
+    return uv_ret;
   }
 
 public: /*conversion operators*/
@@ -1865,13 +1878,14 @@ public: /*interface*/
     instance_ptr->ref();
 
     uv_status(0);
-    int ret = ::uv_fs_mkdir(
+    auto uv_ret = ::uv_fs_mkdir(
         static_cast< uv::loop::uv_t* >(_loop), static_cast< uv_t* >(uv_req),
         _path, _mode,
         mkdir_cb
     );
-    if (!ret)  uv_status(ret);
-    return ret;
+    if (uv_ret < 0)  uv_status(uv_ret);
+
+    return uv_ret;
   }
 
 public: /*conversion operators*/
@@ -1962,13 +1976,14 @@ public: /*interface*/
     instance_ptr->ref();
 
     uv_status(0);
-    int ret = ::uv_fs_mkdtemp(
+    auto uv_ret = ::uv_fs_mkdtemp(
         static_cast< uv::loop::uv_t* >(_loop), static_cast< uv_t* >(uv_req),
         _template,
         mkdtemp_cb
     );
-    if (!ret)  uv_status(ret);
-    return ret;
+    if (uv_ret < 0)  uv_status(uv_ret);
+
+    return uv_ret;
   }
 
 public: /*conversion operators*/
@@ -2059,13 +2074,14 @@ public: /*interface*/
     instance_ptr->ref();
 
     uv_status(0);
-    int ret = ::uv_fs_rmdir(
+    auto uv_ret = ::uv_fs_rmdir(
         static_cast< uv::loop::uv_t* >(_loop), static_cast< uv_t* >(uv_req),
         _path,
         rmdir_cb
     );
-    if (!ret)  uv_status(ret);
-    return ret;
+    if (uv_ret < 0)  uv_status(uv_ret);
+
+    return uv_ret;
   }
 
 public: /*conversion operators*/
@@ -2166,13 +2182,14 @@ public: /*interface*/
     instance_ptr->ref();
 
     uv_status(0);
-    int ret = ::uv_fs_scandir(
+    auto uv_ret = ::uv_fs_scandir(
         static_cast< uv::loop::uv_t* >(_loop), static_cast< uv_t* >(uv_req),
         _path, 0,
         scandir_cb
     );
-    if (!ret)  uv_status(ret);
-    return ret;
+    if (uv_ret < 0)  uv_status(uv_ret);
+
+    return uv_ret;
   }
 
 public: /*conversion operators*/
@@ -2286,13 +2303,14 @@ public: /*interface*/
     instance_ptr->ref();
 
     uv_status(0);
-    int ret = ::uv_fs_rename(
+    auto uv_ret = ::uv_fs_rename(
         static_cast< uv::loop::uv_t* >(_loop), static_cast< uv_t* >(uv_req),
         _path, _new_path,
         rename_cb
     );
-    if (!ret)  uv_status(ret);
-    return ret;
+    if (uv_ret < 0)  uv_status(uv_ret);
+
+    return uv_ret;
   }
 
 public: /*conversion operators*/
@@ -2383,13 +2401,14 @@ public: /*interface*/
     instance_ptr->ref();
 
     uv_status(0);
-    int ret = ::uv_fs_access(
+    auto uv_ret = ::uv_fs_access(
         static_cast< uv::loop::uv_t* >(_loop), static_cast< uv_t* >(uv_req),
         _path, _mode,
         access_cb
     );
-    if (!ret)  uv_status(ret);
-    return ret;
+    if (uv_ret < 0)  uv_status(uv_ret);
+
+    return uv_ret;
   }
 
 public: /*conversion operators*/
@@ -2478,8 +2497,8 @@ public: /*interface*/
 
   /*! \brief Run the request. Make a new name for a target specified by `_path`.
       \details
-      \arg If `(_symbolic_link == false)`, create a new hard link to an existing `_path`.
-      \arg If `(_symbolic_link == true)`, create a symbolic link which contains the string from `_path`
+      \arg If `(_symlink == false)`, create a new hard link to an existing `_path`.
+      \arg If `(_symlink == true)`, create a symbolic link which contains the string from `_path`
       as a link target.
 
       On _Windows_ the `_symlink_flags` parameter can be specified to control how the _link to a directory_
@@ -2492,7 +2511,7 @@ public: /*interface*/
       \sa Linux: [`link()`](http://man7.org/linux/man-pages/man2/link.2.html),
                  [`symlink()`](http://man7.org/linux/man-pages/man2/symlink.2.html).
       \note If the request callback is empty (has not been set), the request runs _synchronously_. */
-  int run(uv::loop &_loop, const char* _path, const char* _link_path, bool _symbolic_link, int _symlink_flags = 0)
+  int run(uv::loop &_loop, const char* _path, const char* _link_path, bool _symlink, int _symlink_flags = 0)
   {
     auto instance_ptr = instance::from(uv_req);
 
@@ -2504,7 +2523,7 @@ public: /*interface*/
 
     if (!instance_ptr->request_cb_storage.value())
     {
-      if (_symbolic_link)  return uv_status(::uv_fs_symlink(
+      if (_symlink)  return uv_status(::uv_fs_symlink(
           static_cast< uv::loop::uv_t* >(_loop), static_cast< uv_t* >(uv_req),
           _path, _link_path, _symlink_flags,
           nullptr
@@ -2520,19 +2539,20 @@ public: /*interface*/
     instance_ptr->ref();
 
     uv_status(0);
-    int ret = _symbolic_link
-      ? ::uv_fs_symlink(
-            static_cast< uv::loop::uv_t* >(_loop), static_cast< uv_t* >(uv_req),
-            _path, _link_path, _symlink_flags,
-            link_cb
-        )
-      : ::uv_fs_link(
-            static_cast< uv::loop::uv_t* >(_loop), static_cast< uv_t* >(uv_req),
-            _path, _link_path,
-            link_cb
-        );
-    if (!ret)  uv_status(ret);
-    return ret;
+    int uv_ret = 0;
+    if (_symlink)  uv_ret = ::uv_fs_symlink(
+        static_cast< uv::loop::uv_t* >(_loop), static_cast< uv_t* >(uv_req),
+        _path, _link_path, _symlink_flags,
+        link_cb
+    );
+    else  uv_ret = ::uv_fs_link(
+        static_cast< uv::loop::uv_t* >(_loop), static_cast< uv_t* >(uv_req),
+        _path, _link_path,
+        link_cb
+    );
+    if (uv_ret < 0)  uv_status(uv_ret);
+
+    return uv_ret;
   }
 
 public: /*conversion operators*/
@@ -2626,13 +2646,14 @@ public: /*interface*/
     instance_ptr->ref();
 
     uv_status(0);
-    int ret = ::uv_fs_readlink(
+    auto uv_ret = ::uv_fs_readlink(
         static_cast< uv::loop::uv_t* >(_loop), static_cast< uv_t* >(uv_req),
         _path,
         readlink_cb
     );
-    if (!ret)  uv_status(ret);
-    return ret;
+    if (uv_ret < 0)  uv_status(uv_ret);
+
+    return uv_ret;
   }
 
 public: /*conversion operators*/
@@ -2726,13 +2747,14 @@ public: /*interface*/
     instance_ptr->ref();
 
     uv_status(0);
-    int ret = ::uv_fs_realpath(
+    auto uv_ret = ::uv_fs_realpath(
         static_cast< uv::loop::uv_t* >(_loop), static_cast< uv_t* >(uv_req),
         _path,
         realpath_cb
     );
-    if (!ret)  uv_status(ret);
-    return ret;
+    if (uv_ret < 0)  uv_status(uv_ret);
+
+    return uv_ret;
   }
 
 public: /*conversion operators*/
