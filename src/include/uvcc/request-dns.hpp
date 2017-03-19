@@ -71,22 +71,36 @@ private: /*functions*/
 
   int run_(uv::loop &_loop, const char *_hostname, const char *_service, const ::addrinfo *_hints)
   {
-    auto instance_ptr = instance::from(uv_req);
-
-    auto &request_cb = instance_ptr->request_cb_storage.value();
-    if (request_cb)  instance_ptr->ref();
-
     ::uv_freeaddrinfo(static_cast< uv_t* >(uv_req)->addrinfo);  // assuming that *uv_req or this particular field has initially been nulled
 
-    uv_status(0);
-    auto uv_ret = ::uv_getaddrinfo(
-        static_cast< uv::loop::uv_t* >(_loop), static_cast< uv_t* >(uv_req),
-        request_cb ? static_cast< ::uv_getaddrinfo_cb >(getaddrinfo_cb) : nullptr,
-        _hostname, _service, _hints
-    );
-    if (uv_ret < 0)  uv_status(uv_ret);
+    auto instance_ptr = instance::from(uv_req);
 
-    return uv_ret;
+    if (!instance_ptr->request_cb_storage.value())
+    {
+      return uv_status(::uv_getaddrinfo(
+          static_cast< uv::loop::uv_t* >(_loop), static_cast< uv_t* >(uv_req),
+          nullptr,
+          _hostname, _service, _hints
+      ));
+    }
+    else
+    {
+      instance_ptr->ref();
+
+      uv_status(0);
+      auto uv_ret = ::uv_getaddrinfo(
+          static_cast< uv::loop::uv_t* >(_loop), static_cast< uv_t* >(uv_req),
+          getaddrinfo_cb,
+          _hostname, _service, _hints
+      );
+      if (uv_ret < 0)
+      {
+        uv_status(uv_ret);
+        instance_ptr->unref();
+      }
+
+      return uv_ret;
+    }
   }
 
 public: /*interface*/
@@ -207,18 +221,32 @@ public: /*interface*/
   {
     auto instance_ptr = instance::from(uv_req);
 
-    auto &request_cb = instance_ptr->request_cb_storage.value();
-    if (request_cb)  instance_ptr->ref();
+    if (!instance_ptr->request_cb_storage.value())
+    {
+      return uv_status(::uv_getnameinfo(
+          static_cast< uv::loop::uv_t* >(_loop), static_cast< uv_t* >(uv_req),
+          nullptr,
+          reinterpret_cast< const ::sockaddr* >(&_sa), _NI_FLAGS
+      ));
+    }
+    else
+    {
+      instance_ptr->ref();
 
-    uv_status(0);
-    auto uv_ret = ::uv_getnameinfo(
-        static_cast< uv::loop::uv_t* >(_loop), static_cast< uv_t* >(uv_req),
-        request_cb ? static_cast< ::uv_getnameinfo_cb >(getnameinfo_cb) : nullptr,
-        reinterpret_cast< const ::sockaddr* >(&_sa), _NI_FLAGS
-    );
-    if (uv_ret < 0)  uv_status(uv_ret);
+      uv_status(0);
+      auto uv_ret = ::uv_getnameinfo(
+          static_cast< uv::loop::uv_t* >(_loop), static_cast< uv_t* >(uv_req),
+          getnameinfo_cb,
+          reinterpret_cast< const ::sockaddr* >(&_sa), _NI_FLAGS
+      );
+      if (uv_ret < 0)
+      {
+        uv_status(uv_ret);
+        instance_ptr->unref();
+      }
 
-    return uv_ret;
+      return uv_ret;
+    }
   }
 
 public: /*conversion operators*/
