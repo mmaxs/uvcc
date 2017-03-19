@@ -111,7 +111,7 @@ protected: /*functions*/
     auto &alloc_cb = properties.alloc_cb;
     buffer &&b = alloc_cb(io(_uv_handle), properties.rdsize ? properties.rdsize : _suggested_size);
 
-    buffer::instance::from(b.uv_buf)->ref();  // add the reference for the future moving the buffer instance into io_read_cb() parameter
+    buffer::instance::from(b.uv_buf)->ref();  // add the reference for further moving the buffer instance into io_read_cb() parameter
     *_uv_buf = b[0];
   }
 
@@ -195,15 +195,15 @@ public: /*interface*/
     if (!_alloc_cb and !properties.alloc_cb)  return uv_status(UV_EINVAL);
     if (!_read_cb and !properties.read_cb)  return uv_status(UV_EINVAL);
 
-    auto rdcmd_state = properties.rdcmd_state;
+    auto rdcmd_state0 = properties.rdcmd_state;
     properties.rdcmd_state = rdcmd::START;
 
-    switch (rdcmd_state)
+    switch (rdcmd_state0)
     {
     case rdcmd::UNKNOWN:
     case rdcmd::STOP:
     case rdcmd::PAUSE:
-        instance_ptr->ref();  // make sure it will exist for the future _read_cb() calls until read_stop()/read_pause()
+        instance_ptr->ref();  // REF:START - make sure it will exist for the future io_read_cb() calls until read_stop()/read_pause()
         break;
     case rdcmd::START:
     case rdcmd::RESUME:
@@ -240,15 +240,15 @@ public: /*interface*/
 
     if (!properties.alloc_cb or !properties.read_cb)  return uv_status(UV_EINVAL);
 
-    auto rdcmd_state = properties.rdcmd_state;
+    auto rdcmd_state0 = properties.rdcmd_state;
     properties.rdcmd_state = rdcmd::START;
 
-    switch (rdcmd_state)
+    switch (rdcmd_state0)
     {
     case rdcmd::UNKNOWN:
     case rdcmd::STOP:
     case rdcmd::PAUSE:
-        instance_ptr->ref();
+        instance_ptr->ref();  // REF:START
         break;
     case rdcmd::START:
     case rdcmd::RESUME:
@@ -280,12 +280,12 @@ public: /*interface*/
 
     std::lock_guard< decltype(properties.rdstate_switch) > lk(properties.rdstate_switch);
 
-    auto rdcmd_state = properties.rdcmd_state;
+    auto rdcmd_state0 = properties.rdcmd_state;
     properties.rdcmd_state = rdcmd::STOP;
 
     auto uv_ret = uv_status(instance_ptr->uv_interface()->read_stop(uv_handle));
 
-    switch (rdcmd_state)
+    switch (rdcmd_state0)
     {
     case rdcmd::UNKNOWN:
     case rdcmd::STOP:
@@ -293,7 +293,7 @@ public: /*interface*/
         break;
     case rdcmd::START:
     case rdcmd::RESUME:
-        instance_ptr->unref();  // release the reference from read_start()/read_resume()
+        instance_ptr->unref();  // UNREF:STOP - release the reference from read_start()/read_resume()
         break;
     }
 
@@ -328,7 +328,7 @@ public: /*interface*/
     case rdcmd::RESUME:
         properties.rdcmd_state = rdcmd::PAUSE;
         ret = uv_status(instance_ptr->uv_interface()->read_stop(uv_handle));
-        instance_ptr->unref();
+        instance_ptr->unref();  // UNREF:PAUSE
         break;
     }
     return ret;
@@ -381,7 +381,7 @@ public: /*interface*/
     case rdcmd::PAUSE:
         properties.rdcmd_state = rdcmd::RESUME;
 
-        instance_ptr->ref();
+        instance_ptr->ref();  // REF:RESUME
 
         uv_status(0);
         ret = instance_ptr->uv_interface()->read_start(uv_handle, properties.rdoffset);
