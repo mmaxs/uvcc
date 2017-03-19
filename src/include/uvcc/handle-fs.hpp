@@ -126,13 +126,13 @@ public: /*constructors*/
   file(uv::loop &_loop, const char *_path, int _flags, int _mode)
   {
     uv_handle = instance::create();
-    instance::from(uv_handle)->book_loop();
 
-    uv_status(::uv_fs_open(
+    auto uv_ret = uv_status(::uv_fs_open(
         static_cast< uv::loop::uv_t* >(_loop), static_cast< uv_t* >(uv_handle),
         _path, _flags, _mode,
         nullptr
     ));
+    if (uv_ret >= 0)  instance::from(uv_handle)->book_loop();
   }
   /*! \brief Open and possibly create a file _asynchronously_.
       \note If the `_open_cb` callback is empty the operation is completed _synchronously_. */
@@ -145,10 +145,11 @@ public: /*constructors*/
     }
 
     uv_handle = instance::create();
-    instance::from(uv_handle)->properties().open_cb = _open_cb;
-    instance::from(uv_handle)->book_loop();
 
-    instance::from(uv_handle)->ref();
+    auto instance_ptr = instance::from(uv_handle);
+    instance_ptr->ref();
+
+    instance_ptr->properties().open_cb = _open_cb;
 
     uv_status(0);
     auto uv_ret = ::uv_fs_open(
@@ -156,7 +157,13 @@ public: /*constructors*/
         _path, _flags, _mode,
         open_cb
     );
-    if (uv_ret < 0)  uv_status(uv_ret);
+    if (uv_ret >= 0)
+      instance_ptr->book_loop();
+    else
+    {
+      uv_status(uv_ret);
+      instance_ptr->unref();
+    }
   }
   /*! \brief Create a file object from an existing file descriptor. */
   file(uv::loop &_loop, ::uv_file _fd) : file(static_cast< uv::loop::uv_t* >(_loop), _fd, nullptr)  {}
