@@ -186,11 +186,11 @@ public: /*interface*/
       \note If the request callback is empty (has not been set), the request runs _synchronously_. */
   int run(file &_file)
   {
+    ::uv_fs_req_cleanup(static_cast< uv_t* >(uv_req));  // assuming that *uv_req has initially been nulled
+
     file::instance::from(_file.uv_handle)->properties().is_closing = true;
 
     auto instance_ptr = instance::from(uv_req);
-
-    ::uv_fs_req_cleanup(static_cast< uv_t* >(uv_req));  // assuming that *uv_req has initially been nulled
 
     if (!instance_ptr->request_cb_storage.value())
     {
@@ -202,26 +202,32 @@ public: /*interface*/
           nullptr
       ));
     }
-
-
-    file::instance::from(_file.uv_handle)->ref();
-    instance_ptr->ref();
-
-    // instance_ptr->properties() = { static_cast< file::uv_t* >(_file) };
+    else
     {
-      auto &properties = instance_ptr->properties();
-      properties.uv_handle = static_cast< file::uv_t* >(_file);
+      file::instance::from(_file.uv_handle)->ref();
+      instance_ptr->ref();
+
+      // instance_ptr->properties() = { static_cast< file::uv_t* >(_file) };
+      {
+        auto &properties = instance_ptr->properties();
+        properties.uv_handle = static_cast< file::uv_t* >(_file);
+      }
+
+      uv_status(0);
+      auto uv_ret = ::uv_fs_close(
+          static_cast< file::uv_t* >(_file)->loop, static_cast< uv_t* >(uv_req),
+          _file.fd(),
+          close_cb
+      );
+      if (uv_ret < 0)
+      {
+        uv_status(uv_ret);
+        file::instance::from(_file.uv_handle)->unref();
+        instance_ptr->unref();
+      }
+
+      return uv_ret;
     }
-
-    uv_status(0);
-    auto uv_ret = ::uv_fs_close(
-        static_cast< file::uv_t* >(_file)->loop, static_cast< uv_t* >(uv_req),
-        _file.fd(),
-        close_cb
-    );
-    if (uv_ret < 0)  uv_status(uv_ret);
-
-    return uv_ret;
   }
 
 public: /*conversion operators*/
@@ -314,6 +320,8 @@ public: /*interface*/
       The `_offset` value of < 0 means using of the current file position. */
   int run(file &_file, buffer &_buf, int64_t _offset)
   {
+    ::uv_fs_req_cleanup(static_cast< uv_t* >(uv_req));  // assuming that *uv_req has initially been nulled
+
     if (_offset < 0)
     {
 #ifdef _WIN32
@@ -325,8 +333,6 @@ public: /*interface*/
     }
 
     auto instance_ptr = instance::from(uv_req);
-
-    ::uv_fs_req_cleanup(static_cast< uv_t* >(uv_req));  // assuming that *uv_req has initially been nulled
 
     if (!instance_ptr->request_cb_storage.value())
     {
@@ -342,31 +348,38 @@ public: /*interface*/
           nullptr
       ));
     }
-
-
-    file::instance::from(_file.uv_handle)->ref();
-    buffer::instance::from(_buf.uv_buf)->ref();
-    instance_ptr->ref();
-
-    // instance_ptr->properties() = { static_cast< file::uv_t* >(_file), _buf.uv_buf, _offset };
+    else
     {
-      auto &properties = instance_ptr->properties();
-      properties.uv_handle = static_cast< file::uv_t* >(_file);
-      properties.uv_buf = _buf.uv_buf;
-      properties.offset = _offset;
+      file::instance::from(_file.uv_handle)->ref();
+      buffer::instance::from(_buf.uv_buf)->ref();
+      instance_ptr->ref();
+
+      // instance_ptr->properties() = { static_cast< file::uv_t* >(_file), _buf.uv_buf, _offset };
+      {
+        auto &properties = instance_ptr->properties();
+        properties.uv_handle = static_cast< file::uv_t* >(_file);
+        properties.uv_buf = _buf.uv_buf;
+        properties.offset = _offset;
+      }
+
+      uv_status(0);
+      auto uv_ret = ::uv_fs_read(
+          static_cast< file::uv_t* >(_file)->loop, static_cast< uv_t* >(uv_req),
+          _file.fd(),
+          static_cast< const buffer::uv_t* >(_buf), _buf.count(),
+          _offset,
+          read_cb
+      );
+      if (uv_ret < 0)
+      {
+        uv_status(uv_ret);
+        file::instance::from(_file.uv_handle)->unref();
+        buffer::instance::from(_buf.uv_buf)->unref();
+        instance_ptr->unref();
+      }
+
+      return uv_ret;
     }
-
-    uv_status(0);
-    auto uv_ret = ::uv_fs_read(
-        static_cast< file::uv_t* >(_file)->loop, static_cast< uv_t* >(uv_req),
-        _file.fd(),
-        static_cast< const buffer::uv_t* >(_buf), _buf.count(),
-        _offset,
-        read_cb
-    );
-    if (uv_ret < 0)  uv_status(uv_ret);
-
-    return uv_ret;
   }
 
 public: /*conversion operators*/
@@ -408,7 +421,7 @@ public: /*types*/
 
 protected: /*types*/
   //! \cond
-  struct properties  // since `fs::write` can be static-casted from an `output` request it appears to be an exception from the common scheme
+  struct properties  //! since `fs::write` can be static-casted from an `output` request it appears to be an exception from the common scheme
   {
     file::uv_t *uv_handle = nullptr;
     buffer::uv_t *uv_buf = nullptr;
