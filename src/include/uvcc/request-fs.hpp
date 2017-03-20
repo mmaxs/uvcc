@@ -421,7 +421,7 @@ public: /*types*/
 
 protected: /*types*/
   //! \cond
-  struct properties  //! since `fs::write` can be static-casted from an `output` request it appears to be an exception from the common scheme
+  struct properties : public fs::properties
   {
     file::uv_t *uv_handle = nullptr;
     buffer::uv_t *uv_buf = nullptr;
@@ -445,8 +445,7 @@ public: /*constructors*/
   write()
   {
     uv_req = instance::create();
-    static_cast< uv_t* >(uv_req)->type = UV_FS;
-    static_cast< uv_t* >(uv_req)->fs_type = UV_FS_WRITE;
+    init< UV_FS_WRITE >();
   }
 
   write(const write&) = default;
@@ -478,6 +477,8 @@ public: /*interface*/
       The `_offset` value of < 0 means using of the current file position. */
   int run(file &_file, const buffer &_buf, int64_t _offset)
   {
+    ::uv_fs_req_cleanup(static_cast< uv_t* >(uv_req));  // assuming that *uv_req has initially been nulled
+
     if (_offset < 0)
     {
 #ifdef _WIN32
@@ -496,48 +497,55 @@ public: /*interface*/
       properties.uv_handle = static_cast< file::uv_t* >(_file);
       properties.offset = _offset;
 
-      auto uv_ret = uv_status(::uv_fs_write(
+      return uv_status(::uv_fs_write(
           static_cast< file::uv_t* >(_file)->loop, static_cast< uv_t* >(uv_req),
           _file.fd(),
           static_cast< const buffer::uv_t* >(_buf), _buf.count(),
           _offset,
           nullptr
       ));
+    }
+    else
+    {
+      file::instance::from(_file.uv_handle)->ref();
+      buffer::instance::from(_buf.uv_buf)->ref();
+      instance_ptr->ref();
 
-      ::uv_fs_req_cleanup(static_cast< uv_t* >(uv_req));
+      std::size_t wr_size = 0;
+      for (std::size_t i = 0, buf_count = _buf.count(); i < buf_count; ++i)  wr_size += _buf.len(i);
+
+      // instance_ptr->properties() = { static_cast< file::uv_t* >(_file), _buf.uv_buf, _offset, wr_size };
+      {
+        auto &properties = instance_ptr->properties();
+        properties.uv_handle = static_cast< file::uv_t* >(_file);
+        properties.uv_buf = _buf.uv_buf;
+        properties.offset = _offset;
+        properties.pending_size = wr_size;
+      }
+
+      file::instance::from(_file.uv_handle)->properties().write_queue_size += wr_size;
+
+      uv_status(0);
+      auto uv_ret = ::uv_fs_write(
+          static_cast< file::uv_t* >(_file)->loop, static_cast< uv_t* >(uv_req),
+          _file.fd(),
+          static_cast< const buffer::uv_t* >(_buf), _buf.count(),
+          _offset,
+          write_cb
+      );
+      if (uv_ret < 0)
+      {
+        uv_status(uv_ret);
+
+        file::instance::from(_file.uv_handle)->properties().write_queue_size -= wr_size;
+
+        file::instance::from(_file.uv_handle)->unref();
+        buffer::instance::from(_buf.uv_buf)->unref();
+        instance_ptr->unref();
+      }
+
       return uv_ret;
     }
-
-
-    file::instance::from(_file.uv_handle)->ref();
-    buffer::instance::from(_buf.uv_buf)->ref();
-    instance_ptr->ref();
-
-    std::size_t wr_size = 0;
-    for (std::size_t i = 0, buf_count = _buf.count(); i < buf_count; ++i)  wr_size += _buf.len(i);
-
-    // instance_ptr->properties() = { static_cast< file::uv_t* >(_file), _buf.uv_buf, _offset, wr_size };
-    {
-      auto &properties = instance_ptr->properties();
-      properties.uv_handle = static_cast< file::uv_t* >(_file);
-      properties.uv_buf = _buf.uv_buf;
-      properties.offset = _offset;
-      properties.pending_size = wr_size;
-    }
-
-    file::instance::from(_file.uv_handle)->properties().write_queue_size += wr_size;
-
-    uv_status(0);
-    auto uv_ret = ::uv_fs_write(
-        static_cast< file::uv_t* >(_file)->loop, static_cast< uv_t* >(uv_req),
-        _file.fd(),
-        static_cast< const buffer::uv_t* >(_buf), _buf.count(),
-        _offset,
-        write_cb
-    );
-    if (uv_ret < 0)  uv_status(uv_ret);
-
-    return uv_ret;
   }
 
   /*! \brief Try to execute the request _synchronously_ if it can be completed immediately...
@@ -547,7 +555,19 @@ public: /*interface*/
       the data can’t be written immediately. */
   int try_write(file &_file, const buffer &_buf, int64_t _offset)
   {
+    ::uv_fs_req_cleanup(static_cast< uv_t* >(uv_req));  // assuming that *uv_req has initially been nulled
+
     if (_file.write_queue_size() != 0)  return uv_status(UV_EAGAIN);
+
+    if (_offset < 0)
+    {
+#ifdef _WIN32
+      /*! \sa Windows: [`_tell()`, `_telli64()`](https://msdn.microsoft.com/en-us/library/c3kc5e7a.aspx). */
+      _offset = _telli64(_file.fd());
+#else
+      _offset = lseek64(_file.fd(), 0, SEEK_CUR);
+#endif
+    }
 
     auto uv_ret = uv_status(::uv_fs_write(
         static_cast< file::uv_t* >(_file)->loop, static_cast< uv_t* >(uv_req),
@@ -557,7 +577,6 @@ public: /*interface*/
         nullptr
     ));
 
-    ::uv_fs_req_cleanup(static_cast< uv_t* >(uv_req));
     return uv_ret;
   }
 
@@ -586,8 +605,6 @@ void fs::write::write_cb(::uv_fs_t *_uv_req)
     write_cb(write(_uv_req), buffer(properties.uv_buf, adopt_ref));
   else
     buffer::instance::from(properties.uv_buf)->unref();
-
-  ::uv_fs_req_cleanup(_uv_req);
 }
 
 

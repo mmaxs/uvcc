@@ -49,13 +49,39 @@ public: /*types*/
 
 protected: /*types*/
   //! \cond
-  union properties
+  struct properties
   {
-    fs::write::properties file_write_properties;
-    write::properties stream_write_properties;
-    udp_send::properties udp_send_properties;
+    ::uv_req_t *uv_req = nullptr;
+    aligned_union<
+        fs::write::properties,
+        write::properties,
+        udp_send::properties
+    > storage;
 
-    properties()  { std::memset(this, 0, sizeof(*this)); }
+    ~properties()
+    {
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wstrict-aliasing"
+      if (uv_req)  switch (uv_req->type)
+      {
+      case UV_WRITE:
+          reinterpret_cast< write::properties* >(&storage)->~properties();
+          break;
+      case UV_UDP_SEND:
+          reinterpret_cast< udp_send::properties* >(&storage)->~properties();
+          break;
+      case UV_FS:
+          reinterpret_cast< fs::write::properties* >(&storage)->~properties();
+          break;
+      default:
+          break;
+      }
+#pragma GCC diagnostic pop
+    }
+    properties()
+    {
+      std::memset(&storage, 0, sizeof(storage));
+    }
   };
   //! \endcond
 
@@ -75,6 +101,7 @@ public: /*constructors*/
   {
     uv_req = instance::create();
     static_cast< ::uv_req_t* >(uv_req)->type = UV_REQ;
+    instance::from(uv_req)->properties().uv_req = static_cast< ::uv_req_t* >(uv_req);
   }
 
   output(const output&) = default;
@@ -129,8 +156,10 @@ public: /*interface*/
     case UV_NAMED_PIPE:
     case UV_TCP:
     case UV_TTY:
+        static_cast< write::uv_t* >(uv_req)->type = UV_WRITE;
         return reinterpret_cast< write* >(this)->run(static_cast< stream& >(_io), _buf);
     case UV_UDP:
+        static_cast< udp_send::uv_t* >(uv_req)->type = UV_UDP_SEND;
         return _info ?
             reinterpret_cast< udp_send* >(this)->run(
                 static_cast< udp& >(_io), _buf,
@@ -139,6 +168,8 @@ public: /*interface*/
           :
             uv_status(UV_EINVAL);
     case UV_FILE:
+        static_cast< fs::uv_t* >(uv_req)->type = UV_FS;
+        static_cast< fs::uv_t* >(uv_req)->fs_type = UV_FS_WRITE;
         return reinterpret_cast< fs::write* >(this)->run(static_cast< file& >(_io), _buf, _offset);
     default:
         return uv_status(UV_EBADF);
@@ -159,8 +190,10 @@ public: /*interface*/
     case UV_NAMED_PIPE:
     case UV_TCP:
     case UV_TTY:
+        static_cast< write::uv_t* >(uv_req)->type = UV_WRITE;
         return reinterpret_cast< write* >(this)->try_write(static_cast< stream& >(_io), _buf);
     case UV_UDP:
+        static_cast< udp_send::uv_t* >(uv_req)->type = UV_UDP_SEND;
         return _info ?
             reinterpret_cast< udp_send* >(this)->try_send(
                 static_cast< udp& >(_io), _buf,
@@ -169,6 +202,8 @@ public: /*interface*/
           :
             uv_status(UV_EINVAL);
     case UV_FILE:
+        static_cast< fs::uv_t* >(uv_req)->type = UV_FS;
+        static_cast< fs::uv_t* >(uv_req)->fs_type = UV_FS_WRITE;
         return reinterpret_cast< fs::write* >(this)->try_write(static_cast< file& >(_io), _buf, _offset);
     default:
         return uv_status(UV_EBADF);
