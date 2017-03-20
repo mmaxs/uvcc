@@ -250,7 +250,7 @@ public: /*interface*/
 
     uvcc_debug_do_if(true, {
         uvcc_debug_log_if(true, "walk on loop [0x%08tX] exiting (uv_error=%i)...", (ptrdiff_t)uv_loop, uv_ret);
-        uv::debug::print_loop_handles(uv_loop);
+        debug::print_loop_handles(uv_loop);
     });
 
     auto &exit_cb = instance::from(uv_loop)->exit_cb_storage.value();
