@@ -1,9 +1,5 @@
 
 #include "uvcc.hpp"
-#ifdef UVCC_DEBUG
-#include "uvcc/debug.hpp"
-#endif
-
 #include <cstdio>
 
 
@@ -98,8 +94,5 @@ int main(int _argc, char *_argv[])
   }
 //}
 
-  auto ret = uv::loop::Default().run(UV_RUN_DEFAULT);
-
-  uvcc_debug_function_return();
-  return ret;
+  return uv::loop::Default().run(UV_RUN_DEFAULT);
 }

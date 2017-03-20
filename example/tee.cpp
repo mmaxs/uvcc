@@ -1,8 +1,5 @@
 
 #include "uvcc.hpp"
-#ifdef UVCC_DEBUG
-#include "uvcc/debug.hpp"
-#endif
 
 #include <cstdio>
 #include <vector>
@@ -52,11 +49,14 @@ int main(int _argc, char *_argv[])
     PRINT_UV_ERR(in.uv_status(), "stdin open (%s)", in.type_name());
     return in.uv_status();
   }
+  DEBUG_LOG(true, "[debug] stdin: %s handle [0x%08tX]\n", in.type_name(), (ptrdiff_t)static_cast< ::uv_handle_t* >(in));
+
   if (!out)
   {
     PRINT_UV_ERR(out.uv_status(), "stdout open (%s)", out.type_name());
     return out.uv_status();
   }
+  DEBUG_LOG(true, "[debug] stdout: %s handle [0x%08tX]\n", out.type_name(), (ptrdiff_t)static_cast< ::uv_handle_t* >(out));
 
   // open files specified as the program arguments on the command line
   constexpr int mode = 
@@ -99,6 +99,7 @@ int main(int _argc, char *_argv[])
           {
             _io.read_stop();
             PRINT_UV_ERR(io_wr.uv_status(), "stdout write request initiation (%s)", out.type_name());
+            return;
           }
 
           // write to files
@@ -125,10 +126,7 @@ int main(int _argc, char *_argv[])
     return in.uv_status();
   }
 
-  auto ret = uv::loop::Default().run(UV_RUN_DEFAULT);
-
-  uvcc_debug_function_return();
-  return ret;
+  return uv::loop::Default().run(UV_RUN_DEFAULT);
 }
 
 
