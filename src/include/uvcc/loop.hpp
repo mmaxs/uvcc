@@ -89,8 +89,7 @@ private: /*types*/
         if (std::uncaught_exception())  // so, if this is a consequence of an exception, try to not make the bad situation even worse
           return;
 
-        // 2) there are registered callbacks from closed handles
-        //    (that should be nullptrs by the by, if the loop didn't run when the handles was being closed)
+        // 2) there are registered callbacks from closed handles (that should be nullptrs by the way), or some internal libuv requests
         uvcc_debug_log_if(true, "try at loop [0x%08tX] premortal one shot nonblocking run", (ptrdiff_t)&uv_loop_struct);
         uv_error = ::uv_run(&uv_loop_struct, UV_RUN_NOWAIT);  // so, simply try to dispose of them
 

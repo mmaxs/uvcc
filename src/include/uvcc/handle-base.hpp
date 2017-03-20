@@ -343,11 +343,16 @@ struct handle::uv_handle_interface : virtual uv_interface
     auto uv_handle = static_cast< ::uv_handle_t* >(_uv_handle);
     uvcc_debug_function_enter("%s handle [0x%08tX]", debug::handle_type_name(uv_handle), (ptrdiff_t)uv_handle);
 
-    auto loop_alive = ::uv_loop_alive(uv_handle->loop);
-    uvcc_debug_condition(loop_alive, "is loop [0x%08tX] associated with handle [0x%08tX] alive", (ptrdiff_t)uv_handle->loop, (ptrdiff_t)uv_handle);
+    /*auto loop_alive = ::uv_loop_alive(uv_handle->loop);
+    uvcc_debug_condition(loop_alive, "is loop [0x%08tX] (stop_flag=%u) associated with handle [0x%08tX] alive", (ptrdiff_t)uv_handle->loop, uv_handle->loop->stop_flag, (ptrdiff_t)uv_handle);
     if (loop_alive)
+    {
+      uvcc_debug_log_if(true, "handle [0x%08tX]: call close callback asynchronously", (ptrdiff_t)uv_handle);
       ::uv_close(uv_handle, close_cb);
-    else
+    }
+    else*/
+    // the (loop_alive == 1) state or (stop_flag == 0) doesn't mean that loop is running or will be running,
+    // therefore don't let the destroy procedure to rely on the loop at all
     {
       uvcc_debug_log_if(true, "handle [0x%08tX]: call close callback synchronously", (ptrdiff_t)uv_handle);
       ::uv_close(uv_handle, nullptr);
