@@ -85,7 +85,12 @@ public: /*interface*/
         reinterpret_cast< const ::sockaddr* >(&_sockaddr),
         connect_cb
     );
-    if (uv_ret < 0)  uv_status(uv_ret);
+    if (uv_ret < 0)
+    {
+      uv_status(uv_ret);
+      tcp::instance::from(_tcp.uv_handle)->unref();
+      instance::from(uv_req)->unref();
+    }
 
     return uv_ret;
   }
@@ -195,20 +200,25 @@ public: /*interface*/
       properties.uv_buf = _buf.uv_buf;
     }
 
-
     uv_status(0);
     auto uv_ret = ::uv_write(
         static_cast< uv_t* >(uv_req), static_cast< stream::uv_t* >(_stream),
         static_cast< const buffer::uv_t* >(_buf), _buf.count(),
         write_cb
     );
-    if (uv_ret < 0)  uv_status(uv_ret);
+    if (uv_ret < 0)
+    {
+      uv_status(uv_ret);
+      stream::instance::from(_stream.uv_handle)->unref();
+      buffer::instance::from(_buf.uv_buf)->unref();
+      instance_ptr->unref();
+    }
 
     return uv_ret;
   }
   /*! \brief The overload for sending handles over a pipe.
       \sa libuv API documentation: [`uv_write2()`](http://docs.libuv.org/en/v1.x/stream.html#c.uv_write2). */
-  int run(pipe &_pipe, const buffer &_buf, stream _send_handle)
+  int run(pipe &_pipe, const buffer &_buf, stream &_send_handle)
   {
     auto instance_ptr = instance::from(uv_req);
 
@@ -230,7 +240,14 @@ public: /*interface*/
         static_cast< stream::uv_t* >(_send_handle),
         write2_cb
     );
-    if (uv_ret < 0)  uv_status(uv_ret);
+    if (uv_ret < 0)
+    {
+      uv_status(uv_ret);
+      pipe::instance::from(_pipe.uv_handle)->unref();
+      buffer::instance::from(_buf.uv_buf)->unref();
+      stream::instance::from(_send_handle.uv_handle)->unref();
+      instance_ptr->unref();
+    }
 
     return uv_ret;
   }
@@ -331,7 +348,12 @@ public: /*interface*/
 
     uv_status(0);
     auto uv_ret = ::uv_shutdown(static_cast< uv_t* >(uv_req), static_cast< stream::uv_t* >(_stream), shutdown_cb);
-    if (uv_ret)  uv_status(uv_ret);
+    if (uv_ret < 0)
+    {
+      uv_status(uv_ret);
+      stream::instance::from(_stream.uv_handle)->unref();
+      instance::from(uv_req)->unref();
+    }
 
     return uv_ret;
   }
