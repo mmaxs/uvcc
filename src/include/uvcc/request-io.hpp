@@ -51,36 +51,35 @@ protected: /*types*/
   //! \cond
   struct properties
   {
+    union request_properties
+    {
+      fs::write::properties file_write_properties;
+      write::properties stream_write_properties;
+      udp_send::properties udp_send_properties;
+
+      ~request_properties()  {}
+      request_properties()  { std::memset(this, 0, sizeof(*this)); }
+    };
+
+    request_properties property_storage;  // it must be the first field to align with property storage of the actual request type
     ::uv_req_t *uv_req = nullptr;
-    aligned_union<
-        fs::write::properties,
-        write::properties,
-        udp_send::properties
-    > storage;
 
     ~properties()
     {
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wstrict-aliasing"
       if (uv_req)  switch (uv_req->type)
       {
       case UV_WRITE:
-          reinterpret_cast< write::properties* >(&storage)->~properties();
+          property_storage.stream_write_properties.~properties();
           break;
       case UV_UDP_SEND:
-          reinterpret_cast< udp_send::properties* >(&storage)->~properties();
+          property_storage.udp_send_properties.~properties();
           break;
       case UV_FS:
-          reinterpret_cast< fs::write::properties* >(&storage)->~properties();
+          property_storage.file_write_properties.~properties();
           break;
       default:
           break;
       }
-#pragma GCC diagnostic pop
-    }
-    properties()
-    {
-      std::memset(&storage, 0, sizeof(storage));
     }
   };
   //! \endcond
