@@ -92,6 +92,7 @@ private: /*types*/
         // 2) there are registered callbacks from closed handles (that should be nullptrs by the way), or some internal libuv requests
         uvcc_debug_log_if(true, "try at loop [0x%08tX] premortal one shot nonblocking run", (ptrdiff_t)&uv_loop_struct);
         uv_error = ::uv_run(&uv_loop_struct, UV_RUN_NOWAIT);  // so, simply try to dispose of them
+        if (uv_error)  uv_error = ::uv_run(&uv_loop_struct, UV_RUN_NOWAIT);  // sometimes it should be run twice to make libuv happy
 
         if (uv_error)
         {

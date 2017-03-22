@@ -546,8 +546,8 @@ inline stream stream::accept() const
     uv_status(client.uv_status());
   else
   {
-    auto uv_err = ::uv_accept(static_cast< uv_t* >(uv_handle), static_cast< uv_t* >(client));
-    if (uv_status(uv_err) < 0)  client.uv_status(uv_err);
+    auto uv_ret = ::uv_accept(static_cast< uv_t* >(uv_handle), static_cast< uv_t* >(client));
+    if (uv_status(uv_ret) < 0)  client.uv_status(uv_ret);
   }
 
   return client;
@@ -586,8 +586,8 @@ inline stream pipe::accept_pending_handle() const
     uv_status(fd.uv_status());
   else
   {
-    auto uv_err = ::uv_accept(static_cast< ::uv_stream_t* >(uv_handle), static_cast< ::uv_stream_t* >(fd));
-    if (uv_status(uv_err) < 0)  fd.uv_status(uv_err);
+    auto uv_ret = ::uv_accept(static_cast< ::uv_stream_t* >(uv_handle), static_cast< ::uv_stream_t* >(fd));
+    if (uv_status(uv_ret) < 0)  fd.uv_status(uv_ret);
   }
 
   return fd;
