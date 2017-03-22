@@ -3,6 +3,11 @@
 #include <stdlib.h>
 #include <stdio.h>
 
+#ifndef _WIN32
+#include <signal.h>
+sighandler_t sigpipe_handler = signal(SIGPIPE, SIG_IGN);  // ignore SIGPIPE
+#endif
+
 
 #define PRINT_UV_ERR(code, printf_args...)  do {\
   fflush(stdout);\
@@ -51,7 +56,12 @@ int main(int _argc, char *_argv[])
   }
 
   rdcmd_state = RD_START;
-  uv_read_start((uv_stream_t*)&in, alloc_cb, read_cb);
+  ret = uv_read_start((uv_stream_t*)&in, alloc_cb, read_cb);
+  if (ret < 0)
+  {
+    PRINT_UV_ERR(ret, "read initiation");
+    return ret;
+  }
 
   return uv_run(loop, UV_RUN_DEFAULT);
 }
@@ -69,8 +79,8 @@ void read_cb(uv_stream_t *_stream, ssize_t _nread, const uv_buf_t *_buf)
 {
   if (_nread < 0)
   {
-    uv_read_stop(_stream);
     if (_nread != UV_EOF)  PRINT_UV_ERR(_nread, "read");
+    uv_read_stop(_stream);
   }
   else if (_nread > 0)
   {
@@ -80,19 +90,27 @@ void read_cb(uv_stream_t *_stream, ssize_t _nread, const uv_buf_t *_buf)
     /* create a write request descriptor; see note [1] */
     uv_write_t *wr = (uv_write_t*)malloc(sizeof(uv_write_t));
 
-    /* save a reference to the output buffer somehow along with the write request; see note [2] */
+    /* save a reference to the I/O buffer somehow along with the write request; see note [2] */
     wr->data = _buf->base;
 
     /* fire up the write request */
-    uv_write(wr, (uv_stream_t*)&out, &buf, 1, write_cb);
+    int ret = uv_write(wr, (uv_stream_t*)&out, &buf, 1, write_cb);
     /* the I/O buffer being used up should be deleted somewhere after the request has completed;
        see note [3] */
-
-    /* stop reading from stdin when a consumer of stdout does not keep up with our transferring rate
-       and stdout write queue size has grown up significantly; see note [4] */
-    if (rdcmd_state == RD_START && out.write_queue_size >= WRITE_QUEUE_SIZE_UPPER_LIMIT)
+    if (ret >= 0)
     {
-      rdcmd_state = RD_PAUSE;
+      /* stop reading from stdin when a consumer of stdout does not keep up with our transferring rate
+         and stdout write queue size has grown up significantly; see note [4] */
+      if (rdcmd_state == RD_START && out.write_queue_size >= WRITE_QUEUE_SIZE_UPPER_LIMIT)
+      {
+        rdcmd_state = RD_PAUSE;
+        uv_read_stop((uv_stream_t*)&in);
+      }
+    }
+    else
+    {
+      PRINT_UV_ERR(ret, "write initiation");
+      rdcmd_state = RD_STOP;
       uv_read_stop((uv_stream_t*)&in);
     }
   }
@@ -103,14 +121,20 @@ void write_cb(uv_write_t *_wr, int _status)
 {
   if (_status < 0)
   {
-    PRINT_UV_ERR(_status, "write");
-    rdcmd_state = RD_STOP;
-    uv_read_stop((uv_stream_t*)&in);
+    /* report only the very first occurrence of the failure */
+    if (uv_is_active((uv_handle_t*)&in))
+    {
+      PRINT_UV_ERR(_status, "write");
+      rdcmd_state = RD_STOP;
+      uv_read_stop((uv_stream_t*)&in);
+    }
   }
 
   /* when the write request has completed it's safe to free up the memory allocated for the I/O buffer;
      see notes [2][3] */
   free(_wr->data);
+  /* delete the write request descriptor */
+  free(_wr);
 
   /* resume stdin to stdout transferring when stdout output queue has gone away; see note [4] */
   if (rdcmd_state == RD_PAUSE && out.write_queue_size <= WRITE_QUEUE_SIZE_LOWER_LIMIT)
@@ -118,8 +142,4 @@ void write_cb(uv_write_t *_wr, int _status)
     rdcmd_state = RD_START;
     uv_read_start((uv_stream_t*)&in, alloc_cb, read_cb);
   }
-  
-  /* delete the write request descriptor */
-  free(_wr);
 }
-

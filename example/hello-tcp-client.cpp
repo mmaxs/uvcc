@@ -26,7 +26,6 @@ int main(int _argc, char *_argv[])
     return status;
   }
 
-//{
   // initialize a tcp socket
   uv::tcp peer(uv::loop::Default(), server_addr.ss_family);
   if (!peer)
@@ -71,8 +70,8 @@ int main(int _argc, char *_argv[])
         {
           if (_nread < 0)
           {
-            _io.read_stop();
             if (_nread != UV_EOF)  PRINT_UV_ERR(_nread, "read");
+            _io.read_stop();
           }
           else if (_nread > 0)
           {
@@ -92,7 +91,6 @@ int main(int _argc, char *_argv[])
     PRINT_UV_ERR(conn.uv_status(), "connect initiation");
     return conn.uv_status();
   }
-//}
 
   return uv::loop::Default().run(UV_RUN_DEFAULT);
 }

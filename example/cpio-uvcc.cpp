@@ -2,6 +2,11 @@
 #include "uvcc.hpp"
 #include <cstdio>
 
+#ifndef _WIN32
+#include <signal.h>
+sighandler_t sigpipe_handler = signal(SIGPIPE, SIG_IGN);  // ignore SIGPIPE
+#endif
+
 
 #define PRINT_UV_ERR(code, printf_args...)  do {\
   fflush(stdout);\
@@ -39,6 +44,11 @@ int main(int _argc, char *_argv[])
       [](uv::handle, std::size_t _suggested_size){ return uv::buffer{ _suggested_size }; },
       read_cb
   );
+  if (!in)
+  {
+    PRINT_UV_ERR(in.uv_status(), "read initiation");
+    return in.uv_status();
+  }
 
   return uv::loop::Default().run(UV_RUN_DEFAULT);
 }
@@ -49,8 +59,8 @@ void read_cb(uv::io _io, ssize_t _nread, uv::buffer _buffer, int64_t, void*)
 {
   if (_nread < 0)
   {
-    _io.read_stop();
     if (_nread != UV_EOF)  PRINT_UV_ERR(_nread, "read");
+    _io.read_stop();
   }
   else if (_nread > 0)
   {
@@ -60,7 +70,13 @@ void read_cb(uv::io _io, ssize_t _nread, uv::buffer _buffer, int64_t, void*)
     wr.on_request() = write_cb;
     wr.run(out, _buffer);
 
-    in.read_pause(out.write_queue_size() >= WRITE_QUEUE_SIZE_UPPER_LIMIT);
+    if (wr)
+      in.read_pause(out.write_queue_size() >= WRITE_QUEUE_SIZE_UPPER_LIMIT);
+    else
+    {
+      PRINT_UV_ERR(wr.uv_status(), "write initiation");
+      _io.read_stop();
+    }
   }
 }
 
@@ -69,8 +85,11 @@ void write_cb(uv::write _wr, uv::buffer)
 {
   if (!_wr)
   {
-    PRINT_UV_ERR(_wr.uv_status(), "write");
-    in.read_stop();
+    if (in.is_active())
+    {
+      PRINT_UV_ERR(_wr.uv_status(), "write");
+      in.read_stop();
+    }
   }
 
   in.read_resume(out.write_queue_size() <= WRITE_QUEUE_SIZE_LOWER_LIMIT);

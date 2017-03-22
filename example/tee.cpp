@@ -5,6 +5,11 @@
 #include <vector>
 #include <fcntl.h>  // O_*
 
+#ifndef _WIN32
+#include <signal.h>
+sighandler_t sigpipe_handler = signal(SIGPIPE, SIG_IGN);  // ignore SIGPIPE
+#endif
+
 
 #ifndef NDEBUG
 #define DEBUG_LOG(condition, format, ...)  do {\
@@ -80,8 +85,8 @@ int main(int _argc, char *_argv[])
       {
         if (_nread < 0)
         {
+          if (_nread != UV_EOF)  PRINT_UV_ERR(_nread, "read from stdin (%s)", in.type_name());
           _io.read_stop();
-          if (_nread != UV_EOF)  PRINT_UV_ERR(_nread, "stdin read (%s)", in.type_name());
         }
         else if (_nread > 0)
         {
@@ -97,8 +102,8 @@ int main(int _argc, char *_argv[])
             all_write_queues_size += _buf.len();
           else
           {
+            PRINT_UV_ERR(io_wr.uv_status(), "write initiation to stdout (%s)", out.type_name());
             _io.read_stop();
-            PRINT_UV_ERR(io_wr.uv_status(), "stdout write request initiation (%s)", out.type_name());
             return;
           }
 
@@ -112,7 +117,7 @@ int main(int _argc, char *_argv[])
             if (file_wr)
               all_write_queues_size += _buf.len();
             else
-              PRINT_UV_ERR(file_wr.uv_status(), "file write request initiation (%s)", file.path());
+              PRINT_UV_ERR(file_wr.uv_status(), "write initiation to file (%s)", file.path());
           }
 
           int ret = in.read_pause(all_write_queues_size >= WRITE_QUEUE_SIZE_UPPER_LIMIT);
@@ -122,7 +127,7 @@ int main(int _argc, char *_argv[])
   );
   if (!in)
   {
-    PRINT_UV_ERR(in.uv_status(), "stdin read request initiation (%s)", in.type_name());
+    PRINT_UV_ERR(in.uv_status(), "read initiation from stdin (%s)", in.type_name());
     return in.uv_status();
   }
 
@@ -156,12 +161,16 @@ void write_cb(_WriteReq_ _wr, uv::buffer _buf)
 {
   if (!_wr)
   {
-    if (_wr.handle() == out)  in.read_stop();
-    PRINT_UV_ERR(_wr.uv_status(),
-      "%s write (%s)",
-      _wr.handle().type() == UV_FILE ? "file" : "stdout",
-      _wr.handle().type() == UV_FILE ? static_cast< uv::file&& >(_wr.handle()).path() : _wr.handle().type_name()
-    );
+    // report only the very first occurrence of the failure
+    if (in.is_active())
+    {
+      PRINT_UV_ERR(_wr.uv_status(),
+          "write to %s (%s)",
+          _wr.handle().type() == UV_FILE ? "file" : "stdout",
+          _wr.handle().type() == UV_FILE ? static_cast< uv::file&& >(_wr.handle()).path() : _wr.handle().type_name()
+      );
+      if (_wr.handle() == out)  in.read_stop();
+    }
   }
 
   all_write_queues_size -= _buf.len();

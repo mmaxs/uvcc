@@ -54,6 +54,13 @@ int main(int _argc, char *_argv[])
           PRINT_UV_ERR(_server.uv_status(), "incoming connection");
           return;
         }
+        else
+        {
+          // detach server handle from the loop after the first connection - aka stop listening
+          ::uv_unref(static_cast< uv_handle_t* >(_server));
+        }
+
+        // accept a new connection
         auto client = static_cast< uv::tcp&& >(_server.accept());
         if (!client)  PRINT_UV_ERR(client.uv_status(), "accept");
 
@@ -76,8 +83,8 @@ int main(int _argc, char *_argv[])
             {
               if (_nread < 0)
               {
-                _io.read_stop();
                 if (_nread != UV_EOF)  PRINT_UV_ERR(_nread, "read");
+                _io.read_stop();
               }
               else if (_nread > 0)
               {

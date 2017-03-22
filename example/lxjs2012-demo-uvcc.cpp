@@ -85,8 +85,8 @@ void connect_cb(uv::connect _connect_req)
       {
         if (_nread < 0)
         {
-          _io.read_stop();
           if (_nread != UV_EOF)  PRINT_UV_ERR(_nread, "read");
+          _io.read_stop();
         }
         else if (_nread > 0)
         {
