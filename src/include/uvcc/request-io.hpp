@@ -63,6 +63,7 @@ protected: /*types*/
 
     request_properties property_storage;  // it must be the first field to align with property storage of the actual request type
     ::uv_req_t *uv_req = nullptr;
+    int64_t offset = 0;
 
     ~properties()
     {
@@ -131,6 +132,9 @@ public: /*interface*/
     }
   }
 
+  /*! \brief The offset value specified for `run()` call by which this output request has been set going. */
+  int64_t offset() const noexcept  { return instance::from(uv_req)->properties().offset; }
+
   /*! \brief Run the request with interpreting arguments as additional parameters for actual write/send
       request performed depending on what I/O endpoint the `_io` argument actually represents.
       \details
@@ -156,9 +160,11 @@ public: /*interface*/
     case UV_TCP:
     case UV_TTY:
         static_cast< write::uv_t* >(uv_req)->type = UV_WRITE;
+        instance::from(uv_req)->properties().offset = _offset;
         return reinterpret_cast< write* >(this)->run(static_cast< stream& >(_io), _buf);
     case UV_UDP:
         static_cast< udp_send::uv_t* >(uv_req)->type = UV_UDP_SEND;
+        instance::from(uv_req)->properties().offset = _offset;
         return _info ?
             reinterpret_cast< udp_send* >(this)->run(
                 static_cast< udp& >(_io), _buf,
@@ -169,6 +175,7 @@ public: /*interface*/
     case UV_FILE:
         static_cast< fs::uv_t* >(uv_req)->type = UV_FS;
         static_cast< fs::uv_t* >(uv_req)->fs_type = UV_FS_WRITE;
+        instance::from(uv_req)->properties().offset = _offset;
         return reinterpret_cast< fs::write* >(this)->run(static_cast< file& >(_io), _buf, _offset);
     default:
         return uv_status(UV_EBADF);
