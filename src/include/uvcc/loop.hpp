@@ -12,7 +12,7 @@
 #include <type_traits>  // is_standard_layout enable_if is_convertible
 #include <utility>      // swap() forward()
 #include <exception>    // uncaught_exception()
-#include <stdexcept>    // runtime_error
+#include <stdexcept>    // runtime_error logic_error
 
 
 namespace uv
@@ -72,7 +72,7 @@ private: /*types*/
   public: /*constructors*/
     ~instance() noexcept(false)
     {
-      uvcc_debug_function_enter("instance [0x%08tX] for loop [0x%08tX]", (ptrdiff_t)this, (ptrdiff_t)&uv_loop_struct);
+      uvcc_debug_function_enter("instance [0x%08tX] for loop [0x%08tX] (is_alive=%i)", (ptrdiff_t)this, (ptrdiff_t)&uv_loop_struct, ::uv_loop_alive(&uv_loop_struct));
       uvcc_debug_do_if(true, {
           uvcc_debug_log_if(true, "walk on loop [0x%08tX] destroying...", (ptrdiff_t)&uv_loop_struct);
           debug::print_loop_handles(&uv_loop_struct);
@@ -80,35 +80,40 @@ private: /*types*/
 
       uv_error = ::uv_loop_close(&uv_loop_struct);
       auto loop_not_closed = (uv_error == UV_EBUSY);
-      uvcc_debug_condition(loop_not_closed, "loop [0x%08tX]", (ptrdiff_t)&uv_loop_struct);
+      uvcc_debug_condition(loop_not_closed, "loop [0x%08tX] (is_alive=%i)", (ptrdiff_t)&uv_loop_struct, ::uv_loop_alive(&uv_loop_struct));
 
       if (loop_not_closed)  // this may be because of:
       {
-        // 1) it is not a really finished executing loop, and all variables
-        //    referencing this loop have been destroyed during stack unwinding
-        if (std::uncaught_exception())  // so, if this is a consequence of an exception, try to not make the bad situation even worse
-          return;
-
-        // 2) there are registered callbacks from closed handles (that should be nullptrs by the way), or some internal libuv requests
-        uvcc_debug_log_if(true, "try at loop [0x%08tX] premortal one shot nonblocking run", (ptrdiff_t)&uv_loop_struct);
-        uv_error = ::uv_run(&uv_loop_struct, UV_RUN_NOWAIT);  // so, simply try to dispose of them
-        if (uv_error)  uv_error = ::uv_run(&uv_loop_struct, UV_RUN_NOWAIT);  // sometimes it should be run twice to make libuv happy
-
-        if (uv_error)
+        // 1) there are handles associated with the loop that are in deed not closed by the time the loop instance destroying
+        unsigned num_open_handles = 0;
+        auto walk_cb = [](::uv_handle_t *_h, void *_n){ if (!::uv_is_closing(_h))  ++*static_cast< unsigned* >(_n); };
+        ::uv_walk(&uv_loop_struct, static_cast< ::uv_walk_cb >(walk_cb), &num_open_handles);
+        uvcc_debug_condition(num_open_handles == 0, "{number of not closed handles associated with loop [0x%08tX]}=%u", (ptrdiff_t)&uv_loop_struct, num_open_handles);
+        if (num_open_handles)
         {
-        // 3) there are handles (and perhaps requests?) associated with the loop
-        //    that are in deed not closed by the time the loop instance destroying
-        // 4) it is in deed a running loop because of some weird things
-          throw std::runtime_error(__PRETTY_FUNCTION__);
+          // it is not a proper circumstances for the libuv loop to be closed
+          // but the uvcc loop instance is destroying because of some weird things;
+          // due to loop booking all the uvcc-managed handles are closed before the loop which they are associated with;
+          // so, if this is a consequence of some exception, try to not make the bad situation even worse
+          if (std::uncaught_exception())
+          {
+            uvcc_debug_log_if(true, "loop [0x%08tX] is being destroyed during stack unwinding", (ptrdiff_t)&uv_loop_struct);
+            return;
+          }
+          else
+            throw std::logic_error(__PRETTY_FUNCTION__);
         }
-        else
-        {
-          uv_error = ::uv_loop_close(&uv_loop_struct);
-          loop_not_closed = (uv_error == UV_EBUSY);
-          uvcc_debug_condition(loop_not_closed, "loop [0x%08tX]", (ptrdiff_t)&uv_loop_struct);
+        // 2) there are registered callbacks from closed handles (that should be nullptrs by the way),
+        //    or some libuv internal requests; so, simply try to dispose of them
+        do {
+          uvcc_debug_log_if(true, "try at loop [0x%08tX] premortal one shot nonblocking run", (ptrdiff_t)&uv_loop_struct);
+          uv_error = ::uv_run(&uv_loop_struct, UV_RUN_NOWAIT);
+        } while (uv_error);
 
-          if (loop_not_closed)  throw std::runtime_error(__PRETTY_FUNCTION__);
-        }
+        uv_error = ::uv_loop_close(&uv_loop_struct);
+        loop_not_closed = (uv_error == UV_EBUSY);
+        uvcc_debug_condition(loop_not_closed, "loop [0x%08tX] (is_alive=%i)", (ptrdiff_t)&uv_loop_struct, ::uv_loop_alive(&uv_loop_struct));
+        if (loop_not_closed)  throw std::runtime_error(__PRETTY_FUNCTION__);
       }
     }
 
@@ -144,7 +149,7 @@ private: /*types*/
     {
       uvcc_debug_function_enter("loop [0x%08tX]", (ptrdiff_t)&uv_loop_struct);
       auto nrefs = refs.dec();
-      uvcc_debug_condition(nrefs == 0, "(nrefs to loop [0x%08tX])=%li", (ptrdiff_t)&uv_loop_struct, nrefs);
+      uvcc_debug_condition(nrefs == 0, "{nrefs to loop [0x%08tX]}=%li", (ptrdiff_t)&uv_loop_struct, nrefs);
       if (nrefs == 0)  destroy();
     }
   };
@@ -249,7 +254,7 @@ public: /*interface*/
     auto uv_ret = uv_status(::uv_run(uv_loop, _mode));
 
     uvcc_debug_do_if(true, {
-        uvcc_debug_log_if(true, "walk on loop [0x%08tX] exiting (uv_error=%i)...", (ptrdiff_t)uv_loop, uv_ret);
+        uvcc_debug_log_if(true, "walk on loop [0x%08tX] (is_alive=%i) exiting (uv_error=%i)...", (ptrdiff_t)uv_loop, ::uv_loop_alive(uv_loop), uv_ret);
         debug::print_loop_handles(uv_loop);
     });
 
