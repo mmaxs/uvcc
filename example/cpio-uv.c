@@ -97,20 +97,18 @@ void read_cb(uv_stream_t *_stream, ssize_t _nread, const uv_buf_t *_buf)
     int ret = uv_write(wr, (uv_stream_t*)&out, &buf, 1, write_cb);
     /* the I/O buffer being used up should be deleted somewhere after the request has completed;
        see note [3] */
-    if (ret >= 0)
-    {
-      /* stop reading from stdin when a consumer of stdout does not keep up with our transferring rate
-         and stdout write queue size has grown up significantly; see note [4] */
-      if (rdcmd_state == RD_START && out.write_queue_size >= WRITE_QUEUE_SIZE_UPPER_LIMIT)
-      {
-        rdcmd_state = RD_PAUSE;
-        uv_read_stop((uv_stream_t*)&in);
-      }
-    }
-    else
+    if (ret < 0)
     {
       PRINT_UV_ERR(ret, "write initiation");
       rdcmd_state = RD_STOP;
+      uv_read_stop((uv_stream_t*)&in);
+    }
+
+    /* stop reading from stdin when a consumer of stdout does not keep up with our transferring rate
+       and stdout write queue size has grown up significantly; see note [4] */
+    if (rdcmd_state == RD_START && out.write_queue_size >= WRITE_QUEUE_SIZE_UPPER_LIMIT)
+    {
+      rdcmd_state = RD_PAUSE;
       uv_read_stop((uv_stream_t*)&in);
     }
   }
@@ -129,17 +127,19 @@ void write_cb(uv_write_t *_wr, int _status)
       uv_read_stop((uv_stream_t*)&in);
     }
   }
+  else
+  {
+    /* resume stdin to stdout transferring when stdout output queue has gone away; see note [4] */
+    if (rdcmd_state == RD_PAUSE && out.write_queue_size <= WRITE_QUEUE_SIZE_LOWER_LIMIT)
+    {
+      rdcmd_state = RD_START;
+      uv_read_start((uv_stream_t*)&in, alloc_cb, read_cb);
+    }
+  }
 
   /* when the write request has completed it's safe to free up the memory allocated for the I/O buffer;
      see notes [2][3] */
   free(_wr->data);
   /* delete the write request descriptor */
   free(_wr);
-
-  /* resume stdin to stdout transferring when stdout output queue has gone away; see note [4] */
-  if (rdcmd_state == RD_PAUSE && out.write_queue_size <= WRITE_QUEUE_SIZE_LOWER_LIMIT)
-  {
-    rdcmd_state = RD_START;
-    uv_read_start((uv_stream_t*)&in, alloc_cb, read_cb);
-  }
 }

@@ -68,15 +68,15 @@ void read_cb(uv::io _io, ssize_t _nread, uv::buffer _buffer, int64_t, void*)
 
     uv::write wr;
     wr.on_request() = write_cb;
-    wr.run(out, _buffer);
 
-    if (wr)
-      in.read_pause(out.write_queue_size() >= WRITE_QUEUE_SIZE_UPPER_LIMIT);
-    else
+    wr.run(out, _buffer);
+    if (!wr)
     {
       PRINT_UV_ERR(wr.uv_status(), "write initiation");
       _io.read_stop();
     }
+
+    in.read_pause(out.write_queue_size() >= WRITE_QUEUE_SIZE_UPPER_LIMIT);
   }
 }
 
@@ -91,6 +91,6 @@ void write_cb(uv::write _wr, uv::buffer)
       in.read_stop();
     }
   }
-
-  in.read_resume(out.write_queue_size() <= WRITE_QUEUE_SIZE_LOWER_LIMIT);
+  else
+    in.read_resume(out.write_queue_size() <= WRITE_QUEUE_SIZE_LOWER_LIMIT);
 }

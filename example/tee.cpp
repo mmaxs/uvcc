@@ -2,8 +2,9 @@
 #include "uvcc.hpp"
 
 #include <cstdio>
+#include <cinttypes>  // PRI*
 #include <vector>
-#include <fcntl.h>  // O_*
+#include <fcntl.h>    // O_*
 
 #ifndef _WIN32
 #include <signal.h>
@@ -38,13 +39,13 @@ uv::io in = uv::io::guess_handle(uv::loop::Default(), fileno(stdin)),
 
 constexpr std::size_t WRITE_QUEUE_SIZE_UPPER_LIMIT = 14*8192,
                       WRITE_QUEUE_SIZE_LOWER_LIMIT =  2*8192;
-std::size_t all_write_queues_size = 0;
+std::size_t file_write_queues_size = 0;
 
 std::vector< uv::file > files;
 
 
 uv::buffer alloc_cb(uv::handle, std::size_t);
-template< class _WriteReq_ > void write_cb(_WriteReq_, uv::buffer);
+void write_to_stdout_cb(uv::output, uv::buffer);
 
 
 int main(int _argc, char *_argv[])
@@ -95,34 +96,19 @@ int main(int _argc, char *_argv[])
 
           // write to stdout
           uv::output io_wr;
-          io_wr.on_request() = write_cb< uv::output >;
+          io_wr.on_request() = write_to_stdout_cb;
+
           io_wr.run(out, _buf, _offset, _info);  // note: UDP connected sockets are not supported by libuv
-
-          if (io_wr)
-            all_write_queues_size += _buf.len();
-          else
+          if (!io_wr)
           {
-            PRINT_UV_ERR(io_wr.uv_status(), "write initiation to stdout (%s)", out.type_name());
+            PRINT_UV_ERR(io_wr.uv_status(), "write initiation to stdout (%s) at offset %" PRIi64, out.type_name(), _offset);
             _io.read_stop();
-            return;
           }
-
-          // write to files
-          for (auto &file : files)
-          {
-            uv::fs::write file_wr;
-            file_wr.on_request() = write_cb< uv::fs::write >;
-            file_wr.run(file, _buf, _offset);
-
-            if (file_wr)
-              all_write_queues_size += _buf.len();
-            else
-              PRINT_UV_ERR(file_wr.uv_status(), "write initiation to file (%s)", file.path());
-          }
-
-          int ret = in.read_pause(all_write_queues_size >= WRITE_QUEUE_SIZE_UPPER_LIMIT);
-          DEBUG_LOG(ret == 0, "[debug] read paused (all_write_queues_size=%zu)\n", all_write_queues_size);
         }
+
+        auto total_write_pending_bytes = out.write_queue_size() + file_write_queues_size;
+        int ret = in.read_pause(total_write_pending_bytes >= WRITE_QUEUE_SIZE_UPPER_LIMIT);
+        DEBUG_LOG(ret == 0, "[debug] read paused (total_write_pending_bytes=%zu)\n", total_write_pending_bytes);
       }
   );
   if (!in)
@@ -156,26 +142,55 @@ uv::buffer alloc_cb(uv::handle, std::size_t)
 }
 
 
-template< class _WriteReq_ >
-void write_cb(_WriteReq_ _wr, uv::buffer _buf)
+void write_to_files(uv::buffer, int64_t);
+
+void write_to_stdout_cb(uv::output _wr, uv::buffer _buf)
 {
   if (!_wr)
   {
-    // report only the very first occurrence of the failure
-    if (in.is_active())
+    if (in.is_active())  // report only the very first occurrence of the failure
     {
-      PRINT_UV_ERR(_wr.uv_status(),
-          "write to %s (%s)",
-          _wr.handle().type() == UV_FILE ? "file" : "stdout",
-          _wr.handle().type() == UV_FILE ? static_cast< uv::file&& >(_wr.handle()).path() : _wr.handle().type_name()
-      );
-      if (_wr.handle() == out)  in.read_stop();
+      PRINT_UV_ERR(_wr.uv_status(), "write to stdout (%s) at offset %" PRIi64, _wr.handle().type_name(), _wr.offset());
+      in.read_stop();
     }
   }
+  else  // dispatch the data for writing to files only when it successfully has been written to stdout
+    write_to_files(_buf, _wr.offset());
 
-  all_write_queues_size -= _buf.len();
-
-  int ret = in.read_resume(all_write_queues_size <= WRITE_QUEUE_SIZE_LOWER_LIMIT);
-  DEBUG_LOG(ret == 0, "[debug] read resumed (all_write_queues_size=%zu)\n", all_write_queues_size);
+  auto total_write_pending_bytes = out.write_queue_size() + file_write_queues_size;
+  int ret = in.read_resume(total_write_pending_bytes <= WRITE_QUEUE_SIZE_LOWER_LIMIT);
+  DEBUG_LOG(ret == 0, "[debug] read resumed (total_write_pending_bytes=%zu)\n", total_write_pending_bytes);
 }
 
+
+void write_to_file_cb(uv::fs::write, uv::buffer);
+
+void write_to_files(uv::buffer _buf, int64_t _offset)
+{
+  for (auto &file : files)
+  {
+    uv::fs::write wr;
+    wr.on_request() = write_to_file_cb;
+
+    wr.run(file, _buf, _offset);
+    if (wr)
+      file_write_queues_size += _buf.len();
+    else
+      PRINT_UV_ERR(wr.uv_status(), "write initiation to file (%s) at offset %" PRIi64, file.path(), wr.offset());
+  }
+}
+
+
+void write_to_file_cb(uv::fs::write _wr, uv::buffer _buf)
+{
+  if (!_wr)
+    PRINT_UV_ERR(_wr.uv_status(), "write to file (%s) at offset %" PRIi64, _wr.handle().path(), _wr.offset());
+  else
+  {
+    file_write_queues_size -= _buf.len();
+
+    auto total_write_pending_bytes = out.write_queue_size() + file_write_queues_size;
+    int ret = in.read_resume(total_write_pending_bytes <= WRITE_QUEUE_SIZE_LOWER_LIMIT);
+    DEBUG_LOG(ret == 0, "[debug] read resumed (total_write_pending_bytes=%zu)\n", total_write_pending_bytes);
+  }
+}
