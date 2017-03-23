@@ -104,6 +104,8 @@ private: /*constructors*/
     static_cast< uv_t* >(uv_handle)->result = _fd;
     static_cast< uv_t* >(uv_handle)->path = _path;
     instance::from(uv_handle)->book_loop();
+
+    if (_fd < 0)  instance::from(uv_handle)->properties().is_closing = 1;
   }
 
 public: /*constructors*/

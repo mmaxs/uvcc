@@ -409,7 +409,7 @@ struct handle::uv_fs_interface : virtual uv_interface
     if (fd >= 0)
     {
       ::uv_fs_t req_close;
-      ::uv_fs_close(nullptr, &req_close, fd, nullptr);
+      ::uv_fs_close(nullptr, &req_close, fd, nullptr);  // XXX : nullptr for loop
       ::uv_fs_req_cleanup(&req_close);
     }
 

@@ -188,7 +188,7 @@ public: /*interface*/
   {
     ::uv_fs_req_cleanup(static_cast< uv_t* >(uv_req));  // assuming that *uv_req has initially been nulled
 
-    file::instance::from(_file.uv_handle)->properties().is_closing = true;
+    file::instance::from(_file.uv_handle)->properties().is_closing = 1;
 
     auto instance_ptr = instance::from(uv_req);
 
@@ -569,6 +569,10 @@ public: /*interface*/
 #endif
     }
 
+    auto &properties = instance::from(uv_req)->properties();
+    properties.uv_handle = static_cast< file::uv_t* >(_file);
+    properties.offset = _offset;
+
     auto uv_ret = uv_status(::uv_fs_write(
         static_cast< file::uv_t* >(_file)->loop, static_cast< uv_t* >(uv_req),
         _file.fd(),
@@ -673,10 +677,10 @@ public: /*interface*/
       \note If the request callback is empty (has not been set), the request runs _synchronously_. */
   int run(file &_file, bool _flush_all_metadata = false)
   {
+    ::uv_fs_req_cleanup(static_cast< uv_t* >(uv_req));  // assuming that *uv_req has initially been nulled
+
     auto uv_fs_sync_func_ptr = _flush_all_metadata ? ::uv_fs_fsync : ::uv_fs_fdatasync;
     auto instance_ptr = instance::from(uv_req);
-
-    ::uv_fs_req_cleanup(static_cast< uv_t* >(uv_req));  // assuming that *uv_req has initially been nulled
 
     if (!instance_ptr->request_cb_storage.value())
     {
@@ -688,26 +692,32 @@ public: /*interface*/
           nullptr
       ));
     }
-
-
-    file::instance::from(_file.uv_handle)->ref();
-    instance_ptr->ref();
-
-    // instance_ptr->properties() = { static_cast< file::uv_t* >(_file) };
+    else
     {
-      auto &properties = instance_ptr->properties();
-      properties.uv_handle = static_cast< file::uv_t* >(_file);
+      file::instance::from(_file.uv_handle)->ref();
+      instance_ptr->ref();
+
+      // instance_ptr->properties() = { static_cast< file::uv_t* >(_file) };
+      {
+        auto &properties = instance_ptr->properties();
+        properties.uv_handle = static_cast< file::uv_t* >(_file);
+      }
+
+      uv_status(0);
+      auto uv_ret = uv_fs_sync_func_ptr(
+          static_cast< file::uv_t* >(_file)->loop, static_cast< uv_t* >(uv_req),
+          _file.fd(),
+          sync_cb
+      );
+      if (uv_ret < 0)
+      {
+        uv_status(uv_ret);
+        file::instance::from(_file.uv_handle)->unref();
+        instance_ptr->unref();
+      }
+
+      return uv_ret;
     }
-
-    uv_status(0);
-    auto uv_ret = uv_fs_sync_func_ptr(
-        static_cast< file::uv_t* >(_file)->loop, static_cast< uv_t* >(uv_req),
-        _file.fd(),
-        sync_cb
-    );
-    if (uv_ret < 0)  uv_status(uv_ret);
-
-    return uv_ret;
   }
 
 public: /*conversion operators*/
@@ -798,6 +808,8 @@ public: /*interface*/
       The `_offset` value of < 0 means using of the current file position. */
   int run(file &_file, int64_t _offset)
   {
+    ::uv_fs_req_cleanup(static_cast< uv_t* >(uv_req));  // assuming that *uv_req has initially been nulled
+
     if (_offset < 0)
     {
 #ifdef _WIN32
@@ -809,8 +821,6 @@ public: /*interface*/
     }
 
     auto instance_ptr = instance::from(uv_req);
-
-    ::uv_fs_req_cleanup(static_cast< uv_t* >(uv_req));  // assuming that *uv_req has initially been nulled
 
     if (!instance_ptr->request_cb_storage.value())
     {
@@ -825,28 +835,34 @@ public: /*interface*/
           nullptr
       ));
     }
-
-
-    file::instance::from(_file.uv_handle)->ref();
-    instance_ptr->ref();
-
-    // instance_ptr->properties() = { static_cast< file::uv_t* >(_file), _offset };
+    else
     {
-      auto &properties = instance_ptr->properties();
-      properties.uv_handle = static_cast< file::uv_t* >(_file);
-      properties.offset = _offset;
+      file::instance::from(_file.uv_handle)->ref();
+      instance_ptr->ref();
+
+      // instance_ptr->properties() = { static_cast< file::uv_t* >(_file), _offset };
+      {
+        auto &properties = instance_ptr->properties();
+        properties.uv_handle = static_cast< file::uv_t* >(_file);
+        properties.offset = _offset;
+      }
+
+      uv_status(0);
+      auto uv_ret = ::uv_fs_ftruncate(
+          static_cast< file::uv_t* >(_file)->loop, static_cast< uv_t* >(uv_req),
+          _file.fd(),
+          _offset,
+          truncate_cb
+      );
+      if (uv_ret < 0)
+      {
+        uv_status(uv_ret);
+        file::instance::from(_file.uv_handle)->unref();
+        instance_ptr->unref();
+      }
+
+      return uv_ret;
     }
-
-    uv_status(0);
-    auto uv_ret = ::uv_fs_ftruncate(
-        static_cast< file::uv_t* >(_file)->loop, static_cast< uv_t* >(uv_req),
-        _file.fd(),
-        _offset,
-        truncate_cb
-    );
-    if (uv_ret < 0)  uv_status(uv_ret);
-
-    return uv_ret;
   }
 
 public: /*conversion operators*/
@@ -955,6 +971,8 @@ public: /*interface*/
       The `_offset` value of < 0 means using of the current file position. */
   int run(io &_out, file &_in, int64_t _offset, std::size_t _length)
   {
+    ::uv_fs_req_cleanup(static_cast< uv_t* >(uv_req));  // assuming that *uv_req has initially been nulled
+
     ::uv_file out = _out.type() == UV_FILE ? static_cast< file& >(_out).fd() : fd::try_convert(_out.fileno());
     if (out == -1)  return UV_EBADF;
 
@@ -970,8 +988,6 @@ public: /*interface*/
 
     auto instance_ptr = instance::from(uv_req);
 
-    ::uv_fs_req_cleanup(static_cast< uv_t* >(uv_req));  // assuming that *uv_req has initially been nulled
-
     if (!instance_ptr->request_cb_storage.value())
     {
       auto &properties = instance_ptr->properties();
@@ -986,33 +1002,43 @@ public: /*interface*/
           nullptr
       ));
     }
-
-
-    io::instance::from(_out.uv_handle)->ref();
-    file::instance::from(_in.uv_handle)->ref();
-    instance_ptr->ref();
-
-    // instance_ptr->properties() = { static_cast< io::uv_t* >(_out), static_cast< file::uv_t* >(_in), _offset, _length };
+    else
     {
-      auto &properties = instance_ptr->properties();
-      properties.uv_handle_out = static_cast< io::uv_t* >(_out);
-      properties.uv_handle_in = static_cast< file::uv_t* >(_in);
-      properties.offset = _offset;
-      properties.pending_size = _length;
+      io::instance::from(_out.uv_handle)->ref();
+      file::instance::from(_in.uv_handle)->ref();
+      instance_ptr->ref();
+
+      // instance_ptr->properties() = { static_cast< io::uv_t* >(_out), static_cast< file::uv_t* >(_in), _offset, _length };
+      {
+        auto &properties = instance_ptr->properties();
+        properties.uv_handle_out = static_cast< io::uv_t* >(_out);
+        properties.uv_handle_in = static_cast< file::uv_t* >(_in);
+        properties.offset = _offset;
+        properties.pending_size = _length;
+      }
+
+      if (_out.type() == UV_FILE)  file::instance::from(_out.uv_handle)->properties().write_queue_size += _length;
+
+      uv_status(0);
+      int uv_ret = ::uv_fs_sendfile(
+          static_cast< file::uv_t* >(_in)->loop, static_cast< uv_t* >(uv_req),
+          out, _in.fd(),
+          _offset, _length,
+          sendfile_cb
+      );
+      if (uv_ret < 0)
+      {
+        uv_status(uv_ret);
+
+        if (_out.type() == UV_FILE)  file::instance::from(_out.uv_handle)->properties().write_queue_size -= _length;
+
+        io::instance::from(_out.uv_handle)->unref();
+        file::instance::from(_in.uv_handle)->unref();
+        instance_ptr->unref();
+      }
+
+      return uv_ret;
     }
-
-    if (_out.type() == UV_FILE)  file::instance::from(_out.uv_handle)->properties().write_queue_size += _length;
-
-    uv_status(0);
-    int uv_ret = ::uv_fs_sendfile(
-        static_cast< file::uv_t* >(_in)->loop, static_cast< uv_t* >(uv_req),
-        out, _in.fd(),
-        _offset, _length,
-        sendfile_cb
-    );
-    if (uv_ret < 0)  uv_status(uv_ret);
-
-    return uv_ret;
   }
 
 public: /*conversion operators*/
@@ -1094,7 +1120,8 @@ public: /*interface*/
         on_request_t& on_request()       noexcept  { return instance::from(uv_req)->request_cb_storage.value(); }
 
   /*! \brief The file which this stat request has been running on.
-      \details It is guaranteed that it will be a valid instance at least within the request callback. */
+      \details It is guaranteed that it will be a valid instance at least within the request callback.\n\n
+      If the request is applied to a file path then the handle of the returned file is closed (i.e. `uv::file::is_closing() == 1`).*/
   file handle() const noexcept
   {
     auto uv_handle = instance::from(uv_req)->properties().uv_handle;
@@ -1103,7 +1130,11 @@ public: /*interface*/
 
   /*! \brief The file path affected by request.
       \sa libuv API documentation: [`uv_fs_t.path`](http://docs.libuv.org/en/v1.x/fs.html#c.uv_fs_t.path). */
-  const char* path() const noexcept  { return static_cast< uv_t* >(uv_req)->path; }
+  const char* path() const noexcept
+  {
+    auto uv_handle = instance::from(uv_req)->properties().uv_handle;
+    return uv_handle ? uv_handle->path : static_cast< uv_t* >(uv_req)->path;
+  }
 
   /*! \brief The result of the stat request.
       \sa libuv API documentation: [`uv_stat_t`](http://docs.libuv.org/en/v1.x/fs.html#c.uv_stat_t),
@@ -1122,34 +1153,45 @@ public: /*interface*/
       \note If the request callback is empty (has not been set), the request runs _synchronously_. */
   int run(uv::loop &_loop, const char* _path, bool _follow_symlinks = false)
   {
+    ::uv_fs_req_cleanup(static_cast< uv_t* >(uv_req));  // assuming that *uv_req has initially been nulled
+
     auto uv_fs_stat_func_ptr = _follow_symlinks ? ::uv_fs_stat : ::uv_fs_lstat;
     auto instance_ptr = instance::from(uv_req);
 
-    ::uv_fs_req_cleanup(static_cast< uv_t* >(uv_req));  // assuming that *uv_req has initially been nulled
-
-    instance_ptr->properties().uv_handle = nullptr;
-
     if (!instance_ptr->request_cb_storage.value())
     {
+      instance_ptr->properties().uv_handle = nullptr;
+
       return uv_status(uv_fs_stat_func_ptr(
           static_cast< uv::loop::uv_t* >(_loop), static_cast< uv_t* >(uv_req),
           _path,
           nullptr
       ));
     }
+    else
+    {
+      instance_ptr->ref();
 
+      // instance_ptr->properties() = { nullptr };
+      {
+        auto &properties = instance_ptr->properties();
+        properties.uv_handle = nullptr;
+      }
 
-    instance_ptr->ref();
+      uv_status(0);
+      auto uv_ret = uv_fs_stat_func_ptr(
+          static_cast< uv::loop::uv_t* >(_loop), static_cast< uv_t* >(uv_req),
+          _path,
+          stat_cb
+      );
+      if (uv_ret < 0)
+      {
+        uv_status(uv_ret);
+        instance_ptr->unref();
+      }
 
-    uv_status(0);
-    auto uv_ret = uv_fs_stat_func_ptr(
-        static_cast< uv::loop::uv_t* >(_loop), static_cast< uv_t* >(uv_req),
-        _path,
-        stat_cb
-    );
-    if (uv_ret < 0)  uv_status(uv_ret);
-
-    return uv_ret;
+      return uv_ret;
+    }
   }
 
   /*! \brief Run the request. Get status information about the open `_file`.
@@ -1158,9 +1200,9 @@ public: /*interface*/
       \note If the request callback is empty (has not been set), the request runs _synchronously_. */
   int run(file &_file)
   {
-    auto instance_ptr = instance::from(uv_req);
-
     ::uv_fs_req_cleanup(static_cast< uv_t* >(uv_req));  // assuming that *uv_req has initially been nulled
+
+    auto instance_ptr = instance::from(uv_req);
 
     if (!instance_ptr->request_cb_storage.value())
     {
@@ -1172,26 +1214,32 @@ public: /*interface*/
           nullptr
       ));
     }
-
-
-    file::instance::from(_file.uv_handle)->ref();
-    instance_ptr->ref();
-
-    // instance_ptr->properties() = { static_cast< file::uv_t* >(_file) };
+    else
     {
-      auto &properties = instance_ptr->properties();
-      properties.uv_handle = static_cast< file::uv_t* >(_file);
+      file::instance::from(_file.uv_handle)->ref();
+      instance_ptr->ref();
+
+      // instance_ptr->properties() = { static_cast< file::uv_t* >(_file) };
+      {
+        auto &properties = instance_ptr->properties();
+        properties.uv_handle = static_cast< file::uv_t* >(_file);
+      }
+
+      uv_status(0);
+      auto uv_ret = ::uv_fs_fstat(
+          static_cast< file::uv_t* >(_file)->loop, static_cast< uv_t* >(uv_req),
+          _file.fd(),
+          stat_cb
+      );
+      if (uv_ret < 0)
+      {
+        uv_status(uv_ret);
+        file::instance::from(_file.uv_handle)->unref();
+        instance_ptr->unref();
+      }
+
+      return uv_ret;
     }
-
-    uv_status(0);
-    auto uv_ret = ::uv_fs_fstat(
-        static_cast< file::uv_t* >(_file)->loop, static_cast< uv_t* >(uv_req),
-        _file.fd(),
-        stat_cb
-    );
-    if (uv_ret < 0)  uv_status(uv_ret);
-
-    return uv_ret;
   }
 
 public: /*conversion operators*/
