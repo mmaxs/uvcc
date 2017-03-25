@@ -19,7 +19,6 @@
 
 #include <functional>   // function
 #include <type_traits>  // enable_if_t is_convertible
-#include <string>       // string
 
 
 namespace uv
@@ -1121,7 +1120,7 @@ public: /*interface*/
 
   /*! \brief The file which this stat request has been running on.
       \details It is guaranteed that it will be a valid instance at least within the request callback.\n\n
-      If the request is applied to a file path then the handle of the returned file is closed (i.e. `uv::file::is_closing() == 1`).*/
+      If the request was applied to a file path then the handle of the returned file is closed (i.e. `uv::file::is_closing() == 1`). */
   file handle() const noexcept
   {
     auto uv_handle = instance::from(uv_req)->properties().uv_handle;
@@ -1325,7 +1324,8 @@ public: /*interface*/
         on_request_t& on_request()       noexcept  { return instance::from(uv_req)->request_cb_storage.value(); }
 
   /*! \brief The file which this chmod request has been running on.
-      \details It is guaranteed that it will be a valid instance at least within the request callback. */
+      \details It is guaranteed that it will be a valid instance at least within the request callback.\n\n
+      If the request was applied to a file path then the handle of the returned file is closed (i.e. `uv::file::is_closing() == 1`). */
   file handle() const noexcept
   {
     auto uv_handle = instance::from(uv_req)->properties().uv_handle;
@@ -1334,7 +1334,11 @@ public: /*interface*/
 
   /*! \brief The file path affected by request.
       \sa libuv API documentation: [`uv_fs_t.path`](http://docs.libuv.org/en/v1.x/fs.html#c.uv_fs_t.path). */
-  const char* path() const noexcept  { return static_cast< uv_t* >(uv_req)->path; }
+  const char* path() const noexcept
+  {
+    auto uv_handle = instance::from(uv_req)->properties().uv_handle;
+    return uv_handle ? uv_handle->path : static_cast< uv_t* >(uv_req)->path;
+  }
 
   /*! \brief Run the request. Change permissions of a file or directory specified by `_path`.
       \sa libuv API documentation: [`uv_fs_chmod()`](http://docs.libuv.org/en/v1.x/fs.html#c.uv_fs_chmod).
@@ -1343,33 +1347,44 @@ public: /*interface*/
       \note If the request callback is empty (has not been set), the request runs _synchronously_. */
   int run(uv::loop &_loop, const char* _path, int _mode)
   {
-    auto instance_ptr = instance::from(uv_req);
-
     ::uv_fs_req_cleanup(static_cast< uv_t* >(uv_req));  // assuming that *uv_req has initially been nulled
 
-    instance_ptr->properties().uv_handle = nullptr;
+    auto instance_ptr = instance::from(uv_req);
 
     if (!instance_ptr->request_cb_storage.value())
     {
+      instance_ptr->properties().uv_handle = nullptr;
+
       return uv_status(::uv_fs_chmod(
           static_cast< uv::loop::uv_t* >(_loop), static_cast< uv_t* >(uv_req),
           _path, _mode,
           nullptr
       ));
     }
+    else
+    {
+      instance_ptr->ref();
 
+      // instance_ptr->properties() = { nullptr };
+      {
+        auto &properties = instance_ptr->properties();
+        properties.uv_handle = nullptr;
+      }
 
-    instance_ptr->ref();
+      uv_status(0);
+      auto uv_ret = ::uv_fs_chmod(
+          static_cast< uv::loop::uv_t* >(_loop), static_cast< uv_t* >(uv_req),
+          _path, _mode,
+          chmod_cb
+      );
+      if (uv_ret < 0)
+      {
+        uv_status(uv_ret);
+        instance_ptr->unref();
+      }
 
-    uv_status(0);
-    auto uv_ret = ::uv_fs_chmod(
-        static_cast< uv::loop::uv_t* >(_loop), static_cast< uv_t* >(uv_req),
-        _path, _mode,
-        chmod_cb
-    );
-    if (uv_ret < 0)  uv_status(uv_ret);
-
-    return uv_ret;
+      return uv_ret;
+    }
   }
 
   /*! \brief Run the request. Change permissions of the open `_file`.
@@ -1378,9 +1393,9 @@ public: /*interface*/
       \note If the request callback is empty (has not been set), the request runs _synchronously_. */
   int run(file &_file, int _mode)
   {
-    auto instance_ptr = instance::from(uv_req);
-
     ::uv_fs_req_cleanup(static_cast< uv_t* >(uv_req));  // assuming that *uv_req has initially been nulled
+
+    auto instance_ptr = instance::from(uv_req);
 
     if (!instance_ptr->request_cb_storage.value())
     {
@@ -1392,26 +1407,32 @@ public: /*interface*/
           nullptr
       ));
     }
-
-
-    file::instance::from(_file.uv_handle)->ref();
-    instance_ptr->ref();
-
-    // instance_ptr->properties() = { static_cast< file::uv_t* >(_file) };
+    else
     {
-      auto &properties = instance_ptr->properties();
-      properties.uv_handle = static_cast< file::uv_t* >(_file);
+      file::instance::from(_file.uv_handle)->ref();
+      instance_ptr->ref();
+
+      // instance_ptr->properties() = { static_cast< file::uv_t* >(_file) };
+      {
+        auto &properties = instance_ptr->properties();
+        properties.uv_handle = static_cast< file::uv_t* >(_file);
+      }
+
+      uv_status(0);
+      auto uv_ret = ::uv_fs_fchmod(
+          static_cast< file::uv_t* >(_file)->loop, static_cast< uv_t* >(uv_req),
+          _file.fd(), _mode,
+          chmod_cb
+      );
+      if (uv_ret < 0)
+      {
+        uv_status(uv_ret);
+        file::instance::from(_file.uv_handle)->unref();
+        instance_ptr->unref();
+      }
+
+      return uv_ret;
     }
-
-    uv_status(0);
-    auto uv_ret = ::uv_fs_fchmod(
-        static_cast< file::uv_t* >(_file)->loop, static_cast< uv_t* >(uv_req),
-        _file.fd(), _mode,
-        chmod_cb
-    );
-    if (uv_ret < 0)  uv_status(uv_ret);
-
-    return uv_ret;
   }
 
 public: /*conversion operators*/
@@ -1497,7 +1518,8 @@ public: /*interface*/
         on_request_t& on_request()       noexcept  { return instance::from(uv_req)->request_cb_storage.value(); }
 
   /*! \brief The file which this chown request has been running on.
-      \details It is guaranteed that it will be a valid instance at least within the request callback. */
+      \details It is guaranteed that it will be a valid instance at least within the request callback.\n\n
+      If the request was applied to a file path then the handle of the returned file is closed (i.e. `uv::file::is_closing() == 1`). */
   file handle() const noexcept
   {
     auto uv_handle = instance::from(uv_req)->properties().uv_handle;
@@ -1506,7 +1528,11 @@ public: /*interface*/
 
   /*! \brief The file path affected by request.
       \sa libuv API documentation: [`uv_fs_t.path`](http://docs.libuv.org/en/v1.x/fs.html#c.uv_fs_t.path). */
-  const char* path() const noexcept  { return static_cast< uv_t* >(uv_req)->path; }
+  const char* path() const noexcept
+  {
+    auto uv_handle = instance::from(uv_req)->properties().uv_handle;
+    return uv_handle ? uv_handle->path : static_cast< uv_t* >(uv_req)->path;
+  }
 
   /*! \brief Run the request. Change the owner and group of a file or directory specified by `_path`.
       \sa libuv API documentation: [`uv_fs_chown()`](http://docs.libuv.org/en/v1.x/fs.html#c.uv_fs_chown).
@@ -1514,33 +1540,44 @@ public: /*interface*/
       \note If the request callback is empty (has not been set), the request runs _synchronously_. */
   int run(uv::loop &_loop, const char* _path, ::uv_uid_t _uid, ::uv_gid_t _gid)
   {
-    auto instance_ptr = instance::from(uv_req);
-
     ::uv_fs_req_cleanup(static_cast< uv_t* >(uv_req));  // assuming that *uv_req has initially been nulled
 
-    instance_ptr->properties().uv_handle = nullptr;
+    auto instance_ptr = instance::from(uv_req);
 
     if (!instance_ptr->request_cb_storage.value())
     {
+      instance_ptr->properties().uv_handle = nullptr;
+
       return uv_status(::uv_fs_chown(
           static_cast< uv::loop::uv_t* >(_loop), static_cast< uv_t* >(uv_req),
           _path, _uid, _gid,
           nullptr
       ));
     }
+    else
+    {
+      instance_ptr->ref();
 
+      // instance_ptr->properties() = { nullptr };
+      {
+        auto &properties = instance_ptr->properties();
+        properties.uv_handle = nullptr;
+      }
 
-    instance_ptr->ref();
+      uv_status(0);
+      auto uv_ret = ::uv_fs_chown(
+          static_cast< uv::loop::uv_t* >(_loop), static_cast< uv_t* >(uv_req),
+          _path, _uid, _gid,
+          chown_cb
+      );
+      if (uv_ret < 0)
+      {
+        uv_status(uv_ret);
+        instance_ptr->unref();
+      }
 
-    uv_status(0);
-    auto uv_ret = ::uv_fs_chown(
-        static_cast< uv::loop::uv_t* >(_loop), static_cast< uv_t* >(uv_req),
-        _path, _uid, _gid,
-        chown_cb
-    );
-    if (uv_ret < 0)  uv_status(uv_ret);
-
-    return uv_ret;
+      return uv_ret;
+    }
   }
 
   /*! \brief Run the request. Change the owner and group of the open `_file`.
@@ -1549,9 +1586,9 @@ public: /*interface*/
       \note If the request callback is empty (has not been set), the request runs _synchronously_. */
   int run(file &_file, ::uv_uid_t _uid, ::uv_gid_t _gid)
   {
-    auto instance_ptr = instance::from(uv_req);
-
     ::uv_fs_req_cleanup(static_cast< uv_t* >(uv_req));  // assuming that *uv_req has initially been nulled
+
+    auto instance_ptr = instance::from(uv_req);
 
     if (!instance_ptr->request_cb_storage.value())
     {
@@ -1563,26 +1600,32 @@ public: /*interface*/
           nullptr
       ));
     }
-
-
-    file::instance::from(_file.uv_handle)->ref();
-    instance_ptr->ref();
-
-    // instance_ptr->properties() = { static_cast< file::uv_t* >(_file) };
+    else
     {
-      auto &properties = instance_ptr->properties();
-      properties.uv_handle = static_cast< file::uv_t* >(_file);
+      file::instance::from(_file.uv_handle)->ref();
+      instance_ptr->ref();
+
+      // instance_ptr->properties() = { static_cast< file::uv_t* >(_file) };
+      {
+        auto &properties = instance_ptr->properties();
+        properties.uv_handle = static_cast< file::uv_t* >(_file);
+      }
+
+      uv_status(0);
+      auto uv_ret = ::uv_fs_fchown(
+          static_cast< file::uv_t* >(_file)->loop, static_cast< uv_t* >(uv_req),
+          _file.fd(), _uid, _gid,
+          chown_cb
+      );
+      if (uv_ret < 0)
+      {
+        uv_status(uv_ret);
+        file::instance::from(_file.uv_handle)->unref();
+        instance_ptr->unref();
+      }
+
+      return uv_ret;
     }
-
-    uv_status(0);
-    auto uv_ret = ::uv_fs_fchown(
-        static_cast< file::uv_t* >(_file)->loop, static_cast< uv_t* >(uv_req),
-        _file.fd(), _uid, _gid,
-        chown_cb
-    );
-    if (uv_ret < 0)  uv_status(uv_ret);
-
-    return uv_ret;
   }
 
 public: /*conversion operators*/
@@ -1668,7 +1711,8 @@ public: /*interface*/
         on_request_t& on_request()       noexcept  { return instance::from(uv_req)->request_cb_storage.value(); }
 
   /*! \brief The file which this utime request has been running on.
-      \details It is guaranteed that it will be a valid instance at least within the request callback. */
+      \details It is guaranteed that it will be a valid instance at least within the request callback.\n\n
+      If the request was applied to a file path then the handle of the returned file is closed (i.e. `uv::file::is_closing() == 1`). */
   file handle() const noexcept
   {
     auto uv_handle = instance::from(uv_req)->properties().uv_handle;
@@ -1677,7 +1721,11 @@ public: /*interface*/
 
   /*! \brief The file path affected by request.
       \sa libuv API documentation: [`uv_fs_t.path`](http://docs.libuv.org/en/v1.x/fs.html#c.uv_fs_t.path). */
-  const char* path() const noexcept  { return static_cast< uv_t* >(uv_req)->path; }
+  const char* path() const noexcept
+  {
+    auto uv_handle = instance::from(uv_req)->properties().uv_handle;
+    return uv_handle ? uv_handle->path : static_cast< uv_t* >(uv_req)->path;
+  }
 
   /*! \brief Run the request. Change last access and modification times for a file or directory specified by `_path`.
       \sa libuv API documentation: [`uv_fs_utime()`](http://docs.libuv.org/en/v1.x/fs.html#c.uv_fs_utime).
@@ -1686,33 +1734,44 @@ public: /*interface*/
       \note If the request callback is empty (has not been set), the request runs _synchronously_. */
   int run(uv::loop &_loop, const char* _path, double _atime, double _mtime)
   {
-    auto instance_ptr = instance::from(uv_req);
-
     ::uv_fs_req_cleanup(static_cast< uv_t* >(uv_req));  // assuming that *uv_req has initially been nulled
 
-    instance_ptr->properties().uv_handle = nullptr;
+    auto instance_ptr = instance::from(uv_req);
 
     if (!instance_ptr->request_cb_storage.value())
     {
+      instance_ptr->properties().uv_handle = nullptr;
+
       return uv_status(::uv_fs_utime(
           static_cast< uv::loop::uv_t* >(_loop), static_cast< uv_t* >(uv_req),
           _path, _atime, _mtime,
           nullptr
       ));
     }
+    else
+    {
+      instance_ptr->ref();
 
+      // instance_ptr->properties() = { nullptr };
+      {
+        auto &properties = instance_ptr->properties();
+        properties.uv_handle = nullptr;
+      }
 
-    instance_ptr->ref();
+      uv_status(0);
+      auto uv_ret = ::uv_fs_utime(
+          static_cast< uv::loop::uv_t* >(_loop), static_cast< uv_t* >(uv_req),
+          _path, _atime, _mtime,
+          utime_cb
+      );
+      if (uv_ret < 0)
+      {
+        uv_status(uv_ret);
+        instance_ptr->unref();
+      }
 
-    uv_status(0);
-    auto uv_ret = ::uv_fs_utime(
-        static_cast< uv::loop::uv_t* >(_loop), static_cast< uv_t* >(uv_req),
-        _path, _atime, _mtime,
-        utime_cb
-    );
-    if (uv_ret < 0)  uv_status(uv_ret);
-
-    return uv_ret;
+      return uv_ret;
+    }
   }
 
   /*! \brief Run the request. Change last access and modification times for the open `_file`.
@@ -1721,9 +1780,9 @@ public: /*interface*/
       \note If the request callback is empty (has not been set), the request runs _synchronously_. */
   int run(file &_file, double _atime, double _mtime)
   {
-    auto instance_ptr = instance::from(uv_req);
-
     ::uv_fs_req_cleanup(static_cast< uv_t* >(uv_req));  // assuming that *uv_req has initially been nulled
+
+    auto instance_ptr = instance::from(uv_req);
 
     if (!instance_ptr->request_cb_storage.value())
     {
@@ -1735,26 +1794,32 @@ public: /*interface*/
           nullptr
       ));
     }
-
-
-    file::instance::from(_file.uv_handle)->ref();
-    instance_ptr->ref();
-
-    // instance_ptr->properties() = { static_cast< file::uv_t* >(_file) };
+    else
     {
-      auto &properties = instance_ptr->properties();
-      properties.uv_handle = static_cast< file::uv_t* >(_file);
+      file::instance::from(_file.uv_handle)->ref();
+      instance_ptr->ref();
+
+      // instance_ptr->properties() = { static_cast< file::uv_t* >(_file) };
+      {
+        auto &properties = instance_ptr->properties();
+        properties.uv_handle = static_cast< file::uv_t* >(_file);
+      }
+
+      uv_status(0);
+      auto uv_ret = ::uv_fs_futime(
+          static_cast< file::uv_t* >(_file)->loop, static_cast< uv_t* >(uv_req),
+          _file.fd(), _atime, _mtime,
+          utime_cb
+      );
+      if (uv_ret < 0)
+      {
+        uv_status(uv_ret);
+        file::instance::from(_file.uv_handle)->unref();
+        instance_ptr->unref();
+      }
+
+      return uv_ret;
     }
-
-    uv_status(0);
-    auto uv_ret = ::uv_fs_futime(
-        static_cast< file::uv_t* >(_file)->loop, static_cast< uv_t* >(uv_req),
-        _file.fd(), _atime, _mtime,
-        utime_cb
-    );
-    if (uv_ret < 0)  uv_status(uv_ret);
-
-    return uv_ret;
   }
 
 public: /*conversion operators*/
@@ -1841,9 +1906,9 @@ public: /*interface*/
       \note If the request callback is empty (has not been set), the request runs _synchronously_. */
   int run(uv::loop &_loop, const char* _path)
   {
-    auto instance_ptr = instance::from(uv_req);
-
     ::uv_fs_req_cleanup(static_cast< uv_t* >(uv_req));  // assuming that *uv_req has initially been nulled
+
+    auto instance_ptr = instance::from(uv_req);
 
     if (!instance_ptr->request_cb_storage.value())
     {
@@ -1853,19 +1918,24 @@ public: /*interface*/
           nullptr
       ));
     }
+    else
+    {
+      instance_ptr->ref();
 
+      uv_status(0);
+      auto uv_ret = ::uv_fs_unlink(
+          static_cast< uv::loop::uv_t* >(_loop), static_cast< uv_t* >(uv_req),
+          _path,
+          unlink_cb
+      );
+      if (uv_ret < 0)
+      {
+        uv_status(uv_ret);
+        instance_ptr->unref();
+      }
 
-    instance_ptr->ref();
-
-    uv_status(0);
-    auto uv_ret = ::uv_fs_unlink(
-        static_cast< uv::loop::uv_t* >(_loop), static_cast< uv_t* >(uv_req),
-        _path,
-        unlink_cb
-    );
-    if (uv_ret < 0)  uv_status(uv_ret);
-
-    return uv_ret;
+      return uv_ret;
+    }
   }
 
 public: /*conversion operators*/
@@ -1939,9 +2009,9 @@ public: /*interface*/
       \note If the request callback is empty (has not been set), the request runs _synchronously_. */
   int run(uv::loop &_loop, const char* _path, int _mode)
   {
-    auto instance_ptr = instance::from(uv_req);
-
     ::uv_fs_req_cleanup(static_cast< uv_t* >(uv_req));  // assuming that *uv_req has initially been nulled
+
+    auto instance_ptr = instance::from(uv_req);
 
     if (!instance_ptr->request_cb_storage.value())
     {
@@ -1951,19 +2021,24 @@ public: /*interface*/
           nullptr
       ));
     }
+    else
+    {
+      instance_ptr->ref();
 
+      uv_status(0);
+      auto uv_ret = ::uv_fs_mkdir(
+          static_cast< uv::loop::uv_t* >(_loop), static_cast< uv_t* >(uv_req),
+          _path, _mode,
+          mkdir_cb
+      );
+      if (uv_ret < 0)
+      {
+        uv_status(uv_ret);
+        instance_ptr->unref();
+      }
 
-    instance_ptr->ref();
-
-    uv_status(0);
-    auto uv_ret = ::uv_fs_mkdir(
-        static_cast< uv::loop::uv_t* >(_loop), static_cast< uv_t* >(uv_req),
-        _path, _mode,
-        mkdir_cb
-    );
-    if (uv_ret < 0)  uv_status(uv_ret);
-
-    return uv_ret;
+      return uv_ret;
+    }
   }
 
 public: /*conversion operators*/
@@ -2037,9 +2112,9 @@ public: /*interface*/
       \note If the request callback is empty (has not been set), the request runs _synchronously_. */
   int run(uv::loop &_loop, const char* _template)
   {
-    auto instance_ptr = instance::from(uv_req);
-
     ::uv_fs_req_cleanup(static_cast< uv_t* >(uv_req));  // assuming that *uv_req has initially been nulled
+
+    auto instance_ptr = instance::from(uv_req);
 
     if (!instance_ptr->request_cb_storage.value())
     {
@@ -2049,19 +2124,24 @@ public: /*interface*/
           nullptr
       ));
     }
+    else
+    {
+      instance_ptr->ref();
 
+      uv_status(0);
+      auto uv_ret = ::uv_fs_mkdtemp(
+          static_cast< uv::loop::uv_t* >(_loop), static_cast< uv_t* >(uv_req),
+          _template,
+          mkdtemp_cb
+      );
+      if (uv_ret < 0)
+      {
+        uv_status(uv_ret);
+        instance_ptr->unref();
+      }
 
-    instance_ptr->ref();
-
-    uv_status(0);
-    auto uv_ret = ::uv_fs_mkdtemp(
-        static_cast< uv::loop::uv_t* >(_loop), static_cast< uv_t* >(uv_req),
-        _template,
-        mkdtemp_cb
-    );
-    if (uv_ret < 0)  uv_status(uv_ret);
-
-    return uv_ret;
+      return uv_ret;
+    }
   }
 
 public: /*conversion operators*/
@@ -2135,9 +2215,9 @@ public: /*interface*/
       \note If the request callback is empty (has not been set), the request runs _synchronously_. */
   int run(uv::loop &_loop, const char* _path)
   {
-    auto instance_ptr = instance::from(uv_req);
-
     ::uv_fs_req_cleanup(static_cast< uv_t* >(uv_req));  // assuming that *uv_req has initially been nulled
+
+    auto instance_ptr = instance::from(uv_req);
 
     if (!instance_ptr->request_cb_storage.value())
     {
@@ -2147,19 +2227,24 @@ public: /*interface*/
           nullptr
       ));
     }
+    else
+    {
+      instance_ptr->ref();
 
+      uv_status(0);
+      auto uv_ret = ::uv_fs_rmdir(
+          static_cast< uv::loop::uv_t* >(_loop), static_cast< uv_t* >(uv_req),
+          _path,
+          rmdir_cb
+      );
+      if (uv_ret < 0)
+      {
+        uv_status(uv_ret);
+        instance_ptr->unref();
+      }
 
-    instance_ptr->ref();
-
-    uv_status(0);
-    auto uv_ret = ::uv_fs_rmdir(
-        static_cast< uv::loop::uv_t* >(_loop), static_cast< uv_t* >(uv_req),
-        _path,
-        rmdir_cb
-    );
-    if (uv_ret < 0)  uv_status(uv_ret);
-
-    return uv_ret;
+      return uv_ret;
+    }
   }
 
 public: /*conversion operators*/
@@ -2243,9 +2328,9 @@ public: /*interface*/
       In this case the function returns the number of directory entries or relevant libuv error code. */
   int run(uv::loop &_loop, const char* _path)
   {
-    auto instance_ptr = instance::from(uv_req);
-
     ::uv_fs_req_cleanup(static_cast< uv_t* >(uv_req));  // assuming that *uv_req has initially been nulled
+
+    auto instance_ptr = instance::from(uv_req);
 
     if (!instance_ptr->request_cb_storage.value())
     {
@@ -2255,19 +2340,24 @@ public: /*interface*/
           nullptr
       ));
     }
+    else
+    {
+      instance_ptr->ref();
 
+      uv_status(0);
+      auto uv_ret = ::uv_fs_scandir(
+          static_cast< uv::loop::uv_t* >(_loop), static_cast< uv_t* >(uv_req),
+          _path, 0,
+          scandir_cb
+      );
+      if (uv_ret < 0)
+      {
+        uv_status(uv_ret);
+        instance_ptr->unref();
+      }
 
-    instance_ptr->ref();
-
-    uv_status(0);
-    auto uv_ret = ::uv_fs_scandir(
-        static_cast< uv::loop::uv_t* >(_loop), static_cast< uv_t* >(uv_req),
-        _path, 0,
-        scandir_cb
-    );
-    if (uv_ret < 0)  uv_status(uv_ret);
-
-    return uv_ret;
+      return uv_ret;
+    }
   }
 
 public: /*conversion operators*/
@@ -2299,16 +2389,6 @@ class fs::rename : public fs
 public: /*types*/
   using on_request_t = std::function< void(rename _request) >;
   /*!< \brief The function type of the callback called when the `rename` request has completed. */
-
-protected: /*types*/
-  //! \cond
-  struct properties : public fs::properties
-  {
-#ifdef _WIN32
-    std::string new_path;
-#endif
-  };
-  //! \endcond
 
 private: /*types*/
   using instance = request::instance< rename >;
@@ -2342,13 +2422,22 @@ public: /*interface*/
         on_request_t& on_request()       noexcept  { return instance::from(uv_req)->request_cb_storage.value(); }
 
   /*! \brief The file path affected by request.
+      \warning On Windows the pointer actually refers to `WCHAR` string.
       \sa libuv API documentation: [`uv_fs_t.path`](http://docs.libuv.org/en/v1.x/fs.html#c.uv_fs_t.path). */
-  const char* path() const noexcept  { return static_cast< uv_t* >(uv_req)->path; }
-  /*! \brief The file path affected by request. */
+  const char* path() const noexcept
+  {
+#ifdef _WIN32
+    return reinterpret_cast< const char* >(static_cast< uv_t* >(uv_req)->file.pathw)
+#else
+    return static_cast< uv_t* >(uv_req)->path;
+#endif
+  }
+  /*! \brief The file path affected by request.
+      \warning On Windows the pointer actually refers to `WCHAR` string. */
   const char* new_path() const noexcept
   {
 #ifdef _WIN32
-    return instance::from(uv_req)->properties().new_path.c_str();
+    return reinterpret_cast< const char* >(static_cast< uv_t* >(uv_req)->fs.info.new_pathw)
 #else
     return static_cast< uv_t* >(uv_req)->new_path;
 #endif
@@ -2360,13 +2449,9 @@ public: /*interface*/
       \note If the request callback is empty (has not been set), the request runs _synchronously_. */
   int run(uv::loop &_loop, const char* _path, const char* _new_path)
   {
-    auto instance_ptr = instance::from(uv_req);
-
     ::uv_fs_req_cleanup(static_cast< uv_t* >(uv_req));  // assuming that *uv_req has initially been nulled
 
-#ifdef _WIN32
-    instance_ptr->properties().new_path.assign(_new_path);
-#endif
+    auto instance_ptr = instance::from(uv_req);
 
     if (!instance_ptr->request_cb_storage.value())
     {
@@ -2376,19 +2461,24 @@ public: /*interface*/
           nullptr
       ));
     }
+    else
+    {
+      instance_ptr->ref();
 
+      uv_status(0);
+      auto uv_ret = ::uv_fs_rename(
+          static_cast< uv::loop::uv_t* >(_loop), static_cast< uv_t* >(uv_req),
+          _path, _new_path,
+          rename_cb
+      );
+      if (uv_ret < 0)
+      {
+        uv_status(uv_ret);
+        instance_ptr->unref();
+      }
 
-    instance_ptr->ref();
-
-    uv_status(0);
-    auto uv_ret = ::uv_fs_rename(
-        static_cast< uv::loop::uv_t* >(_loop), static_cast< uv_t* >(uv_req),
-        _path, _new_path,
-        rename_cb
-    );
-    if (uv_ret < 0)  uv_status(uv_ret);
-
-    return uv_ret;
+      return uv_ret;
+    }
   }
 
 public: /*conversion operators*/
@@ -2462,9 +2552,9 @@ public: /*interface*/
       \note If the request callback is empty (has not been set), the request runs _synchronously_. */
   int run(uv::loop &_loop, const char* _path, int _mode)
   {
-    auto instance_ptr = instance::from(uv_req);
-
     ::uv_fs_req_cleanup(static_cast< uv_t* >(uv_req));  // assuming that *uv_req has initially been nulled
+
+    auto instance_ptr = instance::from(uv_req);
 
     if (!instance_ptr->request_cb_storage.value())
     {
@@ -2474,19 +2564,24 @@ public: /*interface*/
           nullptr
       ));
     }
+    else
+    {
+      instance_ptr->ref();
 
+      uv_status(0);
+      auto uv_ret = ::uv_fs_access(
+          static_cast< uv::loop::uv_t* >(_loop), static_cast< uv_t* >(uv_req),
+          _path, _mode,
+          access_cb
+      );
+      if (uv_ret < 0)
+      {
+        uv_status(uv_ret);
+        instance_ptr->unref();
+      }
 
-    instance_ptr->ref();
-
-    uv_status(0);
-    auto uv_ret = ::uv_fs_access(
-        static_cast< uv::loop::uv_t* >(_loop), static_cast< uv_t* >(uv_req),
-        _path, _mode,
-        access_cb
-    );
-    if (uv_ret < 0)  uv_status(uv_ret);
-
-    return uv_ret;
+      return uv_ret;
+    }
   }
 
 public: /*conversion operators*/
@@ -2518,16 +2613,6 @@ class fs::link : public fs
 public: /*types*/
   using on_request_t = std::function< void(link _request) >;
   /*!< \brief The function type of the callback called when the `link` request has completed. */
-
-protected: /*types*/
-  //! \cond
-  struct properties : public fs::properties
-  {
-#ifdef _WIN32
-    std::string link_path;
-#endif
-  };
-  //! \endcond
 
 private: /*types*/
   using instance = request::instance< link >;
@@ -2561,13 +2646,22 @@ public: /*interface*/
         on_request_t& on_request()       noexcept  { return instance::from(uv_req)->request_cb_storage.value(); }
 
   /*! \brief The file path affected by request.
+      \warning On Windows the pointer actually refers to `WCHAR` string.
       \sa libuv API documentation: [`uv_fs_t.path`](http://docs.libuv.org/en/v1.x/fs.html#c.uv_fs_t.path). */
-  const char* path() const noexcept  { return static_cast< uv_t* >(uv_req)->path; }
-  /*! \brief The new name for the path affected by request. */
+  const char* path() const noexcept
+  {
+#ifdef _WIN32
+    return reinterpret_cast< const char* >(static_cast< uv_t* >(uv_req)->file.pathw)
+#else
+    return static_cast< uv_t* >(uv_req)->path;
+#endif
+  }
+  /*! \brief The new name for the path affected by request.
+      \warning On Windows the pointer actually refers to `WCHAR` string. */
   const char* link_path() const noexcept
   {
 #ifdef _WIN32
-    return instance::from(uv_req)->properties().link_path.c_str();
+    return reinterpret_cast< const char* >(static_cast< uv_t* >(uv_req)->fs.info.new_pathw)
 #else
     return static_cast< uv_t* >(uv_req)->new_path;
 #endif
@@ -2591,13 +2685,9 @@ public: /*interface*/
       \note If the request callback is empty (has not been set), the request runs _synchronously_. */
   int run(uv::loop &_loop, const char* _path, const char* _link_path, bool _symlink, int _symlink_flags = 0)
   {
-    auto instance_ptr = instance::from(uv_req);
-
     ::uv_fs_req_cleanup(static_cast< uv_t* >(uv_req));  // assuming that *uv_req has initially been nulled
 
-#ifdef _WIN32
-    instance_ptr->properties().link_path.assign(_link_path);
-#endif
+    auto instance_ptr = instance::from(uv_req);
 
     if (!instance_ptr->request_cb_storage.value())
     {
@@ -2612,25 +2702,30 @@ public: /*interface*/
           nullptr
       ));
     }
+    else
+    {
+      instance_ptr->ref();
 
+      uv_status(0);
+      int uv_ret = 0;
+      if (_symlink)  uv_ret = ::uv_fs_symlink(
+          static_cast< uv::loop::uv_t* >(_loop), static_cast< uv_t* >(uv_req),
+          _path, _link_path, _symlink_flags,
+          link_cb
+      );
+      else  uv_ret = ::uv_fs_link(
+          static_cast< uv::loop::uv_t* >(_loop), static_cast< uv_t* >(uv_req),
+          _path, _link_path,
+          link_cb
+      );
+      if (uv_ret < 0)
+      {
+        uv_status(uv_ret);
+        instance_ptr->unref();
+      }
 
-    instance_ptr->ref();
-
-    uv_status(0);
-    int uv_ret = 0;
-    if (_symlink)  uv_ret = ::uv_fs_symlink(
-        static_cast< uv::loop::uv_t* >(_loop), static_cast< uv_t* >(uv_req),
-        _path, _link_path, _symlink_flags,
-        link_cb
-    );
-    else  uv_ret = ::uv_fs_link(
-        static_cast< uv::loop::uv_t* >(_loop), static_cast< uv_t* >(uv_req),
-        _path, _link_path,
-        link_cb
-    );
-    if (uv_ret < 0)  uv_status(uv_ret);
-
-    return uv_ret;
+      return uv_ret;
+    }
   }
 
 public: /*conversion operators*/
@@ -2707,9 +2802,9 @@ public: /*interface*/
       \note If the request callback is empty (has not been set), the request runs _synchronously_. */
   int run(uv::loop &_loop, const char* _path)
   {
-    auto instance_ptr = instance::from(uv_req);
-
     ::uv_fs_req_cleanup(static_cast< uv_t* >(uv_req));  // assuming that *uv_req has initially been nulled
+
+    auto instance_ptr = instance::from(uv_req);
 
     if (!instance_ptr->request_cb_storage.value())
     {
@@ -2719,19 +2814,24 @@ public: /*interface*/
           nullptr
       ));
     }
+    else
+    {
+      instance_ptr->ref();
 
+      uv_status(0);
+      auto uv_ret = ::uv_fs_readlink(
+          static_cast< uv::loop::uv_t* >(_loop), static_cast< uv_t* >(uv_req),
+          _path,
+          readlink_cb
+      );
+      if (uv_ret < 0)
+      {
+        uv_status(uv_ret);
+        instance_ptr->unref();
+      }
 
-    instance_ptr->ref();
-
-    uv_status(0);
-    auto uv_ret = ::uv_fs_readlink(
-        static_cast< uv::loop::uv_t* >(_loop), static_cast< uv_t* >(uv_req),
-        _path,
-        readlink_cb
-    );
-    if (uv_ret < 0)  uv_status(uv_ret);
-
-    return uv_ret;
+      return uv_ret;
+    }
   }
 
 public: /*conversion operators*/
@@ -2808,9 +2908,9 @@ public: /*interface*/
       \note If the request callback is empty (has not been set), the request runs _synchronously_. */
   int run(uv::loop &_loop, const char* _path)
   {
-    auto instance_ptr = instance::from(uv_req);
-
     ::uv_fs_req_cleanup(static_cast< uv_t* >(uv_req));  // assuming that *uv_req has initially been nulled
+
+    auto instance_ptr = instance::from(uv_req);
 
     if (!instance_ptr->request_cb_storage.value())
     {
@@ -2820,19 +2920,24 @@ public: /*interface*/
           nullptr
       ));
     }
+    else
+    {
+      instance_ptr->ref();
 
+      uv_status(0);
+      auto uv_ret = ::uv_fs_realpath(
+          static_cast< uv::loop::uv_t* >(_loop), static_cast< uv_t* >(uv_req),
+          _path,
+          realpath_cb
+      );
+      if (uv_ret < 0)
+      {
+        uv_status(uv_ret);
+        instance_ptr->unref();
+      }
 
-    instance_ptr->ref();
-
-    uv_status(0);
-    auto uv_ret = ::uv_fs_realpath(
-        static_cast< uv::loop::uv_t* >(_loop), static_cast< uv_t* >(uv_req),
-        _path,
-        realpath_cb
-    );
-    if (uv_ret < 0)  uv_status(uv_ret);
-
-    return uv_ret;
+      return uv_ret;
+    }
   }
 
 public: /*conversion operators*/
