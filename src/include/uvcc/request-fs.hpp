@@ -81,15 +81,10 @@ protected: /*types*/
 private: /*types*/
   using instance = request::instance< fs >;
 
-private: /*constructors*/
-  explicit fs(uv_t *_uv_req)
-  {
-    if (_uv_req)  instance::from(_uv_req)->ref();
-    uv_req = _uv_req;
-  }
-
 protected: /*constructors*/
   fs() noexcept = default;
+
+  explicit fs(uv_t *_uv_req) : request(reinterpret_cast< request::uv_t* >(_uv_req))  {}
 
 public: /*constructors*/
   ~fs() = default;
@@ -147,12 +142,8 @@ protected: /*types*/
 private: /*types*/
   using instance = request::instance< close >;
 
-private: /*constructors*/
-  explicit close(uv_t *_uv_req)
-  {
-    if (_uv_req)  instance::from(_uv_req)->ref();
-    uv_req = _uv_req;
-  }
+protected: /*constructors*/
+  explicit close(uv_t *_uv_req) : fs(_uv_req)  {}
 
 public: /*constructors*/
   ~close() = default;
@@ -275,12 +266,8 @@ protected: /*types*/
 private: /*types*/
   using instance = request::instance< read >;
 
-private: /*constructors*/
-  explicit read(uv_t *_uv_req)
-  {
-    if (_uv_req)  instance::from(_uv_req)->ref();
-    uv_req = _uv_req;
-  }
+protected: /*constructors*/
+  explicit read(uv_t *_uv_req) : fs(_uv_req)  {}
 
 public: /*constructors*/
   ~read() = default;
@@ -432,12 +419,8 @@ protected: /*types*/
 private: /*types*/
   using instance = request::instance< write >;
 
-private: /*constructors*/
-  explicit write(uv_t *_uv_req)
-  {
-    if (_uv_req)  instance::from(_uv_req)->ref();
-    uv_req = _uv_req;
-  }
+protected: /*constructors*/
+  explicit write(uv_t *_uv_req) : fs(_uv_req)  {}
 
 public: /*constructors*/
   ~write() = default;
@@ -634,12 +617,8 @@ protected: /*types*/
 private: /*types*/
   using instance = request::instance< sync >;
 
-private: /*constructors*/
-  explicit sync(uv_t *_uv_req)
-  {
-    if (_uv_req)  instance::from(_uv_req)->ref();
-    uv_req = _uv_req;
-  }
+protected: /*constructors*/
+  explicit sync(uv_t *_uv_req) : fs(_uv_req)  {}
 
 public: /*constructors*/
   ~sync() = default;
@@ -764,12 +743,8 @@ protected: /*types*/
 private: /*types*/
   using instance = request::instance< truncate >;
 
-private: /*constructors*/
-  explicit truncate(uv_t *_uv_req)
-  {
-    if (_uv_req)  instance::from(_uv_req)->ref();
-    uv_req = _uv_req;
-  }
+protected: /*constructors*/
+  explicit truncate(uv_t *_uv_req) : fs(_uv_req)  {}
 
 public: /*constructors*/
   ~truncate() = default;
@@ -922,12 +897,8 @@ private: /*types*/
     static std::enable_if_t<  _is_convertible_, ::uv_file > try_convert(::uv_os_fd_t _os_fd)  { return _os_fd; }
   };
 
-private: /*constructors*/
-  explicit sendfile(uv_t *_uv_req)
-  {
-    if (_uv_req)  instance::from(_uv_req)->ref();
-    uv_req = _uv_req;
-  }
+protected: /*constructors*/
+  explicit sendfile(uv_t *_uv_req) : fs(_uv_req)  {}
 
 public: /*constructors*/
   ~sendfile() = default;
@@ -1090,12 +1061,8 @@ protected: /*types*/
 private: /*types*/
   using instance = request::instance< stat >;
 
-private: /*constructors*/
-  explicit stat(uv_t *_uv_req)
-  {
-    if (_uv_req)  instance::from(_uv_req)->ref();
-    uv_req = _uv_req;
-  }
+protected: /*constructors*/
+  explicit stat(uv_t *_uv_req) : fs(_uv_req)  {}
 
 public: /*constructors*/
   ~stat() = default;
@@ -1295,12 +1262,8 @@ protected: /*types*/
 private: /*types*/
   using instance = request::instance< chmod >;
 
-private: /*constructors*/
-  explicit chmod(uv_t *_uv_req)
-  {
-    if (_uv_req)  instance::from(_uv_req)->ref();
-    uv_req = _uv_req;
-  }
+protected: /*constructors*/
+  explicit chmod(uv_t *_uv_req) : fs(_uv_req)  {}
 
 public: /*constructors*/
   ~chmod() = default;
@@ -1489,12 +1452,8 @@ protected: /*types*/
 private: /*types*/
   using instance = request::instance< chown >;
 
-private: /*constructors*/
-  explicit chown(uv_t *_uv_req)
-  {
-    if (_uv_req)  instance::from(_uv_req)->ref();
-    uv_req = _uv_req;
-  }
+protected: /*constructors*/
+  explicit chown(uv_t *_uv_req) : fs(_uv_req)  {}
 
 public: /*constructors*/
   ~chown() = default;
@@ -1682,12 +1641,8 @@ protected: /*types*/
 private: /*types*/
   using instance = request::instance< utime >;
 
-private: /*constructors*/
-  explicit utime(uv_t *_uv_req)
-  {
-    if (_uv_req)  instance::from(_uv_req)->ref();
-    uv_req = _uv_req;
-  }
+protected: /*constructors*/
+  explicit utime(uv_t *_uv_req) : fs(_uv_req)  {}
 
 public: /*constructors*/
   ~utime() = default;
@@ -1868,12 +1823,8 @@ public: /*types*/
 private: /*types*/
   using instance = request::instance< unlink >;
 
-private: /*constructors*/
-  explicit unlink(uv_t *_uv_req)
-  {
-    if (_uv_req)  instance::from(_uv_req)->ref();
-    uv_req = _uv_req;
-  }
+protected: /*constructors*/
+  explicit unlink(uv_t *_uv_req) : fs(_uv_req)  {}
 
 public: /*constructors*/
   ~unlink() = default;
@@ -1971,12 +1922,8 @@ public: /*types*/
 private: /*types*/
   using instance = request::instance< mkdir >;
 
-private: /*constructors*/
-  explicit mkdir(uv_t *_uv_req)
-  {
-    if (_uv_req)  instance::from(_uv_req)->ref();
-    uv_req = _uv_req;
-  }
+protected: /*constructors*/
+  explicit mkdir(uv_t *_uv_req) : fs(_uv_req)  {}
 
 public: /*constructors*/
   ~mkdir() = default;
@@ -2074,12 +2021,8 @@ public: /*types*/
 private: /*types*/
   using instance = request::instance< mkdtemp >;
 
-private: /*constructors*/
-  explicit mkdtemp(uv_t *_uv_req)
-  {
-    if (_uv_req)  instance::from(_uv_req)->ref();
-    uv_req = _uv_req;
-  }
+protected: /*constructors*/
+  explicit mkdtemp(uv_t *_uv_req) : fs(_uv_req)  {}
 
 public: /*constructors*/
   ~mkdtemp() = default;
@@ -2177,12 +2120,8 @@ public: /*types*/
 private: /*types*/
   using instance = request::instance< rmdir >;
 
-private: /*constructors*/
-  explicit rmdir(uv_t *_uv_req)
-  {
-    if (_uv_req)  instance::from(_uv_req)->ref();
-    uv_req = _uv_req;
-  }
+protected: /*constructors*/
+  explicit rmdir(uv_t *_uv_req) : fs(_uv_req)  {}
 
 public: /*constructors*/
   ~rmdir() = default;
@@ -2280,12 +2219,8 @@ public: /*types*/
 private: /*types*/
   using instance = request::instance< scandir >;
 
-private: /*constructors*/
-  explicit scandir(uv_t *_uv_req)
-  {
-    if (_uv_req)  instance::from(_uv_req)->ref();
-    uv_req = _uv_req;
-  }
+protected: /*constructors*/
+  explicit scandir(uv_t *_uv_req) : fs(_uv_req)  {}
 
 public: /*constructors*/
   ~scandir() = default;
@@ -2393,12 +2328,8 @@ public: /*types*/
 private: /*types*/
   using instance = request::instance< rename >;
 
-private: /*constructors*/
-  explicit rename(uv_t *_uv_req)
-  {
-    if (_uv_req)  instance::from(_uv_req)->ref();
-    uv_req = _uv_req;
-  }
+protected: /*constructors*/
+  explicit rename(uv_t *_uv_req) : fs(_uv_req)  {}
 
 public: /*constructors*/
   ~rename() = default;
@@ -2514,12 +2445,8 @@ public: /*types*/
 private: /*types*/
   using instance = request::instance< access >;
 
-private: /*constructors*/
-  explicit access(uv_t *_uv_req)
-  {
-    if (_uv_req)  instance::from(_uv_req)->ref();
-    uv_req = _uv_req;
-  }
+protected: /*constructors*/
+  explicit access(uv_t *_uv_req) : fs(_uv_req)  {}
 
 public: /*constructors*/
   ~access() = default;
@@ -2617,12 +2544,8 @@ public: /*types*/
 private: /*types*/
   using instance = request::instance< link >;
 
-private: /*constructors*/
-  explicit link(uv_t *_uv_req)
-  {
-    if (_uv_req)  instance::from(_uv_req)->ref();
-    uv_req = _uv_req;
-  }
+protected: /*constructors*/
+  explicit link(uv_t *_uv_req) : fs(_uv_req)  {}
 
 public: /*constructors*/
   ~link() = default;
@@ -2761,12 +2684,8 @@ public: /*types*/
 private: /*types*/
   using instance = request::instance< readlink >;
 
-private: /*constructors*/
-  explicit readlink(uv_t *_uv_req)
-  {
-    if (_uv_req)  instance::from(_uv_req)->ref();
-    uv_req = _uv_req;
-  }
+protected: /*constructors*/
+  explicit readlink(uv_t *_uv_req) : fs(_uv_req)  {}
 
 public: /*constructors*/
   ~readlink() = default;
@@ -2867,12 +2786,8 @@ public: /*types*/
 private: /*types*/
   using instance = request::instance< realpath >;
 
-private: /*constructors*/
-  explicit realpath(uv_t *_uv_req)
-  {
-    if (_uv_req)  instance::from(_uv_req)->ref();
-    uv_req = _uv_req;
-  }
+protected: /*constructors*/
+  explicit realpath(uv_t *_uv_req) : fs(_uv_req)  {}
 
 public: /*constructors*/
   ~realpath() = default;

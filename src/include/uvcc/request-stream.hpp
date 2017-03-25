@@ -37,12 +37,8 @@ public: /*types*/
 private: /*types*/
   using instance = request::instance< connect >;
 
-private: /*constructors*/
-  explicit connect(uv_t *_uv_req)
-  {
-    if (_uv_req)  instance::from(_uv_req)->ref();
-    uv_req = _uv_req;
-  }
+protected: /*constructors*/
+  explicit connect(uv_t *_uv_req) : request(reinterpret_cast< request::uv_t* >(_uv_req))  {}
 
 public: /*constructors*/
   ~connect() = default;
@@ -150,12 +146,8 @@ protected: /*types*/
 private: /*types*/
   using instance = request::instance< write >;
 
-private: /*constructors*/
-  explicit write(uv_t *_uv_req)
-  {
-    if (_uv_req)  instance::from(_uv_req)->ref();
-    uv_req = _uv_req;
-  }
+protected: /*constructors*/
+  explicit write(uv_t *_uv_req) : request(reinterpret_cast< request::uv_t* >(_uv_req))  {}
 
 public: /*constructors*/
   ~write() = default;
@@ -309,12 +301,8 @@ public: /*types*/
 private: /*types*/
   using instance = request::instance< shutdown >;
 
-private: /*constructors*/
-  explicit shutdown(uv_t *_uv_req)
-  {
-    if (_uv_req)  instance::from(_uv_req)->ref();
-    uv_req = _uv_req;
-  }
+protected: /*constructors*/
+  explicit shutdown(uv_t *_uv_req) : request(reinterpret_cast< request::uv_t* >(_uv_req))  {}
 
 public: /*constructors*/
   ~shutdown() = default;

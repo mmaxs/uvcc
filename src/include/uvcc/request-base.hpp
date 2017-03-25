@@ -116,15 +116,14 @@ protected: /*data*/
   void *uv_req;
   //! \endcond
 
-private: /*constructors*/
+protected: /*constructors*/
+  request() noexcept : uv_req(nullptr)  {}
+
   explicit request(uv_t *_uv_req)
   {
     if (_uv_req)  instance< request >::from(_uv_req)->ref();
     uv_req = _uv_req;
   }
-
-protected: /*constructors*/
-  request() noexcept : uv_req(nullptr)  {}
 
 public: /*constructors*/
   ~request()  { if (uv_req)  instance< request >::from(uv_req)->unref(); }

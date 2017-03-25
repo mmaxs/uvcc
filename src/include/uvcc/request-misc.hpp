@@ -50,12 +50,8 @@ protected: /*types*/
 private: /*types*/
   using instance = request::instance< work >;
 
-private: /*constructors*/
-  explicit work(uv_t *_uv_req)
-  {
-    if (_uv_req)  instance::from(_uv_req)->ref();
-    uv_req = _uv_req;
-  }
+protected: /*constructors*/
+  explicit work(uv_t *_uv_req) : request(reinterpret_cast< request::uv_t* >(_uv_req))  {}
 
 public: /*constructors*/
   ~work() = default;

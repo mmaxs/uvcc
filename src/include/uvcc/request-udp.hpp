@@ -46,12 +46,8 @@ protected: /*types*/
 private: /*types*/
   using instance = request::instance< udp_send >;
 
-private: /*constructors*/
-  explicit udp_send(uv_t *_uv_req)
-  {
-    if (_uv_req)  instance::from(_uv_req)->ref();
-    uv_req = _uv_req;
-  }
+protected: /*constructors*/
+  explicit udp_send(uv_t *_uv_req) : request(reinterpret_cast< request::uv_t* >(_uv_req))  {}
 
 public: /*constructors*/
   ~udp_send() = default;

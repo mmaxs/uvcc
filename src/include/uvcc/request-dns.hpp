@@ -43,12 +43,8 @@ protected: /*types*/
 private: /*types*/
   using instance = request::instance< getaddrinfo >;
 
-private: /*constructors*/
-  explicit getaddrinfo(uv_t *_uv_req)
-  {
-    if (_uv_req)  instance::from(_uv_req)->ref();
-    uv_req = _uv_req;
-  }
+protected: /*constructors*/
+  explicit getaddrinfo(uv_t *_uv_req) : request(reinterpret_cast< request::uv_t* >(_uv_req))  {}
 
 public: /*constructors*/
   ~getaddrinfo() = default;
@@ -166,12 +162,8 @@ public: /*types*/
 private: /*types*/
   using instance = request::instance< getnameinfo >;
 
-private: /*constructors*/
-  explicit getnameinfo(uv_t *_uv_req)
-  {
-    if (_uv_req)  instance::from(_uv_req)->ref();
-    uv_req = _uv_req;
-  }
+protected: /*constructors*/
+  explicit getnameinfo(uv_t *_uv_req) : request(reinterpret_cast< request::uv_t* >(_uv_req))  {}
 
 public: /*constructors*/
   ~getnameinfo() = default;
