@@ -14,7 +14,7 @@
 template< typename _Work_ >
 void task_report(_Work_ _task)
 {
-  fprintf(stdout, "work [0x%08llX] completed, target values found: %zu\n", _task.id(), _task.result().get());
+  fprintf(stdout, "work [0x%08tX] completed, target values found: %zu\n", _task.id(), _task.result().get());
   fflush(stdout);
 }
 
@@ -38,7 +38,7 @@ std::size_t count_if_multithreaded(_InputIterator_ _begin, _InputIterator_ _end,
     uv::work< std::size_t > task;
     task.on_request() = task_report< decltype(task) >;
 
-    fprintf(stdout, "work [0x%08llX] starting\n", task.id());  fflush(stdout);
+    fprintf(stdout, "work [0x%08tX] starting\n", task.id());  fflush(stdout);
     task.run(uv::loop::Default(), std::count_if< _InputIterator_, _UnaryPredicate_ >, _begin, section_end, _predicate);
 
     results.emplace_back(task.result());
