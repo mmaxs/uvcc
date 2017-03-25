@@ -2358,7 +2358,7 @@ public: /*interface*/
   const char* path() const noexcept
   {
 #ifdef _WIN32
-    return reinterpret_cast< const char* >(static_cast< uv_t* >(uv_req)->file.pathw)
+    return reinterpret_cast< const char* >(static_cast< uv_t* >(uv_req)->file.pathw);
 #else
     return static_cast< uv_t* >(uv_req)->path;
 #endif
@@ -2368,7 +2368,7 @@ public: /*interface*/
   const char* new_path() const noexcept
   {
 #ifdef _WIN32
-    return reinterpret_cast< const char* >(static_cast< uv_t* >(uv_req)->fs.info.new_pathw)
+    return reinterpret_cast< const char* >(static_cast< uv_t* >(uv_req)->fs.info.new_pathw);
 #else
     return static_cast< uv_t* >(uv_req)->new_path;
 #endif
@@ -2574,7 +2574,7 @@ public: /*interface*/
   const char* path() const noexcept
   {
 #ifdef _WIN32
-    return reinterpret_cast< const char* >(static_cast< uv_t* >(uv_req)->file.pathw)
+    return reinterpret_cast< const char* >(static_cast< uv_t* >(uv_req)->file.pathw);
 #else
     return static_cast< uv_t* >(uv_req)->path;
 #endif
@@ -2584,7 +2584,7 @@ public: /*interface*/
   const char* link_path() const noexcept
   {
 #ifdef _WIN32
-    return reinterpret_cast< const char* >(static_cast< uv_t* >(uv_req)->fs.info.new_pathw)
+    return reinterpret_cast< const char* >(static_cast< uv_t* >(uv_req)->fs.info.new_pathw);
 #else
     return static_cast< uv_t* >(uv_req)->new_path;
 #endif
