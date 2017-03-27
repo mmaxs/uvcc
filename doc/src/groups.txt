@@ -1,4 +1,6 @@
-
+/*
+Supplemental details and explanations related to groups (modules).
+*/
 
 
 /*! \addtogroup doxy_group__buffer

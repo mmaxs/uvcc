@@ -1,4 +1,6 @@
-
+/*
+Additional custom pages.
+*/
 
 
 /*! \page doxy_page__introduction  Introduction
@@ -65,10 +67,10 @@ with which the handle to be closed is associated is not running e.g. because of 
 after processing all active handles and requests, and the program has come to the end (in this case the special care should be taken
 for proper closing of the libuv loop so all the pending callbacks to be performed). Instead, uvcc's destroy callback is called
 in any case when the last variable referencing this handle is destroyed. Whether the loop is running or not, the destroy callback
-will be executed synchronously as part of the handle instance closing.
+will be executed synchronously as integrated part of the handle instance closing procedure.
 
 For the other two classes (`uv::request` and `uv::loop`) the destroy callbacks are a uvcc specific feature and they are executed
-as part of the variable's destructor.
+as integrated part of the variable's destructor.
 
 */
 
@@ -223,6 +225,9 @@ In debug build some diagnostic messages are printed out.
 
 \verbatim example/tee.cpp \endverbatim
 \includelineno tee.cpp
+
+- - -
+
 
 */
 

@@ -1,0 +1,6 @@
+/*
+Comments to source code with some detailed descriptions or references to other parts
+of the code and documentation that should appear in resulting documentation along with
+given definitions from the sources but are severed from the comments in the code for
+not cluttering the source files.
+*/
