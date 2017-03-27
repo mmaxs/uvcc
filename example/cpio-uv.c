@@ -21,16 +21,17 @@ sighandler_t sigpipe_handler = signal(SIGPIPE, SIG_IGN);  // ignore SIGPIPE
 uv_pipe_t in, out;
 
 
-/* forward declarations for callback functions */
-void alloc_cb(uv_handle_t*, size_t, uv_buf_t*);
-void read_cb(uv_stream_t*, ssize_t, const uv_buf_t*);
-void write_cb(uv_write_t*, int);
-
-
 /* define queue size limits and transfer control states */
 const size_t WRITE_QUEUE_SIZE_UPPER_LIMIT = 500*1024*1024,
              WRITE_QUEUE_SIZE_LOWER_LIMIT =  10*1024*1024;
 enum { RD_UNKNOWN, RD_STOP, RD_PAUSE, RD_START } rdcmd_state = RD_UNKNOWN;
+int wr_err_reported = 0;
+
+
+/* forward declarations for callback functions */
+void alloc_cb(uv_handle_t*, size_t, uv_buf_t*);
+void read_cb(uv_stream_t*, ssize_t, const uv_buf_t*);
+void write_cb(uv_write_t*, int);
 
 
 int main(int _argc, char *_argv[])
@@ -119,13 +120,15 @@ void write_cb(uv_write_t *_wr, int _status)
 {
   if (_status < 0)
   {
-    /* report only the very first occurrence of the failure */
-    if (uv_is_active((uv_handle_t*)&in))
+    if (!wr_err_reported)
     {
+      /* report only the very first occurrence of the failure */
       PRINT_UV_ERR(_status, "write");
-      rdcmd_state = RD_STOP;
-      uv_read_stop((uv_stream_t*)&in);
+      wr_err_reported = 1;
     }
+
+    rdcmd_state = RD_STOP;
+    uv_read_stop((uv_stream_t*)&in);
   }
   else
   {

@@ -21,6 +21,7 @@ uv::pipe in(uv::loop::Default(), fileno(stdin)),
 
 constexpr std::size_t WRITE_QUEUE_SIZE_UPPER_LIMIT = 500*1024*1024,
                       WRITE_QUEUE_SIZE_LOWER_LIMIT =  10*1024*1024;
+bool wr_err_reported = false;
 
 
 void read_cb(uv::io, ssize_t, uv::buffer, int64_t, void*);
@@ -85,11 +86,13 @@ void write_cb(uv::write _wr, uv::buffer)
 {
   if (!_wr)
   {
-    if (in.is_active())
+    if (!wr_err_reported)
     {
       PRINT_UV_ERR(_wr.uv_status(), "write");
-      in.read_stop();
+      wr_err_reported = true;
     }
+
+    in.read_stop();
   }
   else
     in.read_resume(out.write_queue_size() <= WRITE_QUEUE_SIZE_LOWER_LIMIT);

@@ -39,6 +39,7 @@ uv::io in = uv::io::guess_handle(uv::loop::Default(), fileno(stdin)),
 
 constexpr std::size_t WRITE_QUEUE_SIZE_UPPER_LIMIT = 14*8192,
                       WRITE_QUEUE_SIZE_LOWER_LIMIT =  2*8192;
+bool wr_err_reported = false;
 std::size_t file_write_queues_size = 0;
 
 std::vector< uv::file > files;
@@ -148,11 +149,13 @@ void write_to_stdout_cb(uv::output _wr, uv::buffer _buf)
 {
   if (!_wr)
   {
-    if (in.is_active())  // report only the very first occurrence of the failure
+    if (!wr_err_reported)  // report only the very first occurrence of the failure
     {
       PRINT_UV_ERR(_wr.uv_status(), "write to stdout (%s) at offset %" PRIi64, _wr.handle().type_name(), _wr.offset());
-      in.read_stop();
+      wr_err_reported = true;
     }
+
+    in.read_stop();
   }
   else  // dispatch the data for writing to files only when it successfully has been written to stdout
     write_to_files(_buf, _wr.offset());
