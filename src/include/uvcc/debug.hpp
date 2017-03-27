@@ -117,9 +117,12 @@ void print_handle(::uv_handle_t* _uv_handle) noexcept
 static
 void print_loop_handles(::uv_loop_t *_uv_loop)
 {
-  auto walk_cb = [](::uv_handle_t *_h, void*){ print_handle(_h); };
   std::fprintf(stderr, "[debug] handles associated with loop [0x%08tX]: {\n", (ptrdiff_t)_uv_loop);
-  ::uv_walk(static_cast< ::uv_loop_t* >(_uv_loop), static_cast< ::uv_walk_cb >(walk_cb), nullptr);
+  ::uv_walk(
+      static_cast< ::uv_loop_t* >(_uv_loop),
+      [](::uv_handle_t *_h, void*){ print_handle(_h); },
+      nullptr
+  );
   std::fprintf(stderr, "[debug] }\n");
 }
 

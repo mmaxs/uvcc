@@ -86,8 +86,11 @@ private: /*types*/
       {
         // 1) there are handles associated with the loop that are in deed not closed by the time the loop instance destroying
         unsigned num_open_handles = 0;
-        auto walk_cb = [](::uv_handle_t *_h, void *_n){ if (!::uv_is_closing(_h))  ++*static_cast< unsigned* >(_n); };
-        ::uv_walk(&uv_loop_struct, static_cast< ::uv_walk_cb >(walk_cb), &num_open_handles);
+        ::uv_walk(
+            &uv_loop_struct,
+            [](::uv_handle_t *_h, void *_n){ if (!::uv_is_closing(_h))  ++*static_cast< unsigned* >(_n); },
+            &num_open_handles
+        );
         uvcc_debug_condition(num_open_handles == 0, "{number of not closed handles associated with loop [0x%08tX]}=%u", (ptrdiff_t)&uv_loop_struct, num_open_handles);
         if (num_open_handles)
         {
