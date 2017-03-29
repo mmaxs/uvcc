@@ -71,14 +71,10 @@ private: /*types*/
   using instance = handle::instance< stream >;
 
 private: /*constructors*/
-  explicit stream(uv_t *_uv_handle)
-  {
-    if (_uv_handle)  instance::from(_uv_handle)->ref();
-    uv_handle = _uv_handle;
-  }
-
 protected: /*constructors*/
   stream() noexcept = default;
+
+  explicit stream(uv_t *_uv_handle) : io(static_cast< io::uv_t* >(_uv_handle))  {}
 
 public: /*constructors*/
   ~stream() = default;
@@ -165,12 +161,8 @@ public: /*types*/
 private: /*types*/
   using instance = handle::instance< tcp >;
 
-private: /*constructors*/
-  explicit tcp(uv_t *_uv_handle)
-  {
-    if (_uv_handle)  instance::from(_uv_handle)->ref();
-    uv_handle = _uv_handle;
-  }
+protected: /*constructors*/
+  explicit tcp(uv_t *_uv_handle) : stream(reinterpret_cast< stream::uv_t* >(_uv_handle))  {}
 
 public: /*constructors*/
   ~tcp() = default;
@@ -313,12 +305,8 @@ public: /*types*/
 private: /*types*/
   using instance = handle::instance< pipe >;
 
-private: /*constructors*/
-  explicit pipe(uv_t *_uv_handle)
-  {
-    if (_uv_handle)  instance::from(_uv_handle)->ref();
-    uv_handle = _uv_handle;
-  }
+protected: /*constructors*/
+  explicit pipe(uv_t *_uv_handle) : stream(reinterpret_cast< stream::uv_t* >(_uv_handle))  {}
 
 public: /*constructors*/
   ~pipe() = default;
@@ -454,12 +442,8 @@ public: /*types*/
 private: /*types*/
   using instance = handle::instance< pipe >;
 
-private: /*constructors*/
-  explicit tty(uv_t *_uv_handle)
-  {
-    if (_uv_handle)  instance::from(_uv_handle)->ref();
-    uv_handle = _uv_handle;
-  }
+protected: /*constructors*/
+  explicit tty(uv_t *_uv_handle) : stream(reinterpret_cast< stream::uv_t* >(_uv_handle))  {}
 
 public: /*constructors*/
   ~tty() = default;

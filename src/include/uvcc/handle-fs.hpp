@@ -90,13 +90,7 @@ protected: /*types*/
 private: /*types*/
   using instance = handle::instance< file >;
 
-private: /*constructors*/
-  explicit file(uv_t *_uv_handle)
-  {
-    if (_uv_handle)  instance::from(_uv_handle)->ref();
-    uv_handle = _uv_handle;
-  }
-
+protected: /*constructors*/
   explicit file(uv::loop::uv_t *_loop, ::uv_file _fd, const char *_path)
   {
     uv_handle = instance::create();
@@ -107,6 +101,8 @@ private: /*constructors*/
 
     if (_fd < 0)  instance::from(uv_handle)->properties().is_closing = 1;
   }
+
+  explicit file(uv_t *_uv_handle) : io(static_cast< io::uv_t* >(_uv_handle))  {}
 
 public: /*constructors*/
   ~file() = default;

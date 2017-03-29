@@ -188,15 +188,14 @@ protected: /*data*/
   void *uv_handle;
   //! \endcond
 
-private: /*constructors*/
+protected: /*constructors*/
+  handle() noexcept : uv_handle(nullptr)  {}
+
   explicit handle(uv_t *_uv_handle)
   {
     if (_uv_handle)  instance< handle >::from(_uv_handle)->ref();
     uv_handle = _uv_handle;
   }
-
-protected: /*constructors*/
-  handle() noexcept : uv_handle(nullptr)  {}
 
 public: /*constructors*/
   ~handle()  { if (uv_handle)  instance< handle >::from(uv_handle)->unref(); }

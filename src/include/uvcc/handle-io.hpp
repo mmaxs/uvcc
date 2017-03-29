@@ -83,15 +83,10 @@ protected: /*types*/
 private: /*types*/
   using instance = handle::instance< io >;
 
-private: /*constructors*/
-  explicit io(uv_t *_uv_handle)
-  {
-    if (_uv_handle)  instance::from(_uv_handle)->ref();
-    uv_handle = _uv_handle;
-  }
-
 protected: /*constructors*/
   io() noexcept = default;
+
+  explicit io(uv_t *_uv_handle) : handle(static_cast< handle::uv_t* >(_uv_handle))  {}
 
 public: /*constructors*/
   ~io() = default;

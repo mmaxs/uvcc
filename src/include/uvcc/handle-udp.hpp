@@ -72,12 +72,8 @@ protected: /*types*/
 private: /*types*/
   using instance = handle::instance< udp >;
 
-private: /*constructors*/
-  explicit udp(uv_t *_uv_handle)
-  {
-    if (_uv_handle)  instance::from(_uv_handle)->ref();
-    uv_handle = _uv_handle;
-  }
+protected: /*constructors*/
+  explicit udp(uv_t *_uv_handle) : io(static_cast< io::uv_t* >(_uv_handle))  {}
 
 public: /*constructors*/
   ~udp() = default;
