@@ -2,6 +2,7 @@
 #ifndef UVCC_BUFFER__HPP
 #define UVCC_BUFFER__HPP
 
+#include "uvcc/debug.hpp"
 #include "uvcc/utility.hpp"
 
 #include <cstddef>           // size_t offsetof max_align_t
@@ -126,6 +127,7 @@ private: /*types*/
     void ref()  { refs.inc(); }
     void unref() noexcept  { if (refs.dec() == 0)  destroy(); }
   };
+  friend typename buffer::instance* debug::instance<>(buffer&) noexcept;
 
 private: /*data*/
   uv_t *uv_buf;

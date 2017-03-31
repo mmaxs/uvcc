@@ -2,6 +2,7 @@
 #ifndef UVCC_REQUEST_BASE__HPP
 #define UVCC_REQUEST_BASE__HPP
 
+#include "uvcc/debug.hpp"
 #include "uvcc/utility.hpp"
 
 #include <cstddef>      // size_t offsetof
@@ -35,7 +36,9 @@ protected: /*types*/
   using properties = empty_t;
   constexpr static const std::size_t MAX_PROPERTY_SIZE = 24 + sizeof(::sockaddr_storage);
   constexpr static const std::size_t MAX_PROPERTY_ALIGN = 8;
+  //! \endcond
 
+  //! \cond
   template< class _Request_ > class instance
   {
     struct uv_t
@@ -109,6 +112,7 @@ protected: /*types*/
     void ref()  { refs.inc(); }
     void unref()  { if (refs.dec() == 0)  destroy_instance(); }
   };
+  template< class _Request_ > friend typename _Request_::instance* debug::instance(_Request_&) noexcept;
   //! \endcond
 
 protected: /*data*/

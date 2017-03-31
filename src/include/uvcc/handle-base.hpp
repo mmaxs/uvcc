@@ -181,6 +181,7 @@ protected: /*types*/
       }
     }
   };
+  template< class _Handle_ > friend typename _Handle_::instance* debug::instance(_Handle_&) noexcept;
   //! \endcond
 
 protected: /*data*/
