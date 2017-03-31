@@ -22,9 +22,11 @@ uv_pipe_t in, out;
 
 
 /* define queue size limits and transfer control states */
-const size_t WRITE_QUEUE_SIZE_UPPER_LIMIT = 500*1024*1024,
-             WRITE_QUEUE_SIZE_LOWER_LIMIT =  10*1024*1024;
+const size_t BUFFER_SIZE = 8192;
+const size_t WRITE_QUEUE_SIZE_UPPER_LIMIT = 128*BUFFER_SIZE,
+             WRITE_QUEUE_SIZE_LOWER_LIMIT =  16*BUFFER_SIZE;
 enum { RD_UNKNOWN, RD_STOP, RD_PAUSE, RD_START } rdcmd_state = RD_UNKNOWN;
+
 int wr_err_reported = 0;
 
 
@@ -72,7 +74,7 @@ int main(int _argc, char *_argv[])
 void alloc_cb(uv_handle_t *_handle, size_t _suggested_size, uv_buf_t *_buf)
 {
   /* allocate the memory for a new I/O buffer */
-  *_buf = uv_buf_init((char*)malloc(_suggested_size), _suggested_size);
+  *_buf = uv_buf_init((char*)malloc(BUFFER_SIZE), BUFFER_SIZE);
 }
 
 

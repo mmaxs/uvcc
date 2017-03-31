@@ -19,8 +19,10 @@ sighandler_t sigpipe_handler = signal(SIGPIPE, SIG_IGN);  // ignore SIGPIPE
 uv::pipe in(uv::loop::Default(), fileno(stdin)),
          out(uv::loop::Default(), fileno(stdout));
 
-constexpr std::size_t WRITE_QUEUE_SIZE_UPPER_LIMIT = 500*1024*1024,
-                      WRITE_QUEUE_SIZE_LOWER_LIMIT =  10*1024*1024;
+constexpr std::size_t BUFFER_SIZE = 8192;
+constexpr std::size_t WRITE_QUEUE_SIZE_UPPER_LIMIT = 128*BUFFER_SIZE,
+                      WRITE_QUEUE_SIZE_LOWER_LIMIT =  16*BUFFER_SIZE;
+
 bool wr_err_reported = false;
 
 
@@ -42,7 +44,7 @@ int main(int _argc, char *_argv[])
   }
 
   in.read_start(
-      [](uv::handle, std::size_t _suggested_size){ return uv::buffer{ _suggested_size }; },
+      [](uv::handle, std::size_t){ return uv::buffer{ BUFFER_SIZE }; },
       read_cb
   );
   if (!in)

@@ -37,12 +37,14 @@ sighandler_t sigpipe_handler = signal(SIGPIPE, SIG_IGN);  // ignore SIGPIPE
 uv::io in = uv::io::guess_handle(uv::loop::Default(), fileno(stdin)),
        out = uv::io::guess_handle(uv::loop::Default(), fileno(stdout));
 
-constexpr std::size_t WRITE_QUEUE_SIZE_UPPER_LIMIT = 14*8192,
-                      WRITE_QUEUE_SIZE_LOWER_LIMIT =  2*8192;
+constexpr std::size_t BUFFER_SIZE = 8192;
+constexpr std::size_t WRITE_QUEUE_SIZE_UPPER_LIMIT = 128*BUFFER_SIZE,
+                      WRITE_QUEUE_SIZE_LOWER_LIMIT =  16*BUFFER_SIZE;
+
 bool wr_err_reported = false;
-std::size_t file_write_queues_size = 0;
 
 std::vector< uv::file > files;
+std::size_t file_write_queues_size = 0;
 
 
 uv::buffer alloc_cb(uv::handle, std::size_t);
@@ -122,25 +124,74 @@ int main(int _argc, char *_argv[])
 }
 
 
-
-uv::buffer alloc_cb(uv::handle, std::size_t)
+class buffer_pool
 {
-  constexpr std::size_t default_size = 8192;
-  static std::vector< uv::buffer > buf_pool;
+private: /*data*/
+  bool pool_destroying = false;
+  std::size_t buf_size;
+  std::size_t num_total_items;
+  std::vector< uv::buffer > spare_items_pool;
 
-  for (std::size_t i = 0; i < buf_pool.size(); ++i)  if (buf_pool[i].nrefs() == 1)  // a spare item
+public: /*constructors*/
+  ~buffer_pool()
   {
-      buf_pool[i].len() = default_size;  // restore the buffer capacity size
-
-      DEBUG_LOG(true, "[debug] buffer pool (size=%zu): spare item #%zu\n", buf_pool.size(), i+1);
-      return buf_pool[i];
+    DEBUG_LOG(true, "[debug] buffer pool destroying: spare_items=%zu total_items=%zu\n", spare_items_pool.size(), num_total_items);
+    pool_destroying = true;
   }
 
-  buf_pool.emplace_back(uv::buffer{ default_size });
+  buffer_pool(std::size_t _buffer_size, std::size_t _init_pool_size, std::size_t _init_pool_capacity)
+  : buf_size(_buffer_size), num_total_items(0)
+  {
+    spare_items_pool.reserve(_init_pool_capacity);
+    while (_init_pool_size--)  spare_items_pool.emplace_back(new_item());
+  }
 
-  DEBUG_LOG(true, "[debug] buffer pool (size=%zu): new item #%zu\n", buf_pool.size(), buf_pool.size());
-  return buf_pool.back();
-}
+  buffer_pool(const buffer_pool&) = delete;
+  buffer_pool& operator =(const buffer_pool&) = delete;
+
+  buffer_pool(buffer_pool&&) noexcept = default;
+  buffer_pool& operator =(buffer_pool&&) noexcept = default;
+
+private: /*functions*/
+  uv::buffer new_item()
+  {
+    uv::buffer ret{ buf_size };
+    ret.sink_cb() = [this](uv::buffer &_buf)
+    {
+      if (pool_destroying)  return;
+
+      _buf.len() = buf_size;
+      spare_items_pool.push_back(std::move(_buf));
+    };
+
+    ++num_total_items;
+    DEBUG_LOG(true, "[debug] buffer pool: new item #%zu\n", num_total_items);
+    return std::move(ret);
+  }
+
+public: /*interface*/
+  std::size_t buffer_size() const noexcept  { return buf_size; }
+  std::size_t total_items() const noexcept  { return num_total_items; }
+  std::size_t spare_items() const noexcept  { return spare_items_pool.size(); }
+
+  uv::buffer get()
+  {
+    if (spare_items_pool.empty())
+      return new_item();
+    else
+    {
+      uv::buffer ret = std::move(spare_items_pool.back());
+      spare_items_pool.pop_back();
+      return std::move(ret);
+    }
+  }
+} buffers(
+    BUFFER_SIZE,
+    WRITE_QUEUE_SIZE_LOWER_LIMIT/BUFFER_SIZE,
+    WRITE_QUEUE_SIZE_UPPER_LIMIT/BUFFER_SIZE + 1
+);
+
+uv::buffer alloc_cb(uv::handle, std::size_t)  { return buffers.get(); }
 
 
 void write_to_files(uv::buffer, int64_t);
