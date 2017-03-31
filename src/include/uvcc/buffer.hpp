@@ -37,6 +37,13 @@ class buffer
 
 public: /*types*/
   using uv_t = ::uv_buf_t;
+  using sink_cb_t = std::function< void(buffer&) >;
+  /*!< \brief The function type of the callback called when the reference count of the buffer using within
+       the program becomes zero and buffer instance is going to be destroyed. Uvcc creates a new variable
+       referencing the buffer instance (so its usage count gets equal to one) and passes a reference to this variable
+       to the sink callback. If the client code wish to store this free buffer for further reuse, it must _move_ (or _copy_)
+       the variable into some designated storage structure, otherwise no any action is required, and the buffer will be
+       destroyed. */
 
 private: /*types*/
   class instance
@@ -44,6 +51,7 @@ private: /*types*/
   public: /*data*/
     ref_count refs;
     std::size_t buf_count;
+    type_storage< sink_cb_t > sink_cb_storage;
     uv_t uv_buf_struct;
 
   private: /*new/delete*/
@@ -103,7 +111,24 @@ private: /*types*/
       return proper_size - base_size;
     }
 
-    void destroy()  { delete this; }
+    void destroy()
+    {
+      auto &sink_cb = sink_cb_storage.value();
+      if (sink_cb)
+      {
+        refs.set_value(1);
+        buffer b(&uv_buf_struct, adopt_ref);
+
+        sink_cb(b);
+        if (b.uv_buf)  // if not moved-form
+        {
+          b.uv_buf = nullptr;
+          if (refs.dec() == 0)  delete this;
+        }
+      }
+      else
+        delete this;
+    }
 
   public: /*interface*/
     static uv_t* create(const std::initializer_list< std::size_t > &_len_values)
@@ -138,6 +163,7 @@ private: /*constructors*/
     if (_uv_buf)  instance::from(_uv_buf)->ref();
     uv_buf = _uv_buf;
   }
+
   explicit buffer(uv_t *_uv_buf, const adopt_ref_t) : uv_buf(_uv_buf)  {}
 
 public: /*constructors*/
@@ -200,6 +226,9 @@ public: /*interface*/
   void swap(buffer &_that) noexcept  { std::swap(uv_buf, _that.uv_buf); }
   /*! \brief The current number of existing references to the same buffer as this variable refers to. */
   long nrefs() const noexcept  { return instance::from(uv_buf)->refs.get_value(); }
+
+  const sink_cb_t& sink_cb() const noexcept  { return instance::from(uv_buf)->sink_cb_storage.value(); }
+        sink_cb_t& sink_cb()       noexcept  { return instance::from(uv_buf)->sink_cb_storage.value(); }
 
   /*! \brief The number of the `uv_buf_t` structures in the array. */
   std::size_t count() const noexcept  { return instance::from(uv_buf)->buf_count; }
