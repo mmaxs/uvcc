@@ -218,15 +218,18 @@ auto sum(_T_&& _v, _Ts_&&... _vs) -> std::common_type_t< _T_, _Ts_... >
     Atomic operations on the `ref_count` object provide the following memory ordering semantics:
      Member function | Memory ordering
     :----------------|:---------------:
-     `value()`       | acquire
+     `get_value()`   | acquire
+     `set_value()`   | release
      `inc()`         | relaxed
      `dec()`         | release
 
-    Thus the client code can use `value()` function to check the current number of the variables
+    Thus the client code can use `get_value()` function to check the current number of the variables
     referencing a counted object and be sure to be _synchronized-with_ the last `dec()` operation
     (i.e. to see all the results of non-atomic memory changes _happened-before_ the last `dec()`
-    operation which should normally occurs when a variable of the counted object is destroyed on
-    going out of its scope).
+    operation which should normally occurs when one of the variable of the counted object is destroyed
+    on going out of its scope). Since only `inc()`/`dec()` operations are supposed to be normally used
+    for changing the count value, it is considered to be an unusual case where using of `set_value()`
+    function can be necessary.
 
     `inc()` throws `std::runtime_error` if the current value to be incremented is **0** as this
     circumstance is considered as a variable of the counted object is being constructed/copied
@@ -252,7 +255,8 @@ public: /*constructors*/
   ref_count& operator =(ref_count&&) = delete;
 
 public: /*interface*/
-  type value() const noexcept  { return count.load(std::memory_order_acquire); }
+  type get_value() const noexcept  { return count.load(std::memory_order_acquire); }
+  void set_value(type _count) noexcept  { count.store(_count, std::memory_order_release); }
 
   type inc()
   {

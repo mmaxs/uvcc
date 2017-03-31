@@ -197,7 +197,7 @@ public: /*constructors*/
 public: /*interface*/
   void swap(buffer &_that) noexcept  { std::swap(uv_buf, _that.uv_buf); }
   /*! \brief The current number of existing references to the same buffer as this variable refers to. */
-  long nrefs() const noexcept  { return instance::from(uv_buf)->refs.value(); }
+  long nrefs() const noexcept  { return instance::from(uv_buf)->refs.get_value(); }
 
   /*! \brief The number of the `uv_buf_t` structures in the array. */
   std::size_t count() const noexcept  { return instance::from(uv_buf)->buf_count; }

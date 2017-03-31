@@ -240,7 +240,7 @@ public: /*interface*/
   std::uintptr_t id() const noexcept  { return reinterpret_cast< std::uintptr_t >(instance< handle >::from(uv_handle)); }
 
   /*! \brief The current number of existing references to the same object as this handle variable refers to. */
-  long nrefs() const noexcept  { return instance< handle >::from(uv_handle)->refs.value(); }
+  long nrefs() const noexcept  { return instance< handle >::from(uv_handle)->refs.get_value(); }
 
   /*! \brief The status value returned by the last executed libuv API function on this handle. */
   int uv_status() const noexcept  { return instance< handle >::from(uv_handle)->uv_error; }

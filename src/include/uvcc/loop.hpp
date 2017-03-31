@@ -223,7 +223,7 @@ public: /*interface*/
 
   void swap(loop &_that) noexcept  { std::swap(uv_loop, _that.uv_loop); }
   /*! \brief The current number of existing references to the same loop as this variable refers to. */
-  long nrefs() const noexcept  { return instance::from(uv_loop)->refs.value(); }
+  long nrefs() const noexcept  { return instance::from(uv_loop)->refs.get_value(); }
   /*! \brief The status value returned by the last executed libuv API function. */
   int uv_status() const noexcept  { return instance::from(uv_loop)->uv_error; }
 

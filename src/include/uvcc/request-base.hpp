@@ -168,7 +168,7 @@ public: /*interface*/
   std::uintptr_t id() const noexcept  { return reinterpret_cast< std::uintptr_t >(instance< request >::from(uv_req)); }
 
   /*! \brief The current number of existing references to the same object as this request variable refers to. */
-  long nrefs() const noexcept  { return instance< request >::from(uv_req)->refs.value(); }
+  long nrefs() const noexcept  { return instance< request >::from(uv_req)->refs.get_value(); }
 
   /*! \brief The status value returned by the last executed libuv API function on this request. */
   int uv_status() const noexcept  { return instance< request >::from(uv_req)->uv_error; }
