@@ -23,8 +23,8 @@ uv_pipe_t in, out;
 
 /* define queue size limits and transfer control states */
 const size_t BUFFER_SIZE = 8192;
-const size_t WRITE_QUEUE_SIZE_UPPER_LIMIT = 14*BUFFER_SIZE,
-             WRITE_QUEUE_SIZE_LOWER_LIMIT =  2*BUFFER_SIZE;
+const size_t WRITE_QUEUE_SIZE_UPPER_LIMIT = 8192*BUFFER_SIZE,
+             WRITE_QUEUE_SIZE_LOWER_LIMIT = 1024*BUFFER_SIZE;
 enum { RD_UNKNOWN, RD_STOP, RD_PAUSE, RD_START } rdcmd_state = RD_UNKNOWN;
 
 int wr_err_reported = 0;

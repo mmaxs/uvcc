@@ -38,8 +38,8 @@ uv::io in = uv::io::guess_handle(uv::loop::Default(), fileno(stdin)),
        out = uv::io::guess_handle(uv::loop::Default(), fileno(stdout));
 
 constexpr std::size_t BUFFER_SIZE = 8192;
-constexpr std::size_t WRITE_QUEUE_SIZE_UPPER_LIMIT = 14*BUFFER_SIZE,
-                      WRITE_QUEUE_SIZE_LOWER_LIMIT =  2*BUFFER_SIZE;
+constexpr std::size_t WRITE_QUEUE_SIZE_UPPER_LIMIT = 8192*BUFFER_SIZE,
+                      WRITE_QUEUE_SIZE_LOWER_LIMIT = 1024*BUFFER_SIZE;
 
 bool wr_err_reported = false;
 
@@ -124,26 +124,6 @@ int main(int _argc, char *_argv[])
 }
 
 
-#if 0
-uv::buffer alloc_cb(uv::handle, std::size_t)
-{
-  constexpr std::size_t default_size = BUFFER_SIZE;
-  static std::vector< uv::buffer > buf_pool;
-
-  for (std::size_t i = 0; i < buf_pool.size(); ++i)  if (buf_pool[i].nrefs() == 1)  // a spare item
-  {
-      buf_pool[i].len() = default_size;  // restore the buffer capacity size
-
-      DEBUG_LOG(true, "[debug] buffer pool (size=%zu): spare item #%zu\n", buf_pool.size(), i+1);
-      return buf_pool[i];
-  }
-
-  buf_pool.emplace_back(uv::buffer{ default_size });
-
-  DEBUG_LOG(true, "[debug] buffer pool (size=%zu): new item #%zu\n", buf_pool.size(), buf_pool.size());
-  return buf_pool.back();
-}
-#else
 class buffer_pool
 {
 private: /*data*/
@@ -162,7 +142,9 @@ public: /*constructors*/
   buffer_pool(std::size_t _buffer_size, std::size_t _init_pool_size, std::size_t _init_pool_capacity = 0)
   : buf_size(_buffer_size), num_total_items(0)
   {
-    spare_items_pool.reserve(_init_pool_capacity >= _init_pool_size ? _init_pool_capacity : 2*_init_pool_size);
+    spare_items_pool.reserve(
+        _init_pool_capacity >= _init_pool_size ? _init_pool_capacity : 2*_init_pool_size
+    );
     while (_init_pool_size--)  spare_items_pool.emplace_back(new_item());
   }
 
@@ -206,13 +188,14 @@ public: /*interface*/
       return std::move(ret);
     }
   }
-} buffers(BUFFER_SIZE, 2, 15);
+} buffers(
+    BUFFER_SIZE,
+    WRITE_QUEUE_SIZE_LOWER_LIMIT/BUFFER_SIZE,
+    WRITE_QUEUE_SIZE_UPPER_LIMIT/BUFFER_SIZE + 1
+);
 
-uv::buffer alloc_cb(uv::handle, std::size_t)
-{
-  return std::move(buffers.get());
-}
-#endif
+uv::buffer alloc_cb(uv::handle, std::size_t)  { return buffers.get(); }
+
 
 void write_to_files(uv::buffer, int64_t);
 

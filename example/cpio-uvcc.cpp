@@ -20,8 +20,8 @@ uv::pipe in(uv::loop::Default(), fileno(stdin)),
          out(uv::loop::Default(), fileno(stdout));
 
 constexpr std::size_t BUFFER_SIZE = 8192;
-constexpr std::size_t WRITE_QUEUE_SIZE_UPPER_LIMIT = 14*BUFFER_SIZE,
-                      WRITE_QUEUE_SIZE_LOWER_LIMIT =  2*BUFFER_SIZE;
+constexpr std::size_t WRITE_QUEUE_SIZE_UPPER_LIMIT = 8192*BUFFER_SIZE,
+                      WRITE_QUEUE_SIZE_LOWER_LIMIT = 1024*BUFFER_SIZE;
 
 bool wr_err_reported = false;
 
