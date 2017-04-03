@@ -39,19 +39,22 @@ public: /*types*/
   using uv_t = ::uv_buf_t;
   using sink_cb_t = std::function< void(buffer&) >;
   /*!< \brief The function type of the callback called when the reference count of the buffer using within
-       the program becomes zero and buffer instance is going to be destroyed. Uvcc creates a new variable
-       referencing the buffer instance (so its usage count gets equal to one) and passes a reference to this variable
-       to the sink callback. If the client code wish to store this free buffer for further reuse, it must _move_ (or _copy_)
-       the variable into some designated storage structure, otherwise no any action is required, and the buffer will be
-       destroyed. */
+       the program becomes equal to `sink_refnum()` value. Uvcc creates a new variable referencing the buffer
+       instance (so its usage count gets increased by one) and passes a reference to this variable to the sink
+       callback. If the client code wish to store this buffer for further use, it must _move_ (or _copy_) the variable
+       into some designated storage structure, otherwise no any action is required, and this temporary buffer variable
+       will be silently destroyed.
+       \note Default `sink_refnum()` value is **-1**, so it should be set to some value greater or equal zero for sink callback
+       being effectively called. */
 
 private: /*types*/
   class instance
   {
   public: /*data*/
     ref_count refs;
-    std::size_t buf_count;
+    ref_count::type sink_refnum{ -1 };
     type_storage< sink_cb_t > sink_cb_storage;
+    std::size_t buf_count;
     uv_t uv_buf_struct;
 
   private: /*new/delete*/
@@ -111,24 +114,29 @@ private: /*types*/
       return proper_size - base_size;
     }
 
-    void destroy()
+    void sink()
     {
       auto &sink_cb = sink_cb_storage.value();
       if (sink_cb)
       {
-        refs.set_value(1);
+        if (sink_refnum == 0)
+          refs.set_value(1);
+        else
+          refs.inc();
         buffer b(&uv_buf_struct, adopt_ref);
 
         sink_cb(b);
         if (b.uv_buf)  // if not moved-form
         {
           b.uv_buf = nullptr;
-          if (refs.dec() == 0)  delete this;
+          if (refs.dec() == 0)  destroy();
         }
       }
       else
-        delete this;
+        if (sink_refnum == 0)  destroy();
     }
+
+    void destroy() noexcept  { delete this; }
 
   public: /*interface*/
     static uv_t* create(const std::initializer_list< std::size_t > &_len_values)
@@ -150,7 +158,14 @@ private: /*types*/
     };
 
     void ref()  { refs.inc(); }
-    void unref() noexcept  { if (refs.dec() == 0)  destroy(); }
+    void unref()
+    {
+      auto nrefs = refs.dec();
+      if (nrefs == sink_refnum)
+        sink();
+      else
+        if (nrefs == 0)  destroy();
+    }
   };
   friend typename buffer::instance* debug::instance<>(buffer&) noexcept;
 
@@ -227,6 +242,8 @@ public: /*interface*/
   /*! \brief The current number of existing references to the same buffer as this variable refers to. */
   long nrefs() const noexcept  { return instance::from(uv_buf)->refs.get_value(); }
 
+  const long& sink_refnum() const noexcept  { return instance::from(uv_buf)->sink_refnum; }
+        long& sink_refnum()       noexcept  { return instance::from(uv_buf)->sink_refnum; }
   const sink_cb_t& sink_cb() const noexcept  { return instance::from(uv_buf)->sink_cb_storage.value(); }
         sink_cb_t& sink_cb()       noexcept  { return instance::from(uv_buf)->sink_cb_storage.value(); }
 
