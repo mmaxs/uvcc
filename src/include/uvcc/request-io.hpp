@@ -35,14 +35,11 @@ class output : public request
   //! \endcond
 
 public: /*types*/
-  //! \cond
-  union uv_t
-  {
-    fs::write::uv_t uv_file_write_req;
-    write::uv_t uv_stream_write_req;
-    udp_send::uv_t uv_udp_send_req;
+  using uv_t = union {
+      fs::write::uv_t uv_file_write_req;
+      write::uv_t uv_stream_write_req;
+      udp_send::uv_t uv_udp_send_req;
   };
-  //! \endcond
   using on_request_t = std::function< void(output _request, buffer _buffer) >;
   /*!< \brief The function type of the callback called after data was written/sent to I/O endpoint.
        \sa `fs::write::on_request_t`,\n `write::on_request_t`,\n `udp_send::on_request_t`. */
