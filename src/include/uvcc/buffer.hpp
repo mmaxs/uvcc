@@ -39,7 +39,7 @@ public: /*types*/
   using uv_t = ::uv_buf_t;
   using sink_cb_t = std::function< void(buffer&) >;
   /*!< \brief The function type of the callback called when the reference count of the buffer using within
-       the program becomes zero and the buffer instance is going to be destroyed. Uvcc creates a new variable
+       the program becomes zero and the buffer instance is going to be destroyed. uvcc creates a new variable
        referencing the buffer instance (so its usage count gets equal to one) and passes a reference to this variable
        to the sink callback. If the client code wish to store this free buffer for further reuse, it must _move_ (or _copy_)
        the variable into some designated storage structure, otherwise no any action is required, and the buffer will be
