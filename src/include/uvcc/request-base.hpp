@@ -33,7 +33,7 @@ public: /*types*/
 
 protected: /*types*/
   //! \cond
-  using properties = empty_t;
+  struct properties  {};
   constexpr static const std::size_t MAX_PROPERTY_SIZE = 24 + sizeof(::sockaddr_storage);
   constexpr static const std::size_t MAX_PROPERTY_ALIGN = 8;
   //! \endcond
@@ -43,7 +43,7 @@ protected: /*types*/
   {
     struct uv_t
     {
-      template< typename _T_, typename = std::size_t > struct substitute  { using type = null_t; };
+      template< typename _T_, typename = std::size_t > struct substitute  { using type = void; };
       template< typename _T_ > struct substitute< _T_, decltype(sizeof(typename _T_::uv_t)) >  { using type = typename _T_::uv_t; };
       using type = typename substitute< _Request_ >::type;
     };
