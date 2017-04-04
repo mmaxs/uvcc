@@ -32,10 +32,8 @@ namespace uv
     \sa libuv API documentation: [`uv_handle_t — Base handle`](http://docs.libuv.org/en/v1.x/handle.html#uv-handle-t-base-handle). */
 class handle
 {
-  //! \cond
   friend class loop;
   friend class request;
-  //! \endcond
 
 public: /*types*/
   using uv_t = ::uv_handle_t;
@@ -197,6 +195,7 @@ protected: /*data*/
   //! \endcond
 
 protected: /*constructors*/
+  //! \cond
   handle() noexcept : uv_handle(nullptr)  {}
 
   explicit handle(uv_t *_uv_handle)
@@ -204,6 +203,7 @@ protected: /*constructors*/
     if (_uv_handle)  instance< handle >::from(_uv_handle)->ref();
     uv_handle = _uv_handle;
   }
+  //! \endcond
 
 public: /*constructors*/
   ~handle()  { if (uv_handle)  instance< handle >::from(uv_handle)->unref(); }

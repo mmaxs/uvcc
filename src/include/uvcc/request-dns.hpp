@@ -21,9 +21,7 @@ namespace uv
     \sa libuv API documentation: [DNS utility functions](http://docs.libuv.org/en/v1.x/dns.html#dns-utility-functions). */
 class getaddrinfo : public request
 {
-  //! \cond
   friend class request::instance< getaddrinfo >;
-  //! \endcond
 
 public: /*types*/
   using uv_t = ::uv_getaddrinfo_t;
@@ -44,7 +42,9 @@ private: /*types*/
   using instance = request::instance< getaddrinfo >;
 
 protected: /*constructors*/
+  //! \cond
   explicit getaddrinfo(uv_t *_uv_req) : request(reinterpret_cast< request::uv_t* >(_uv_req))  {}
+  //! \endcond
 
 public: /*constructors*/
   ~getaddrinfo() = default;
@@ -149,9 +149,7 @@ void getaddrinfo::getaddrinfo_cb(::uv_getaddrinfo_t *_uv_req, int _status, ::add
     \sa libuv API documentation: [DNS utility functions](http://docs.libuv.org/en/v1.x/dns.html#dns-utility-functions). */
 class getnameinfo : public request
 {
-  //! \cond
   friend class request::instance< getnameinfo >;
-  //! \endcond
 
 public: /*types*/
   using uv_t = ::uv_getnameinfo_t;
@@ -163,7 +161,9 @@ private: /*types*/
   using instance = request::instance< getnameinfo >;
 
 protected: /*constructors*/
+  //! \cond
   explicit getnameinfo(uv_t *_uv_req) : request(reinterpret_cast< request::uv_t* >(_uv_req))  {}
+  //! \endcond
 
 public: /*constructors*/
   ~getnameinfo() = default;

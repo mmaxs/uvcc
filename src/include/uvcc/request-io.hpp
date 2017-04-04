@@ -30,9 +30,7 @@ namespace uv
     depending on the actual type of the `io` argument passed to the `run()` member function. */
 class output : public request
 {
-  //! \cond
   friend class request::instance< output >;
-  //! \endcond
 
 public: /*types*/
   using uv_t = union {
@@ -86,7 +84,9 @@ private: /*types*/
   using instance = request::instance< output >;
 
 protected: /*constructors*/
+  //! \cond
   explicit output(uv_t *_uv_req) : request(reinterpret_cast< request::uv_t* >(_uv_req))  {}
+  //! \endcond
 
 public: /*constructors*/
   ~output() = default;

@@ -24,11 +24,9 @@ namespace uv
     \note `read_start()`/`read_stop()` and `read_pause()`/`read_resume()` functions are mutually exclusive and thread-safe. */
 class io : public handle
 {
-  //! \cond
   friend class handle::instance< io >;
   friend class output;
   friend class fs;
-  //! \endcond
 
 public: /*types*/
   using uv_t = void;
@@ -84,9 +82,11 @@ private: /*types*/
   using instance = handle::instance< io >;
 
 protected: /*constructors*/
+  //! \cond
   io() noexcept = default;
 
   explicit io(uv_t *_uv_handle) : handle(static_cast< handle::uv_t* >(_uv_handle))  {}
+  //! \endcond
 
 public: /*constructors*/
   ~io() = default;

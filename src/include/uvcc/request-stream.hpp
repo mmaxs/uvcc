@@ -24,9 +24,7 @@ namespace uv
                                  [`uv_pipe_t — Pipe handle`](http://docs.libuv.org/en/v1.x/pipe.html#uv-pipe-t-pipe-handle). */
 class connect : public request
 {
-  //! \cond
   friend class request::instance< connect >;
-  //! \endcond
 
 public: /*types*/
   using uv_t = ::uv_connect_t;
@@ -38,7 +36,9 @@ private: /*types*/
   using instance = request::instance< connect >;
 
 protected: /*constructors*/
+  //! \cond
   explicit connect(uv_t *_uv_req) : request(reinterpret_cast< request::uv_t* >(_uv_req))  {}
+  //! \endcond
 
 public: /*constructors*/
   ~connect() = default;
@@ -124,10 +124,8 @@ void connect::connect_cb(::uv_connect_t *_uv_req, int _status)
     \sa libuv API documentation: [`uv_stream_t — Stream handle`](http://docs.libuv.org/en/v1.x/stream.html#uv-stream-t-stream-handle). */
 class write : public request
 {
-  //! \cond
   friend class request::instance< write >;
   friend class output;
-  //! \endcond
 
 public: /*types*/
   using uv_t = ::uv_write_t;
@@ -147,7 +145,9 @@ private: /*types*/
   using instance = request::instance< write >;
 
 protected: /*constructors*/
+  //! \cond
   explicit write(uv_t *_uv_req) : request(reinterpret_cast< request::uv_t* >(_uv_req))  {}
+  //! \endcond
 
 public: /*constructors*/
   ~write() = default;
@@ -288,9 +288,7 @@ void write::write2_cb(::uv_write_t *_uv_req, int _status)
     \sa libuv API documentation: [`uv_stream_t — Stream handle`](http://docs.libuv.org/en/v1.x/stream.html#uv-stream-t-stream-handle). */
 class shutdown : public request
 {
-  //! \cond
   friend class request::instance< shutdown >;
-  //! \endcond
 
 public: /*types*/
   using uv_t = ::uv_shutdown_t;
@@ -302,7 +300,9 @@ private: /*types*/
   using instance = request::instance< shutdown >;
 
 protected: /*constructors*/
+  //! \cond
   explicit shutdown(uv_t *_uv_req) : request(reinterpret_cast< request::uv_t* >(_uv_req))  {}
+  //! \endcond
 
 public: /*constructors*/
   ~shutdown() = default;

@@ -22,9 +22,7 @@ namespace uv
 template< typename _Result_ = void >
 class work : public request
 {
-  //! \cond
   friend class request::instance< work >;
-  //! \endcond
 
 public: /*types*/
   using uv_t = ::uv_work_t;
@@ -51,7 +49,9 @@ private: /*types*/
   using instance = request::instance< work >;
 
 protected: /*constructors*/
+  //! \cond
   explicit work(uv_t *_uv_req) : request(reinterpret_cast< request::uv_t* >(_uv_req))  {}
+  //! \endcond
 
 public: /*constructors*/
   ~work() = default;

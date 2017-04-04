@@ -26,10 +26,8 @@ namespace uv
     \brief The open file handle. */
 class file : public io
 {
-  //! \cond
   friend class handle::instance< file >;
   friend class fs;
-  //! \endcond
 
 public: /*types*/
   using uv_t = ::uv_fs_t;
@@ -91,6 +89,7 @@ private: /*types*/
   using instance = handle::instance< file >;
 
 protected: /*constructors*/
+  //! \cond
   explicit file(uv::loop::uv_t *_loop, ::uv_file _fd, const char *_path)
   {
     uv_handle = instance::create();
@@ -103,6 +102,7 @@ protected: /*constructors*/
   }
 
   explicit file(uv_t *_uv_handle) : io(static_cast< io::uv_t* >(_uv_handle))  {}
+  //! \endcond
 
 public: /*constructors*/
   ~file() = default;

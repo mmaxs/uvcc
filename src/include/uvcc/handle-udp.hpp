@@ -22,10 +22,8 @@ namespace uv
     \sa libuv API documentation: [`uv_udp_t — UDP handle`](http://docs.libuv.org/en/v1.x/udp.html#uv-udp-t-udp-handle). */
 class udp : public io
 {
-  //! \cond
   friend class handle::instance< udp >;
   friend class udp_send;
-  //! \endcond
 
 public: /*types*/
   using uv_t = ::uv_udp_t;
@@ -73,7 +71,9 @@ private: /*types*/
   using instance = handle::instance< udp >;
 
 protected: /*constructors*/
+  //! \cond
   explicit udp(uv_t *_uv_handle) : io(static_cast< io::uv_t* >(_uv_handle))  {}
+  //! \endcond
 
 public: /*constructors*/
   ~udp() = default;

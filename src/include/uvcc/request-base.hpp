@@ -121,6 +121,7 @@ protected: /*data*/
   //! \endcond
 
 protected: /*constructors*/
+  //! \cond
   request() noexcept : uv_req(nullptr)  {}
 
   explicit request(uv_t *_uv_req)
@@ -128,6 +129,7 @@ protected: /*constructors*/
     if (_uv_req)  instance< request >::from(_uv_req)->ref();
     uv_req = _uv_req;
   }
+  //! \endcond
 
 public: /*constructors*/
   ~request()  { if (uv_req)  instance< request >::from(uv_req)->unref(); }

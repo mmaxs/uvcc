@@ -32,13 +32,11 @@ class handle;
     \sa libuv API documentation: [`uv_loop_t`](http://docs.libuv.org/en/v1.x/loop.html#uv-loop-t-event-loop). */
 class loop
 {
-  //! \cond
   friend class handle;
   friend class fs;
   friend class getaddrinfo;
   friend class getnameinfo;
   template< typename > friend class work;
-  //! \endcond
 
 public: /*types*/
   using uv_t = ::uv_loop_t;

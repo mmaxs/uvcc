@@ -25,13 +25,11 @@ namespace uv
     \sa libuv API documentation: [`uv_stream_t — Stream handle`](http://docs.libuv.org/en/v1.x/stream.html#uv-stream-t-stream-handle). */
 class stream : public io
 {
-  //! \cond
   friend class handle::instance< stream >;
   friend class connect;
   friend class write;
   friend class shutdown;
   friend class pipe;
-  //! \endcond
 
 public: /*types*/
   using uv_t = ::uv_stream_t;
@@ -71,9 +69,11 @@ private: /*types*/
   using instance = handle::instance< stream >;
 
 protected: /*constructors*/
+  //! \cond
   stream() noexcept = default;
 
   explicit stream(uv_t *_uv_handle) : io(static_cast< io::uv_t* >(_uv_handle))  {}
+  //! \endcond
 
 public: /*constructors*/
   ~stream() = default;
@@ -149,10 +149,8 @@ void stream::connection_cb(::uv_stream_t *_uv_stream, int _status)
     \sa libuv API documentation: [`uv_tcp_t — TCP handle`](http://docs.libuv.org/en/v1.x/tcp.html#uv-tcp-t-tcp-handle). */
 class tcp : public stream
 {
-  //! \cond
   friend class handle::instance< tcp >;
   friend class connect;
-  //! \endcond
 
 public: /*types*/
   using uv_t = ::uv_tcp_t;
@@ -161,7 +159,9 @@ private: /*types*/
   using instance = handle::instance< tcp >;
 
 protected: /*constructors*/
+  //! \cond
   explicit tcp(uv_t *_uv_handle) : stream(reinterpret_cast< stream::uv_t* >(_uv_handle))  {}
+  //! \endcond
 
 public: /*constructors*/
   ~tcp() = default;
@@ -292,11 +292,9 @@ public: /*conversion operators*/
     \sa libuv API documentation: [`uv_pipe_t — Pipe handle`](http://docs.libuv.org/en/v1.x/pipe.html#uv-pipe-t-pipe-handle). */
 class pipe : public stream
 {
-  //! \cond
   friend class handle::instance< pipe >;
   friend class connect;
   friend class write;
-  //! \endcond
 
 public: /*types*/
   using uv_t = ::uv_pipe_t;
@@ -305,7 +303,9 @@ private: /*types*/
   using instance = handle::instance< pipe >;
 
 protected: /*constructors*/
+  //! \cond
   explicit pipe(uv_t *_uv_handle) : stream(reinterpret_cast< stream::uv_t* >(_uv_handle))  {}
+  //! \endcond
 
 public: /*constructors*/
   ~pipe() = default;
@@ -431,9 +431,7 @@ public: /*conversion operators*/
     \sa libuv API documentation: [`uv_tty_t — TTY handle`](http://docs.libuv.org/en/v1.x/tty.html#uv-tty-t-tty-handle). */
 class tty : public stream
 {
-  //! \cond
   friend class handle::instance< tty >;
-  //! \endcond
 
 public: /*types*/
   using uv_t = ::uv_tty_t;
@@ -442,7 +440,9 @@ private: /*types*/
   using instance = handle::instance< pipe >;
 
 protected: /*constructors*/
+  //! \cond
   explicit tty(uv_t *_uv_handle) : stream(reinterpret_cast< stream::uv_t* >(_uv_handle))  {}
+  //! \endcond
 
 public: /*constructors*/
   ~tty() = default;
