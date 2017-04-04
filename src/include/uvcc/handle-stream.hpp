@@ -70,7 +70,6 @@ protected: /*types*/
 private: /*types*/
   using instance = handle::instance< stream >;
 
-private: /*constructors*/
 protected: /*constructors*/
   stream() noexcept = default;
 
