@@ -15,7 +15,7 @@
 #endif
 
 #include <functional>   // function
-#include <type_traits>  // is_standard_layout
+#include <type_traits>  // is_standard_layout enable_if_t is_same
 #include <utility>      // forward() swap()
 
 
@@ -46,7 +46,7 @@ public: /*types*/
 
 protected: /*types*/
   //! \cond
-  using properties = empty_t;
+  struct properties  {};
   constexpr static const std::size_t MAX_PROPERTY_SIZE = 136 + sizeof(::uv_buf_t) + sizeof(::uv_fs_t);
   constexpr static const std::size_t MAX_PROPERTY_ALIGN = 8;
   //! \endcond
@@ -73,8 +73,15 @@ protected: /*types*/
   {
     struct uv_t
     {
-      template< typename _T_, typename = std::size_t > struct substitute  { using type = empty_t; };
+      template< typename _T_, typename = std::size_t > struct substitute  { using type = void; };
       template< typename _T_ > struct substitute< _T_, decltype(sizeof(typename _T_::uv_t)) >  { using type = typename _T_::uv_t; };
+      template< typename _T_ > struct substitute< _T_, std::enable_if_t< std::is_same< typename _T_::uv_t, void >::value, std::size_t > >
+      {
+        using type = union {
+            ::uv_any_handle uv_handle_data;
+            ::uv_fs_t uv_fs_data;
+        };
+      };  // a specialization for `io` handle class
       using type = typename substitute< _Handle_ >::type;
     };
 
