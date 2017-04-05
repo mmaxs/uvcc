@@ -123,20 +123,21 @@ example/%:
 	$(MAKE) -C example $*
 
 
-.PHONY: doc doc-internal doc-commit
+.PHONY: doc-clean doc doc-internal doc-commit
 doc doc-internal doc-commit: doc-gh-pages = $(ROOT)/doc/html
 
-doc:
+doc-clean:
 	realpath -e "$(doc-gh-pages)"
 	test "$$(realpath -e "$(doc-gh-pages)")" != "/"
 	rm -vIrf "$(doc-gh-pages)"/*
+
+doc: doc-clean
 	doxygen doc/Doxyfile-1.8.13
 
-doc-internal:
-	realpath -e "$(doc-gh-pages)"
-	test "$$(realpath -e "$(doc-gh-pages)")" != "/"
-	rm -vIrf "$(doc-gh-pages)"/*
-	sed 's/^\(INTERNAL_DOCS\s*=\s*\)\S*$$/\1YES/' doc/Doxyfile-1.8.13 | doxygen -
+doc-internal: doc-clean
+	sed 's/^\(INTERNAL_DOCS\s*=\s*\)\S*$$/\1YES/' doc/Doxyfile-1.8.13 | \
+	sed 's/^ENABLED_SECTIONS\s*=\s*.*$$/& internals/' | \
+	doxygen -
 
 doc-commit:
 	realpath -e "$(doc-gh-pages)" || exit; \
