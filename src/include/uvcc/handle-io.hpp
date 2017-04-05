@@ -55,8 +55,13 @@ public: /*types*/
        So the uvcc `io::on_read_t` callback is supplied with a dummy _null-initialized_ `_buffer`. */
 
 protected: /*types*/
+  //! \cond internals
+  //! \addtogroup doxy_group__internals
+  //! \{
+
   //! \cond
   enum class rdcmd  { UNKNOWN, STOP, PAUSE, START, RESUME };
+  //! \endcond
 
   struct properties
   {
@@ -67,15 +72,15 @@ protected: /*types*/
     on_buffer_alloc_t alloc_cb;
     on_read_t read_cb;
   };
-  //! \endcond
 
-  //! \cond
   struct uv_interface : virtual handle::uv_interface
   {
     virtual std::size_t write_queue_size(void*) const noexcept = 0;
     virtual int read_start(void*, int64_t) const noexcept = 0;
     virtual int read_stop(void*) const noexcept = 0;
   };
+
+  //! \}
   //! \endcond
 
 private: /*types*/

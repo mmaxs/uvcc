@@ -16,5 +16,7 @@
 /*! \namespace uv
     \brief Namespace for all uvcc definitions. */
 
+//! \cond internals
 /*! \defgroup doxy_group__internals  uvcc internals */
+//! \endcond
 

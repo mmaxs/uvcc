@@ -39,14 +39,15 @@ public: /*types*/
        \sa libuv API documentation: [`uv_connection_cb`](http://docs.libuv.org/en/v1.x/stream.html#c.uv_connection_cb). */
 
 protected: /*types*/
-  //! \cond
+  //! \cond internals
+  //! \addtogroup doxy_group__internals
+  //! \{
+
   struct properties : io::properties
   {
     on_connection_t connection_cb;
   };
-  //! \endcond
 
-  //! \cond
   struct uv_interface : handle::uv_handle_interface, io::uv_interface
   {
     static uv_interface& instance()  { static uv_interface instance;  return instance; }
@@ -63,6 +64,8 @@ protected: /*types*/
     int read_stop(void *_uv_handle) const noexcept override
     { return ::uv_read_stop(static_cast< ::uv_stream_t* >(_uv_handle)); }
   };
+
+  //! \}
   //! \endcond
 
 private: /*types*/

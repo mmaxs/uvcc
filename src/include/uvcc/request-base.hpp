@@ -32,13 +32,14 @@ public: /*types*/
   /*!< \brief The function type of the callback called when the request object is about to be destroyed. */
 
 protected: /*types*/
-  //! \cond
+  //! \cond internals
+  //! \addtogroup doxy_group__internals
+  //! \{
+
   struct properties  {};
   constexpr static const std::size_t MAX_PROPERTY_SIZE = 24 + sizeof(::sockaddr_storage);
   constexpr static const std::size_t MAX_PROPERTY_ALIGN = 8;
-  //! \endcond
 
-  //! \cond
   template< class _Request_ > class instance
   {
     struct uv_t
@@ -112,7 +113,11 @@ protected: /*types*/
     void ref()  { refs.inc(); }
     void unref()  { if (refs.dec() == 0)  destroy_instance(); }
   };
+  //! \cond
   template< class _Request_ > friend typename _Request_::instance* debug::instance(_Request_&) noexcept;
+  //! \endcond
+
+  //! \}
   //! \endcond
 
 protected: /*data*/

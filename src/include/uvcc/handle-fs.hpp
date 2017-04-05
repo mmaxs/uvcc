@@ -35,7 +35,10 @@ public: /*types*/
   /*!< \brief The function type of the callback called after the asynchronous file open/create operation has been completed. */
 
 protected: /*types*/
-  //! \cond
+  //! \cond internals
+  //! \addtogroup doxy_group__internals
+  //! \{
+
   struct properties : io::properties
   {
     on_open_t open_cb;
@@ -47,9 +50,7 @@ protected: /*types*/
     std::size_t write_queue_size = 0;
     int is_closing = 0;
   };
-  //! \endcond
 
-  //! \cond
   struct uv_interface : handle::uv_fs_interface, io::uv_interface
   {
     static uv_interface& instance()  { static uv_interface instance;  return instance; }
@@ -83,6 +84,8 @@ protected: /*types*/
 
     int read_stop(void *_uv_handle) const noexcept override  { return 0; }
   };
+
+  //! \}
   //! \endcond
 
 private: /*types*/

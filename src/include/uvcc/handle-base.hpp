@@ -43,13 +43,14 @@ public: /*types*/
                                     [`uv_close()`](http://docs.libuv.org/en/v1.x/handle.html#c.uv_close). */
 
 protected: /*types*/
-  //! \cond
+  //! \cond internals
+  //! \addtogroup doxy_group__internals
+  //! \{
+
   struct properties  {};
   constexpr static const std::size_t MAX_PROPERTY_SIZE = 136 + sizeof(::uv_buf_t) + sizeof(::uv_fs_t);
   constexpr static const std::size_t MAX_PROPERTY_ALIGN = 8;
-  //! \endcond
 
-  //! \cond
   struct uv_interface
   {
     virtual ~uv_interface() = default;
@@ -64,9 +65,7 @@ protected: /*types*/
   };
   struct uv_handle_interface;
   struct uv_fs_interface;
-  //! \endcond
 
-  //! \cond
   template< class _Handle_ > class instance
   {
     struct uv_t
@@ -186,7 +185,11 @@ protected: /*types*/
       }
     }
   };
+  //! \cond
   template< class _Handle_ > friend typename _Handle_::instance* debug::instance(_Handle_&) noexcept;
+  //! \endcond
+
+  //! \}
   //! \endcond
 
 protected: /*data*/
@@ -340,7 +343,9 @@ public: /*comparison operators*/
 };
 
 
-//! \cond
+//! \cond internals
+//! \addtogroup doxy_group__internals
+//! \{
 struct handle::uv_handle_interface : virtual uv_interface
 {
   template< typename = void > static void close_cb(::uv_handle_t*);
@@ -386,6 +391,8 @@ struct handle::uv_handle_interface : virtual uv_interface
   int is_closing(void *_uv_handle) const noexcept override
   { return ::uv_is_closing(static_cast< ::uv_handle_t* >(_uv_handle)); }
 };
+//! \}
+//! \endcond
 
 template< typename >
 void handle::uv_handle_interface::close_cb(::uv_handle_t *_uv_handle)
@@ -399,10 +406,11 @@ void handle::uv_handle_interface::close_cb(::uv_handle_t *_uv_handle)
 
   delete instance_ptr;
 }
-//! \endcond
 
 
-//! \cond
+//! \cond internals
+//! \addtogroup doxy_group__internals
+//! \{
 struct handle::uv_fs_interface : virtual uv_interface
 {
   void close(void *_uv_fs) noexcept override
@@ -447,6 +455,7 @@ struct handle::uv_fs_interface : virtual uv_interface
 
   int is_active(void *_uv_fs) const noexcept override  { return 0; }
 };
+//! \}
 //! \endcond
 
 
