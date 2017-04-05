@@ -277,11 +277,8 @@ public: /*interface*/
 
 
 
-namespace
-{
 /*! \brief The type of the `adopt_ref` constant. */
 struct adopt_ref_t  { constexpr adopt_ref_t() = default; };
-}
 /*! \brief The tag to be used to prevent `ref_guard` constructor from increasing reference count of the protected object. */
 constexpr const adopt_ref_t adopt_ref;
 
