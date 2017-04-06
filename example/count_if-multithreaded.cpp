@@ -59,7 +59,7 @@ int main(int _argc, char *_argv[])
 {
 
   constexpr int target_value = 1;
-  constexpr std::size_t vector_size = 10e8;
+  constexpr std::size_t vector_size = 1e7;
   constexpr std::size_t nvalues = vector_size/10-1;
 
   fprintf(stdout, "generating a random test vector of vector_size = %zu, step 1\n", vector_size);  fflush(stdout);
