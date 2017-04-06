@@ -92,9 +92,10 @@ public: /*interface*/
       \note All arguments are copied (or moved) to the `_task` function object.
       For passing arguments by reference (when parameters are used as output ones), wrap them with `std::ref()`.
       \sa libuv API documentation: [`uv_queue_work()`](http://docs.libuv.org/en/v1.x/threadpool.html#c.uv_queue_work). */
-  template< class _Task_, typename... _Args_ >
-  std::enable_if_t< std::is_convertible< _Task_, on_work_t< _Args_&&... > >::value, int >
-  run(uv::loop &_loop, _Task_&& _task, _Args_&&... _args)
+  template< class _Task_, typename... _Args_,
+      typename = std::enable_if_t< std::is_convertible< _Task_, on_work_t< _Args_&&... > >::value >
+  >
+  int run(uv::loop &_loop, _Task_&& _task, _Args_&&... _args)
   {
     auto instance_ptr = instance::from(uv_req);
 
@@ -103,7 +104,7 @@ public: /*interface*/
     auto &properties = instance_ptr->properties();
     {
       using task_t = decltype(properties.task);
-      properties.task = task_t(std::bind(_task, std::forward< _Args_ >(_args)...));
+      properties.task = task_t{ std::bind(std::forward< _Task_ >(_task), std::forward< _Args_ >(_args)...) };
       properties.result = properties.task.get_future().share();
     }
 

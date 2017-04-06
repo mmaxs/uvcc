@@ -290,13 +290,13 @@ public: /*interface*/
       \note All arguments are copied (or moved) to the callback function object.
       For passing arguments by reference when some callback parameters are used as output ones,
       wrap corresponding arguments with `std::ref()`. */
-  template< class _Func_, typename... _Args_ >
-  std::enable_if_t< std::is_convertible< _Func_, on_walk_t< _Args_&&... > >::value >
-  walk(_Func_&& _walk_cb, _Args_&&... _args)
+  template< class _Func_, typename... _Args_,
+      typename = std::enable_if_t< std::is_convertible< _Func_, on_walk_t< _Args_&&... > >::value >
+  >
+  void walk(_Func_&& _walk_cb, _Args_&&... _args)
   {
-    std::function< void(handle) > cb{ std::bind(_walk_cb, std::placeholders::_1, std::forward< _Args_ >(_args)...) };
-    if (!cb)  return;
-    ::uv_walk(uv_loop, walk_cb, &cb);
+    std::function< void(handle) > cb{ std::bind(std::forward< _Func_ >(_walk_cb), std::placeholders::_1, std::forward< _Args_ >(_args)...) };
+    if (cb)  ::uv_walk(uv_loop, walk_cb, &cb);
   }
 
 public: /*conversion operators*/
