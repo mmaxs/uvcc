@@ -33,12 +33,15 @@ public: /*types*/
        \sa libuv API documentation: [`uv_udp_send_cb`](http://docs.libuv.org/en/v1.x/udp.html#c.uv_udp_send_cb). */
 
 protected: /*types*/
-  //! \cond
-  struct properties
+  //! \cond internals
+  //! \addtogroup doxy_group__internals
+  //! \{
+  struct properties : request::properties
   {
     buffer::uv_t *uv_buf = nullptr;
     ::sockaddr_storage peer = { 0,};
   };
+  //! \}
   //! \endcond
 
 private: /*types*/

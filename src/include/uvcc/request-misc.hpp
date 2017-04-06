@@ -37,12 +37,15 @@ public: /*types*/
        \sa libuv API documentation: [`uv_work_cb`](http://docs.libuv.org/en/v1.x/threadpool.html#c.uv_work_cb). */
 
 protected: /*types*/
-  //! \cond
-  struct properties
+  //! \cond internals
+  //! \addtogroup doxy_group__internals
+  //! \{
+  struct properties : request::properties
   {
     std::packaged_task< _Result_() > task;
     std::shared_future< _Result_ > result;
   };
+  //! \}
   //! \endcond
 
 private: /*types*/

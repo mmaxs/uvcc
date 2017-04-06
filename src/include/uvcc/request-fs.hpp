@@ -68,12 +68,15 @@ public: /*types*/
   class realpath;
 
 protected: /*types*/
-  //! \cond
-  struct properties
+  //! \cond internals
+  //! \addtogroup doxy_group__internals
+  //! \{
+  struct properties : request::properties
   {
     uv_t *uv_req = nullptr;
     ~properties()  { if (uv_req)  ::uv_fs_req_cleanup(uv_req); }
   };
+  //! \}
   //! \endcond
 
 private: /*types*/
@@ -130,11 +133,14 @@ public: /*types*/
   /*!< \brief The function type of the callback called when the `close` request has completed. */
 
 protected: /*types*/
-  //! \cond
-  struct properties : public fs::properties
+  //! \cond internals
+  //! \addtogroup doxy_group__internals
+  //! \{
+  struct properties : fs::properties
   {
     file::uv_t *uv_handle = nullptr;
   };
+  //! \}
   //! \endcond
 
 private: /*types*/
@@ -252,13 +258,16 @@ public: /*types*/
   /*!< \brief The function type of the callback called when data was read from the file. */
 
 protected: /*types*/
-  //! \cond
-  struct properties : public fs::properties
+  //! \cond internals
+  //! \addtogroup doxy_group__internals
+  //! \{
+  struct properties : fs::properties
   {
     file::uv_t *uv_handle = nullptr;
     buffer::uv_t *uv_buf = nullptr;
     int64_t offset = 0;
   };
+  //! \}
   //! \endcond
 
 private: /*types*/
@@ -404,14 +413,17 @@ public: /*types*/
   /*!< \brief The function type of the callback called when data was written to the file. */
 
 protected: /*types*/
-  //! \cond
-  struct properties : public fs::properties
+  //! \cond internals
+  //! \addtogroup doxy_group__internals
+  //! \{
+  struct properties : fs::properties
   {
     file::uv_t *uv_handle = nullptr;
     buffer::uv_t *uv_buf = nullptr;
     int64_t offset = 0;
     std::size_t pending_size = 0;
   };
+  //! \}
   //! \endcond
 
 private: /*types*/
@@ -605,11 +617,14 @@ public: /*types*/
   /*!< \brief The function type of the callback called when the `sync` request has completed. */
 
 protected: /*types*/
-  //! \cond
-  struct properties : public fs::properties
+  //! \cond internals
+  //! \addtogroup doxy_group__internals
+  //! \{
+  struct properties : fs::properties
   {
     file::uv_t *uv_handle = nullptr;
   };
+  //! \}
   //! \endcond
 
 private: /*types*/
@@ -730,12 +745,15 @@ public: /*types*/
   /*!< \brief The function type of the callback called when the `truncate` request has completed. */
 
 protected: /*types*/
-  //! \cond
-  struct properties : public fs::properties
+  //! \cond internals
+  //! \addtogroup doxy_group__internals
+  //! \{
+  struct properties : fs::properties
   {
     file::uv_t *uv_handle = nullptr;
     int64_t offset = 0;
   };
+  //! \}
   //! \endcond
 
 private: /*types*/
@@ -872,14 +890,17 @@ public: /*types*/
   /*!< \brief The function type of the callback called when the `sendfile` request has completed. */
 
 protected: /*types*/
-  //! \cond
-  struct properties : public fs::properties
+  //! \cond internals
+  //! \addtogroup doxy_group__internals
+  //! \{
+  struct properties : fs::properties
   {
     io::uv_t *uv_handle_out = nullptr;
     file::uv_t *uv_handle_in = nullptr;
     int64_t offset = 0;
     std::size_t pending_size = 0;
   };
+  //! \}
   //! \endcond
 
 private: /*types*/
@@ -1049,11 +1070,14 @@ public: /*types*/
   /*!< \brief The function type of the callback called when the `stat` request has completed. */
 
 protected: /*types*/
-  //! \cond
-  struct properties : public fs::properties
+  //! \cond internals
+  //! \addtogroup doxy_group__internals
+  //! \{
+  struct properties : fs::properties
   {
     file::uv_t *uv_handle = nullptr;
   };
+  //! \}
   //! \endcond
 
 private: /*types*/
@@ -1250,11 +1274,14 @@ public: /*types*/
   /*!< \brief The function type of the callback called when the `chmod` request has completed. */
 
 protected: /*types*/
-  //! \cond
-  struct properties : public fs::properties
+  //! \cond internals
+  //! \addtogroup doxy_group__internals
+  //! \{
+  struct properties : fs::properties
   {
     file::uv_t *uv_handle = nullptr;
   };
+  //! \}
   //! \endcond
 
 private: /*types*/
@@ -1440,11 +1467,14 @@ public: /*types*/
   /*!< \brief The function type of the callback called when the `chown` request has completed. */
 
 protected: /*types*/
-  //! \cond
-  struct properties : public fs::properties
+  //! \cond internals
+  //! \addtogroup doxy_group__internals
+  //! \{
+  struct properties : fs::properties
   {
     file::uv_t *uv_handle = nullptr;
   };
+  //! \}
   //! \endcond
 
 private: /*types*/
@@ -1629,11 +1659,14 @@ public: /*types*/
   /*!< \brief The function type of the callback called when the `utime` request has completed. */
 
 protected: /*types*/
-  //! \cond
-  struct properties : public fs::properties
+  //! \cond internals
+  //! \addtogroup doxy_group__internals
+  //! \{
+  struct properties : fs::properties
   {
     file::uv_t *uv_handle = nullptr;
   };
+  //! \}
   //! \endcond
 
 private: /*types*/

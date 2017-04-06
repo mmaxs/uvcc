@@ -63,7 +63,7 @@ protected: /*types*/
   enum class rdcmd  { UNKNOWN, STOP, PAUSE, START, RESUME };
   //! \endcond
 
-  struct properties
+  struct properties : handle::properties
   {
     spinlock rdstate_switch;
     rdcmd rdcmd_state = rdcmd::UNKNOWN;

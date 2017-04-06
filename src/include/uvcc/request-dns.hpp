@@ -30,12 +30,15 @@ public: /*types*/
        \sa libuv API documentation: [`uv_getaddrinfo_cb`](http://docs.libuv.org/en/v1.x/dns.html#c.uv_getaddrinfo_cb). */
 
 protected: /*types*/
-  //! \cond
-  struct properties
+  //! \cond internals
+  //! \addtogroup doxy_group__internals
+  //! \{
+  struct properties : request::properties
   {
     uv_t *uv_req = nullptr;
     ~properties()  { if (uv_req)  ::uv_freeaddrinfo(uv_req->addrinfo); }
   };
+  //! \}
   //! \endcond
 
 private: /*types*/

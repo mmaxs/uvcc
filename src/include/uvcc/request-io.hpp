@@ -43,8 +43,10 @@ public: /*types*/
        \sa `fs::write::on_request_t`,\n `write::on_request_t`,\n `udp_send::on_request_t`. */
 
 protected: /*types*/
-  //! \cond
-  struct properties
+  //! \cond internals
+  //! \addtogroup doxy_group__internals
+  //! \{
+  struct properties  // it shall not be derived from `request::properties`
   {
     union request_properties
     {
@@ -78,6 +80,7 @@ protected: /*types*/
       }
     }
   };
+  //! \}
   //! \endcond
 
 private: /*types*/
