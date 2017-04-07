@@ -52,7 +52,9 @@ private: /*functions*/
   template < typename = void > static void async_cb(::uv_async_t*);
 
 protected: /*constructors*/
+  //! \cond
   explicit async(uv_t *_uv_handle) : handle(reinterpret_cast< handle::uv_t* >(_uv_handle))  {}
+  //! \endcond
 
 public: /*constructors*/
   ~async() = default;
@@ -85,6 +87,14 @@ public: /*constructors*/
         ::uv_async_init(static_cast< uv::loop::uv_t* >(_loop), static_cast< uv_t* >(uv_handle), async_cb)
     );
     if (uv_ret >= 0)  instance::from(uv_handle)->book_loop();
+  }
+
+public: /*interface*/
+  int send() const noexcept
+  {
+    return uv_status(
+        ::uv_async_send(static_cast< uv_t* >(uv_handle))
+    );
   }
 
 public: /*conversion operators*/
