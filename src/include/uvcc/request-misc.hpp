@@ -89,8 +89,8 @@ public: /*interface*/
       \details The given `_Task_` function is called with specified `_args` applied and is executed
       on the one of the threads from the thread pool. Once it is completed, `on_request` callback will be called
       on the `_loop` thread.
-      \note All arguments are copied (or moved) to the `_task` function object.
-      For passing arguments by reference (when parameters are used as output ones), wrap them with `std::ref()`.
+      \note All arguments are copied (or moved) to the `_task` function object. For passing arguments by reference
+      (when parameters are used as output ones), wrap them with `std::ref()` or use raw pointers.
       \sa libuv API documentation: [`uv_queue_work()`](http://docs.libuv.org/en/v1.x/threadpool.html#c.uv_queue_work). */
   template< class _Task_, typename... _Args_,
       typename = std::enable_if_t< std::is_convertible< _Task_, on_work_t< _Args_&&... > >::value >
