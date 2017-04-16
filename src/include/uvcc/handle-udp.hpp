@@ -93,7 +93,10 @@ public: /*constructors*/
   udp(uv::loop &_loop, unsigned int _flags = AF_UNSPEC)
   {
     uv_handle = instance::create();
-    uv_status(::uv_udp_init_ex(static_cast< uv::loop::uv_t* >(_loop), static_cast< uv_t* >(uv_handle), _flags));
+
+    auto uv_ret = ::uv_udp_init_ex(static_cast< uv::loop::uv_t* >(_loop), static_cast< uv_t* >(uv_handle), _flags);
+    if (uv_status(uv_ret) < 0)  return;
+
     instance::from(uv_handle)->book_loop();
   }
   /*! \details Create a handle object from an existing native platform depended datagram socket descriptor.
@@ -103,8 +106,8 @@ public: /*constructors*/
   {
     uv_handle = instance::create();
 
-    auto uv_err = ::uv_udp_init(static_cast< uv::loop::uv_t* >(_loop), static_cast< uv_t* >(uv_handle));
-    if (uv_status(uv_err) < 0)  return;
+    auto uv_ret = ::uv_udp_init(static_cast< uv::loop::uv_t* >(_loop), static_cast< uv_t* >(uv_handle));
+    if (uv_status(uv_ret) < 0)  return;
 
     instance::from(uv_handle)->book_loop();
 
