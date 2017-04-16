@@ -182,8 +182,8 @@ public: /*constructors*/
   {
     uv_handle = instance::create();
 
-    auto uv_err = ::uv_tcp_init_ex(static_cast< uv::loop::uv_t* >(_loop), static_cast< uv_t* >(uv_handle), _flags);
-    if (uv_status(uv_err) < 0)  return;
+    auto uv_ret = ::uv_tcp_init_ex(static_cast< uv::loop::uv_t* >(_loop), static_cast< uv_t* >(uv_handle), _flags);
+    if (uv_status(uv_ret) < 0)  return;
 
     instance::from(uv_handle)->book_loop();
   }
@@ -194,13 +194,13 @@ public: /*constructors*/
   {
     uv_handle = instance::create();
 
-    auto uv_err = ::uv_tcp_init(static_cast< uv::loop::uv_t* >(_loop), static_cast< uv_t* >(uv_handle));
-    if (uv_status(uv_err) < 0)  return;
+    auto uv_ret = ::uv_tcp_init(static_cast< uv::loop::uv_t* >(_loop), static_cast< uv_t* >(uv_handle));
+    if (uv_status(uv_ret) < 0)  return;
 
     instance::from(uv_handle)->book_loop();
 
-    uv_err = ::uv_tcp_open(static_cast< uv_t* >(uv_handle), _socket);
-    if (uv_status(uv_err) < 0)  return;
+    uv_ret = ::uv_tcp_open(static_cast< uv_t* >(uv_handle), _socket);
+    if (uv_status(uv_ret) < 0)  return;
 
     if (_set_blocking)  set_blocking(_set_blocking);
   }
@@ -325,8 +325,8 @@ public: /*constructors*/
   {
     uv_handle = instance::create();
 
-    auto uv_err = ::uv_pipe_init(static_cast< uv::loop::uv_t* >(_loop), static_cast< uv_t* >(uv_handle), _ipc);
-    if (uv_status(uv_err) < 0)  return;
+    auto uv_ret = ::uv_pipe_init(static_cast< uv::loop::uv_t* >(_loop), static_cast< uv_t* >(uv_handle), _ipc);
+    if (uv_status(uv_ret) < 0)  return;
 
     instance::from(uv_handle)->book_loop();
 
@@ -338,13 +338,13 @@ public: /*constructors*/
   {
     uv_handle = instance::create();
 
-    auto uv_err = ::uv_pipe_init(static_cast< uv::loop::uv_t* >(_loop), static_cast< uv_t* >(uv_handle), _ipc);
-    if (uv_status(uv_err) < 0)  return;
+    auto uv_ret = ::uv_pipe_init(static_cast< uv::loop::uv_t* >(_loop), static_cast< uv_t* >(uv_handle), _ipc);
+    if (uv_status(uv_ret) < 0)  return;
 
     instance::from(uv_handle)->book_loop();
 
-    uv_err = ::uv_pipe_open(static_cast< uv_t* >(uv_handle), _fd);
-    if (uv_status(uv_err) < 0)  return;
+    uv_ret = ::uv_pipe_open(static_cast< uv_t* >(uv_handle), _fd);
+    if (uv_status(uv_ret) < 0)  return;
 
     if (_set_blocking)  set_blocking(_set_blocking);
   }
@@ -461,8 +461,8 @@ public: /*constructors*/
   {
     uv_handle = instance::create();
 
-    auto uv_err = ::uv_tty_init(static_cast< uv::loop::uv_t* >(_loop), static_cast< uv_t* >(uv_handle), _fd, _readable);
-    if (uv_status(uv_err) < 0)  return;
+    auto uv_ret = ::uv_tty_init(static_cast< uv::loop::uv_t* >(_loop), static_cast< uv_t* >(uv_handle), _fd, _readable);
+    if (uv_status(uv_ret) < 0)  return;
 
     instance::from(uv_handle)->book_loop();
 
