@@ -53,6 +53,13 @@ protected: /*types*/
 
   struct uv_interface
   {
+    template< class _Handle_ >
+    static typename _Handle_::uv_interface& instance()
+    {
+      static typename _Handle_::uv_interface instance;
+      return instance;
+    }
+
     virtual ~uv_interface() = default;
 
     virtual void close(void*) noexcept = 0;
@@ -100,13 +107,13 @@ protected: /*types*/
     instance()
     {
       property_storage.reset< typename _Handle_::properties >();
-      uv_interface_ptr = &_Handle_::uv_interface::instance();
+      uv_interface_ptr = &uv_interface::instance< _Handle_ >();
       uvcc_debug_function_return("instance [0x%08tX] for handle [0x%08tX]", (ptrdiff_t)this, (ptrdiff_t)&uv_handle_struct);
     }
     template< typename... _Args_ > instance(_Args_&&... _args)
     {
       property_storage.reset< typename _Handle_::properties >(std::forward< _Args_ >(_args)...);
-      uv_interface_ptr = &_Handle_::uv_interface::instance();
+      uv_interface_ptr = &uv_interface::instance< _Handle_ >();
       uvcc_debug_function_return("instance [0x%08tX] for handle [0x%08tX]", (ptrdiff_t)this, (ptrdiff_t)&uv_handle_struct);
     }
 

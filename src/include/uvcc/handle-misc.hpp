@@ -19,6 +19,7 @@ namespace uv
     \sa libuv API documentation: [`uv_async_t — Async handle`](http://docs.libuv.org/en/v1.x/async.html#uv-async-t-async-handle). */
 class async : public handle
 {
+  friend class handle::uv_interface;
   friend class handle::instance< async >;
 
 public: /*types*/
@@ -42,10 +43,7 @@ protected: /*types*/
     std::function< void(async) > cb;
   };
 
-  struct uv_interface : handle::uv_handle_interface
-  {
-    static uv_interface& instance()  { static uv_interface instance;  return instance; }
-  };
+  struct uv_interface : handle::uv_handle_interface  {};
 
   //! \}
   //! \endcond

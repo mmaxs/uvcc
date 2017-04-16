@@ -25,6 +25,7 @@ namespace uv
     \sa libuv API documentation: [`uv_stream_t — Stream handle`](http://docs.libuv.org/en/v1.x/stream.html#uv-stream-t-stream-handle). */
 class stream : public io
 {
+  friend class handle::uv_interface;
   friend class handle::instance< stream >;
   friend class connect;
   friend class write;
@@ -50,8 +51,6 @@ protected: /*types*/
 
   struct uv_interface : handle::uv_handle_interface, io::uv_interface
   {
-    static uv_interface& instance()  { static uv_interface instance;  return instance; }
-
     std::size_t write_queue_size(void *_uv_handle) const noexcept override
     { return static_cast< ::uv_stream_t* >(_uv_handle)->write_queue_size; }
 

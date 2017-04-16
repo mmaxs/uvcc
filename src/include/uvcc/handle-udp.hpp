@@ -22,6 +22,7 @@ namespace uv
     \sa libuv API documentation: [`uv_udp_t — UDP handle`](http://docs.libuv.org/en/v1.x/udp.html#uv-udp-t-udp-handle). */
 class udp : public io
 {
+  friend class handle::uv_interface;
   friend class handle::instance< udp >;
   friend class udp_send;
 
@@ -52,8 +53,6 @@ protected: /*types*/
 
   struct uv_interface : handle::uv_handle_interface, io::uv_interface
   {
-    static uv_interface& instance()  { static uv_interface instance;  return instance; }
-
     std::size_t write_queue_size(void *_uv_handle) const noexcept override
     { return static_cast< ::uv_udp_t* >(_uv_handle)->send_queue_size; }
 
