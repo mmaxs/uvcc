@@ -5,6 +5,7 @@
 #include "uvcc/utility.hpp"
 #include "uvcc/handle-base.hpp"
 
+#include <cstdint>      // uint64_t
 #include <uv.h>
 
 #include <functional>   // function bind placeholders::
@@ -193,16 +194,40 @@ public: /*interface*/
   template< class _Cb_, typename... _Args_,
       typename = std::enable_if_t< std::is_convertible< _Cb_, on_timer_t< _Args_&&... > >::value >
   >
-  int start(uint64_t _timeout, uint64_t _repeat, _Cb_ &&_cb, _Args_&&... _args) const
+  int start(uint64_t _timeout_value, uint64_t _repeat_value, _Cb_ &&_cb, _Args_&&... _args) const
   {
     instance::from(uv_handle)->properties().cb = std::bind(
         std::forward< _Cb_ >(_cb), std::placeholders::_1, std::forward< _Args_ >(_args)...
     );
 
     return uv_status(
-        ::uv_timer_start(static_cast< uv_t* >(uv_handle), timer_cb, _timeout, _repeat)
+        ::uv_timer_start(static_cast< uv_t* >(uv_handle), timer_cb, _timeout_value, _repeat_value)
     );
   }
+
+  /*! \brief Stop the timer, the callback will not be called anymore. */
+  int stop() const noexcept
+  {
+    return uv_status(
+        ::uv_timer_stop(static_cast< uv_t* >(uv_handle))
+    );
+  }
+
+  /*! \brief Stop the timer, and if it is repeating reschedule it using its repeat value as the timeout.
+      \details If the timer has never been started before it returns `UV_EINVAL`. */
+  int again() const noexcept
+  {
+    return uv_status(
+        ::uv_timer_again(static_cast< uv_t* >(uv_handle))
+    );
+  }
+
+  /*! \brief _Get_ the timer repeat value. */
+  uint64_t repeat_value() const noexcept  { return ::uv_timer_get_repeat(static_cast< uv_t* >(uv_handle)); }
+  /*! \brief _Set_ the repeat interval value in milliseconds.
+      \note Setting the repeat value to zero turns the timer to be non-repeating.
+      \sa [`uv_timer_set_repeat()`](http://docs.libuv.org/en/v1.x/timer.html#c.uv_timer_set_repeat). */
+  void repeat_value(uint64_t _interval) noexcept  { ::uv_timer_set_repeat(static_cast< uv_t* >(uv_handle), _interval); }
 
 public: /*conversion operators*/
   explicit operator const uv_t*() const noexcept  { return static_cast< const uv_t* >(uv_handle); }
