@@ -242,6 +242,311 @@ void timer::timer_cb(::uv_timer_t *_uv_handle)
 }
 
 
+
+/*! \defgroup doxy_group__idle_prepare_check  idle, prepare, check
+    \ingroup doxy_group__handle
+    \brief `uv::idle`, `uv::prepare`, and `uv::check` handles. */
+//! \{
+
+/*! \brief Idle handle.
+    \sa libuv API documentation: [`uv_idle_t — Idle handle`](http://docs.libuv.org/en/v1.x/idle.html#uv-idle-t-idle-handle). */
+class idle : public handle
+{
+  friend class handle::uv_interface;
+  friend class handle::instance< idle >;
+
+public: /*types*/
+  using uv_t = ::uv_idle_t;
+  template< typename... _Args_ >
+  using on_idle_t = std::function< void(idle _handle, _Args_&&... _args) >;
+  /*!< \brief The function type of the callback being set with `idle::start()` function.
+       \sa libuv API documentation: [`uv_idle_cb`](http://docs.libuv.org/en/v1.x/idle.html#c.uv_idle_cb). */
+
+protected: /*types*/
+  //! \cond internals
+  //! \addtogroup doxy_group__internals
+  //! \{
+
+  struct properties : handle::properties
+  {
+    std::function< void(idle) > cb;
+  };
+
+  struct uv_interface : handle::uv_handle_interface  {};
+
+  //! \}
+  //! \endcond
+
+private: /*types*/
+  using instance = handle::instance< idle >;
+
+private: /*functions*/
+  template < typename = void > static void idle_cb(::uv_idle_t*);
+
+protected: /*constructors*/
+  //! \cond
+  explicit idle(uv_t *_uv_handle) : handle(reinterpret_cast< handle::uv_t* >(_uv_handle))  {}
+  //! \endcond
+
+public: /*constructors*/
+  ~idle() = default;
+
+  idle(const idle&) = default;
+  idle& operator =(const idle&) = default;
+
+  idle(idle&&) noexcept = default;
+  idle& operator =(idle&&) noexcept = default;
+
+  /*! \brief Create an `idle` handle. */
+  idle(uv::loop &_loop)
+  {
+    uv_handle = instance::create();
+
+    auto uv_ret = ::uv_idle_init(static_cast< uv::loop::uv_t* >(_loop), static_cast< uv_t* >(uv_handle));
+    if (uv_status(uv_ret) < 0)  return;
+
+    instance::from(uv_handle)->book_loop();
+  }
+
+public: /*interface*/
+  /*! \brief Start the handle with the given callback.
+      \note All arguments are copied (or moved) to the internal callback function object. For passing arguments by reference
+      (when parameters are used as output ones), wrap them with `std::ref()` or use raw pointers. */
+  template< class _Cb_, typename... _Args_,
+      typename = std::enable_if_t< std::is_convertible< _Cb_, on_idle_t< _Args_&&... > >::value >
+  >
+  int start(_Cb_ &&_cb, _Args_&&... _args) const
+  {
+    instance::from(uv_handle)->properties().cb = std::bind(
+        std::forward< _Cb_ >(_cb), std::placeholders::_1, std::forward< _Args_ >(_args)...
+    );
+
+    return uv_status(
+        ::uv_idle_start(static_cast< uv_t* >(uv_handle), idle_cb)
+    );
+  }
+
+  /*! \brief Stop the handle, the callback will no longer be called. */
+  int stop() const noexcept
+  {
+    return uv_status(
+        ::uv_idle_stop(static_cast< uv_t* >(uv_handle))
+    );
+  }
+
+public: /*conversion operators*/
+  explicit operator const uv_t*() const noexcept  { return static_cast< const uv_t* >(uv_handle); }
+  explicit operator       uv_t*()       noexcept  { return static_cast<       uv_t* >(uv_handle); }
+};
+
+template< typename >
+void idle::idle_cb(::uv_idle_t *_uv_handle)
+{
+  auto &cb = instance::from(_uv_handle)->properties().cb;
+  if (cb)  cb(idle(_uv_handle));
+}
+
+
+/*! \brief Prepare handle.
+    \sa libuv API documentation: [`uv_prepare_t — Prepare handle`](http://docs.libuv.org/en/v1.x/prepare.html#uv-prepare-t-prepare-handle). */
+class prepare : public handle
+{
+  friend class handle::uv_interface;
+  friend class handle::instance< prepare >;
+
+public: /*types*/
+  using uv_t = ::uv_prepare_t;
+  template< typename... _Args_ >
+  using on_prepare_t = std::function< void(prepare _handle, _Args_&&... _args) >;
+  /*!< \brief The function type of the callback being set with `prepare::start()` function.
+       \sa libuv API documentation: [`uv_prepare_cb`](http://docs.libuv.org/en/v1.x/prepare.html#c.uv_prepare_cb). */
+
+protected: /*types*/
+  //! \cond internals
+  //! \addtogroup doxy_group__internals
+  //! \{
+
+  struct properties : handle::properties
+  {
+    std::function< void(prepare) > cb;
+  };
+
+  struct uv_interface : handle::uv_handle_interface  {};
+
+  //! \}
+  //! \endcond
+
+private: /*types*/
+  using instance = handle::instance< prepare >;
+
+private: /*functions*/
+  template < typename = void > static void prepare_cb(::uv_prepare_t*);
+
+protected: /*constructors*/
+  //! \cond
+  explicit prepare(uv_t *_uv_handle) : handle(reinterpret_cast< handle::uv_t* >(_uv_handle))  {}
+  //! \endcond
+
+public: /*constructors*/
+  ~prepare() = default;
+
+  prepare(const prepare&) = default;
+  prepare& operator =(const prepare&) = default;
+
+  prepare(prepare&&) noexcept = default;
+  prepare& operator =(prepare&&) noexcept = default;
+
+  /*! \brief Create an `prepare` handle. */
+  prepare(uv::loop &_loop)
+  {
+    uv_handle = instance::create();
+
+    auto uv_ret = ::uv_prepare_init(static_cast< uv::loop::uv_t* >(_loop), static_cast< uv_t* >(uv_handle));
+    if (uv_status(uv_ret) < 0)  return;
+
+    instance::from(uv_handle)->book_loop();
+  }
+
+public: /*interface*/
+  /*! \brief Start the handle with the given callback.
+      \note All arguments are copied (or moved) to the internal callback function object. For passing arguments by reference
+      (when parameters are used as output ones), wrap them with `std::ref()` or use raw pointers. */
+  template< class _Cb_, typename... _Args_,
+      typename = std::enable_if_t< std::is_convertible< _Cb_, on_prepare_t< _Args_&&... > >::value >
+  >
+  int start(_Cb_ &&_cb, _Args_&&... _args) const
+  {
+    instance::from(uv_handle)->properties().cb = std::bind(
+        std::forward< _Cb_ >(_cb), std::placeholders::_1, std::forward< _Args_ >(_args)...
+    );
+
+    return uv_status(
+        ::uv_prepare_start(static_cast< uv_t* >(uv_handle), prepare_cb)
+    );
+  }
+
+  /*! \brief Stop the handle, the callback will no longer be called. */
+  int stop() const noexcept
+  {
+    return uv_status(
+        ::uv_prepare_stop(static_cast< uv_t* >(uv_handle))
+    );
+  }
+
+public: /*conversion operators*/
+  explicit operator const uv_t*() const noexcept  { return static_cast< const uv_t* >(uv_handle); }
+  explicit operator       uv_t*()       noexcept  { return static_cast<       uv_t* >(uv_handle); }
+};
+
+template< typename >
+void prepare::prepare_cb(::uv_prepare_t *_uv_handle)
+{
+  auto &cb = instance::from(_uv_handle)->properties().cb;
+  if (cb)  cb(prepare(_uv_handle));
+}
+
+
+/*! \brief Check handle.
+    \sa libuv API documentation: [`uv_check_t — Check handle`](http://docs.libuv.org/en/v1.x/check.html#uv-check-t-check-handle). */
+class check : public handle
+{
+  friend class handle::uv_interface;
+  friend class handle::instance< check >;
+
+public: /*types*/
+  using uv_t = ::uv_check_t;
+  template< typename... _Args_ >
+  using on_check_t = std::function< void(check _handle, _Args_&&... _args) >;
+  /*!< \brief The function type of the callback being set with `check::start()` function.
+       \sa libuv API documentation: [`uv_check_cb`](http://docs.libuv.org/en/v1.x/check.html#c.uv_check_cb). */
+
+protected: /*types*/
+  //! \cond internals
+  //! \addtogroup doxy_group__internals
+  //! \{
+
+  struct properties : handle::properties
+  {
+    std::function< void(check) > cb;
+  };
+
+  struct uv_interface : handle::uv_handle_interface  {};
+
+  //! \}
+  //! \endcond
+
+private: /*types*/
+  using instance = handle::instance< check >;
+
+private: /*functions*/
+  template < typename = void > static void check_cb(::uv_check_t*);
+
+protected: /*constructors*/
+  //! \cond
+  explicit check(uv_t *_uv_handle) : handle(reinterpret_cast< handle::uv_t* >(_uv_handle))  {}
+  //! \endcond
+
+public: /*constructors*/
+  ~check() = default;
+
+  check(const check&) = default;
+  check& operator =(const check&) = default;
+
+  check(check&&) noexcept = default;
+  check& operator =(check&&) noexcept = default;
+
+  /*! \brief Create an `check` handle. */
+  check(uv::loop &_loop)
+  {
+    uv_handle = instance::create();
+
+    auto uv_ret = ::uv_check_init(static_cast< uv::loop::uv_t* >(_loop), static_cast< uv_t* >(uv_handle));
+    if (uv_status(uv_ret) < 0)  return;
+
+    instance::from(uv_handle)->book_loop();
+  }
+
+public: /*interface*/
+  /*! \brief Start the handle with the given callback.
+      \note All arguments are copied (or moved) to the internal callback function object. For passing arguments by reference
+      (when parameters are used as output ones), wrap them with `std::ref()` or use raw pointers. */
+  template< class _Cb_, typename... _Args_,
+      typename = std::enable_if_t< std::is_convertible< _Cb_, on_check_t< _Args_&&... > >::value >
+  >
+  int start(_Cb_ &&_cb, _Args_&&... _args) const
+  {
+    instance::from(uv_handle)->properties().cb = std::bind(
+        std::forward< _Cb_ >(_cb), std::placeholders::_1, std::forward< _Args_ >(_args)...
+    );
+
+    return uv_status(
+        ::uv_check_start(static_cast< uv_t* >(uv_handle), check_cb)
+    );
+  }
+
+  /*! \brief Stop the handle, the callback will no longer be called. */
+  int stop() const noexcept
+  {
+    return uv_status(
+        ::uv_check_stop(static_cast< uv_t* >(uv_handle))
+    );
+  }
+
+public: /*conversion operators*/
+  explicit operator const uv_t*() const noexcept  { return static_cast< const uv_t* >(uv_handle); }
+  explicit operator       uv_t*()       noexcept  { return static_cast<       uv_t* >(uv_handle); }
+};
+
+template< typename >
+void check::check_cb(::uv_check_t *_uv_handle)
+{
+  auto &cb = instance::from(_uv_handle)->properties().cb;
+  if (cb)  cb(check(_uv_handle));
+}
+
+//! \}
+
+
 }
 
 
