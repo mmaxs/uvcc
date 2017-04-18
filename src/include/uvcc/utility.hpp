@@ -84,7 +84,6 @@ template< typename _T_ > struct default_destroy
 
 
 /*! \defgroup doxy_group__variadic  Dealing with type lists and parameter packs */
-//! \addtogroup doxy_group__variadic
 //! \{
 
 /*! \brief Checks if a type `_T_` belongs to a type list `_Ts_`.

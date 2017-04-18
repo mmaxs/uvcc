@@ -150,7 +150,9 @@ private: /*types*/
     void ref()  { refs.inc(); }
     void unref() noexcept  { if (refs.dec() == 0)  destroy(); }
   };
+  //! \cond
   friend typename buffer::instance* debug::instance<>(buffer&) noexcept;
+  //! \endcond
 
 private: /*data*/
   uv_t *uv_buf;

@@ -154,7 +154,9 @@ private: /*types*/
       if (nrefs == 0)  destroy();
     }
   };
+  //! \cond
   friend typename loop::instance* debug::instance<>(loop&) noexcept;
+  //! \endcond
 
 private: /*data*/
   uv_t *uv_loop;
