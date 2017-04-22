@@ -27,7 +27,7 @@ public: /*types*/
   using uv_t = ::uv_async_t;
   template< typename... _Args_ >
   using on_send_t = std::function< void(async _handle, _Args_&&... _args) >;
-  /*!< \brief The function type of the callback called by the [`async`](http://docs.libuv.org/en/v1.x/async.html#uv-async-t-async-handle) event.
+  /*!< \brief The function type of the callback called by the `async` event.
        \note
         1. All the arguments are passed and stored by value along with the function object when the `async` handle variable is created.
         2. The `async` event is not a facility for executing a given callback function on the target loop on every `async::send()` call.
@@ -545,6 +545,131 @@ void check::check_cb(::uv_check_t *_uv_handle)
 }
 
 //! \}
+
+
+
+/*! \ingroup doxy_group__handle
+    \brief Signal handle.
+    \sa libuv API documentation: [`uv_signal_t — Signal handle`](http://docs.libuv.org/en/v1.x/signal.html#uv-signal-t-signal-handle). */
+class signal : public handle
+{
+  friend class handle::uv_interface;
+  friend class handle::instance< signal >;
+
+public: /*types*/
+  using uv_t = ::uv_signal_t;
+  template< typename... _Args_ >
+  using on_signal_t = std::function< void(signal _handle, _Args_&&... _args) >;
+  /*!< \brief The function type of the `signal` handler.
+       \note All the arguments are passed and stored by value along with the function object when the `signal` handle
+       is started with `signal::start()`/`signal::start_oneshot()` functions.
+       \sa libuv API documentation: [`uv_signal_cb`](http://docs.libuv.org/en/v1.x/signal.html#c.uv_signal_cb). */
+
+protected: /*types*/
+  //! \cond internals
+  //! \addtogroup doxy_group__internals
+  //! \{
+
+  struct properties : handle::properties
+  {
+    std::function< void(signal) > cb;
+  };
+
+  struct uv_interface : handle::uv_handle_interface  {};
+
+  //! \}
+  //! \endcond
+
+private: /*types*/
+  using instance = handle::instance< signal >;
+
+private: /*functions*/
+  template < typename = void > static void signal_cb(::uv_signal_t*, int);
+
+protected: /*constructors*/
+  //! \cond
+  explicit signal(uv_t *_uv_handle) : handle(reinterpret_cast< handle::uv_t* >(_uv_handle))  {}
+  //! \endcond
+
+public: /*constructors*/
+  ~signal() = default;
+
+  signal(const signal&) = default;
+  signal& operator =(const signal&) = default;
+
+  signal(signal&&) noexcept = default;
+  signal& operator =(signal&&) noexcept = default;
+
+  /*! \brief Create a `siganl` handle. */
+  signal(uv::loop &_loop)
+  {
+    uv_handle = instance::create();
+
+    auto uv_ret = ::uv_signal_init(static_cast< uv::loop::uv_t* >(_loop), static_cast< uv_t* >(uv_handle));
+    if (uv_status(uv_ret) < 0)  return;
+
+    instance::from(uv_handle)->book_loop();
+  }
+
+public: /*interface*/
+  /*! \brief Get the signal number being monitored by this handle. */
+  int signum() const noexcept  { return static_cast< uv_t* >(uv_handle)->signum; }
+
+  /*! \brief Start the handle with the given callback, watching for the given signal.
+      \note All arguments are copied (or moved) to the internal callback function object. For passing arguments by reference
+      (when parameters are used as output ones), wrap them with `std::ref()` or use raw pointers. */
+  template< class _Cb_, typename... _Args_,
+      typename = std::enable_if_t< std::is_convertible< _Cb_, on_signal_t< _Args_&&... > >::value >
+  >
+  int start(int _signum, _Cb_ &&_cb, _Args_&&... _args) const
+  {
+    instance::from(uv_handle)->properties().cb = std::bind(
+        std::forward< _Cb_ >(_cb), std::placeholders::_1, std::forward< _Args_ >(_args)...
+    );
+
+    return uv_status(
+        ::uv_signal_start(static_cast< uv_t* >(uv_handle), signal_cb, _signum)
+    );
+  }
+#if (UV_VERSION_MAJOR >= 1) && (UV_VERSION_MINOR >= 12)
+  /*! \brief Start the handle with the given callback, watching for the given signal.
+      \details The signal handler is reset the moment the signal is received.
+      \note All arguments are copied (or moved) to the internal callback function object. For passing arguments by reference
+      (when parameters are used as output ones), wrap them with `std::ref()` or use raw pointers. */
+  template< class _Cb_, typename... _Args_,
+      typename = std::enable_if_t< std::is_convertible< _Cb_, on_signal_t< _Args_&&... > >::value >
+  >
+  int start_oneshot(int _signum, _Cb_ &&_cb, _Args_&&... _args) const
+  {
+    instance::from(uv_handle)->properties().cb = std::bind(
+        std::forward< _Cb_ >(_cb), std::placeholders::_1, std::forward< _Args_ >(_args)...
+    );
+
+    return uv_status(
+        ::uv_signal_start_oneshot(static_cast< uv_t* >(uv_handle), signal_cb, _signum)
+    );
+  }
+#endif
+
+  /*! \brief Stop the handle, the callback will no longer be called. */
+  int stop() const noexcept
+  {
+    return uv_status(
+        ::uv_signal_stop(static_cast< uv_t* >(uv_handle))
+    );
+  }
+
+public: /*conversion operators*/
+  explicit operator const uv_t*() const noexcept  { return static_cast< const uv_t* >(uv_handle); }
+  explicit operator       uv_t*()       noexcept  { return static_cast<       uv_t* >(uv_handle); }
+};
+
+template< typename >
+void signal::signal_cb(::uv_signal_t *_uv_handle, int)
+{
+  auto &cb = instance::from(_uv_handle)->properties().cb;
+  if (cb)  cb(signal(_uv_handle));
+}
 
 
 }
