@@ -32,8 +32,10 @@ namespace uv
     \sa libuv API documentation: [`uv_handle_t — Base handle`](http://docs.libuv.org/en/v1.x/handle.html#uv-handle-t-base-handle). */
 class handle
 {
+  //! \cond
   friend class loop;
   friend class request;
+  //! \endcond
 
 public: /*types*/
   using uv_t = ::uv_handle_t;

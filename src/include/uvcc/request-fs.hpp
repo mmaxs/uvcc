@@ -39,7 +39,9 @@ namespace uv
     always designate a real effective file offset for each request run. */
 class fs : public request
 {
+  //! \cond
   friend class request::instance< fs >;
+  //! \endcond
 
 public: /*types*/
   using uv_t = ::uv_fs_t;
@@ -126,7 +128,9 @@ public: /*conversion operators*/
 /*! \brief Close a file handle. */
 class fs::close : public fs
 {
+  //! \cond
   friend class request::instance< close >;
+  //! \endcond
 
 public: /*types*/
   using on_request_t = std::function< void(close _request) >;
@@ -251,7 +255,9 @@ void fs::close::close_cb(::uv_fs_t *_uv_req)
 /*! \brief Read data from a file. */
 class fs::read : public fs
 {
+  //! \cond
   friend class request::instance< read >;
+  //! \endcond
 
 public: /*types*/
   using on_request_t = std::function< void(read _request, buffer _buffer) >;
@@ -405,8 +411,10 @@ void fs::read::read_cb(::uv_fs_t *_uv_req)
 /*! \brief Write data to a file. */
 class fs::write : public fs
 {
+  //! \cond
   friend class request::instance< write >;
   friend class output;
+  //! \endcond
 
 public: /*types*/
   using on_request_t = std::function< void(write _request, buffer _buffer) >;
@@ -610,7 +618,9 @@ void fs::write::write_cb(::uv_fs_t *_uv_req)
 /*! \brief Synchronize a file's state with storage device. */
 class fs::sync : public fs
 {
+  //! \cond
   friend class request::instance< sync >;
+  //! \endcond
 
 public: /*types*/
   using on_request_t = std::function< void(sync _request) >;
@@ -738,7 +748,9 @@ void fs::sync::sync_cb(::uv_fs_t *_uv_req)
 /*! \brief Truncate a file to a specified length. */
 class fs::truncate : public fs
 {
+  //! \cond
   friend class request::instance< truncate >;
+  //! \endcond
 
 public: /*types*/
   using on_request_t = std::function< void(truncate _request) >;
@@ -882,8 +894,10 @@ void fs::truncate::truncate_cb(::uv_fs_t *_uv_req)
 /*! \brief Transfer data between file descriptors. */
 class fs::sendfile : public fs
 {
+  //! \cond
   friend class request::instance< sendfile >;
   friend class output;
+  //! \endcond
 
 public: /*types*/
   using on_request_t = std::function< void(sendfile _request) >;
@@ -1063,7 +1077,9 @@ void fs::sendfile::sendfile_cb(::uv_fs_t *_uv_req)
 /*! \brief Get information about a file. */
 class fs::stat : public fs
 {
+  //! \cond
   friend class request::instance< stat >;
+  //! \endcond
 
 public: /*types*/
   using on_request_t = std::function< void(stat _request) >;
@@ -1267,7 +1283,9 @@ void fs::stat::stat_cb(::uv_fs_t *_uv_req)
 /*! \brief Change a file mode bits. */
 class fs::chmod : public fs
 {
+  //! \cond
   friend class request::instance< chmod >;
+  //! \endcond
 
 public: /*types*/
   using on_request_t = std::function< void(chmod _request) >;
@@ -1460,7 +1478,9 @@ void fs::chmod::chmod_cb(::uv_fs_t *_uv_req)
 /*! \brief Change ownership of a file. (_Not implemented on Windows._) */
 class fs::chown : public fs
 {
+  //! \cond
   friend class request::instance< chown >;
+  //! \endcond
 
 public: /*types*/
   using on_request_t = std::function< void(chown _request) >;
@@ -1652,7 +1672,9 @@ void fs::chown::chown_cb(::uv_fs_t *_uv_req)
 /*! \brief Change file timestamps. */
 class fs::utime : public fs
 {
+  //! \cond
   friend class request::instance< utime >;
+  //! \endcond
 
 public: /*types*/
   using on_request_t = std::function< void(utime _request) >;
@@ -1845,7 +1867,9 @@ void fs::utime::utime_cb(::uv_fs_t *_uv_req)
 /*! \brief Delete a file name and possibly the file itself that the name refers to. */
 class fs::unlink : public fs
 {
+  //! \cond
   friend class request::instance< unlink >;
+  //! \endcond
 
 public: /*types*/
   using on_request_t = std::function< void(unlink _request) >;
@@ -1944,7 +1968,9 @@ void fs::unlink::unlink_cb(::uv_fs_t *_uv_req)
 /*! \brief Create a directory. */
 class fs::mkdir : public fs
 {
+  //! \cond
   friend class request::instance< mkdir >;
+  //! \endcond
 
 public: /*types*/
   using on_request_t = std::function< void(mkdir _request) >;
@@ -2043,7 +2069,9 @@ void fs::mkdir::mkdir_cb(::uv_fs_t *_uv_req)
 /*! \brief Create a uniquely named temporary directory. */
 class fs::mkdtemp : public fs
 {
+  //! \cond
   friend class request::instance< mkdtemp >;
+  //! \endcond
 
 public: /*types*/
   using on_request_t = std::function< void(mkdtemp _request) >;
@@ -2142,7 +2170,9 @@ void fs::mkdtemp::mkdtemp_cb(::uv_fs_t *_uv_req)
 /*! \brief Delete a directory. */
 class fs::rmdir : public fs
 {
+  //! \cond
   friend class request::instance< rmdir >;
+  //! \endcond
 
 public: /*types*/
   using on_request_t = std::function< void(rmdir _request) >;
@@ -2241,7 +2271,9 @@ void fs::rmdir::rmdir_cb(::uv_fs_t *_uv_req)
 /*! \brief Scan a directory. */
 class fs::scandir : public fs
 {
+  //! \cond
   friend class request::instance< scandir >;
+  //! \endcond
 
 public: /*types*/
   using on_request_t = std::function< void(scandir _request) >;
@@ -2350,7 +2382,9 @@ void fs::scandir::scandir_cb(::uv_fs_t *_uv_req)
 /*! \brief Change the name or location of a file. */
 class fs::rename : public fs
 {
+  //! \cond
   friend class request::instance< rename >;
+  //! \endcond
 
 public: /*types*/
   using on_request_t = std::function< void(rename _request) >;
@@ -2467,7 +2501,9 @@ void fs::rename::rename_cb(::uv_fs_t *_uv_req)
 /*! \brief Check user's permissions for a file. */
 class fs::access : public fs
 {
+  //! \cond
   friend class request::instance< access >;
+  //! \endcond
 
 public: /*types*/
   using on_request_t = std::function< void(access _request) >;
@@ -2566,7 +2602,9 @@ void fs::access::access_cb(::uv_fs_t *_uv_req)
 /*! \brief Create a new link to a file. */
 class fs::link : public fs
 {
+  //! \cond
   friend class request::instance< link >;
+  //! \endcond
 
 public: /*types*/
   using on_request_t = std::function< void(link _request) >;
@@ -2706,7 +2744,9 @@ void fs::link::link_cb(::uv_fs_t *_uv_req)
 /*! \brief Read value of a symbolic link. */
 class fs::readlink : public fs
 {
+  //! \cond
   friend class request::instance< readlink >;
+  //! \endcond
 
 public: /*types*/
   using on_request_t = std::function< void(readlink _request) >;
@@ -2808,7 +2848,9 @@ void fs::readlink::readlink_cb(::uv_fs_t *_uv_req)
 /*! \brief Get canonicalized absolute pathname. */
 class fs::realpath : public fs
 {
+  //! \cond
   friend class request::instance< realpath >;
+  //! \endcond
 
 public: /*types*/
   using on_request_t = std::function< void(realpath _request) >;

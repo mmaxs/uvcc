@@ -20,8 +20,10 @@ namespace uv
     \sa libuv API documentation: [`uv_async_t — Async handle`](http://docs.libuv.org/en/v1.x/async.html#uv-async-t-async-handle). */
 class async : public handle
 {
+  //! \cond
   friend class handle::uv_interface;
   friend class handle::instance< async >;
+  //! \endcond
 
 public: /*types*/
   using uv_t = ::uv_async_t;
@@ -129,8 +131,10 @@ void async::async_cb(::uv_async_t *_uv_handle)
     \sa libuv API documentation: [`uv_timer_t — Timer handle`](http://docs.libuv.org/en/v1.x/timer.html#uv-timer-t-timer-handle). */
 class timer : public handle
 {
+  //! \cond
   friend class handle::uv_interface;
   friend class handle::instance< timer >;
+  //! \endcond
 
 public: /*types*/
   using uv_t = ::uv_timer_t;
@@ -252,8 +256,10 @@ void timer::timer_cb(::uv_timer_t *_uv_handle)
     \sa libuv API documentation: [`uv_idle_t — Idle handle`](http://docs.libuv.org/en/v1.x/idle.html#uv-idle-t-idle-handle). */
 class idle : public handle
 {
+  //! \cond
   friend class handle::uv_interface;
   friend class handle::instance< idle >;
+  //! \endcond
 
 public: /*types*/
   using uv_t = ::uv_idle_t;
@@ -351,8 +357,10 @@ void idle::idle_cb(::uv_idle_t *_uv_handle)
     \sa libuv API documentation: [`uv_prepare_t — Prepare handle`](http://docs.libuv.org/en/v1.x/prepare.html#uv-prepare-t-prepare-handle). */
 class prepare : public handle
 {
+  //! \cond
   friend class handle::uv_interface;
   friend class handle::instance< prepare >;
+  //! \endcond
 
 public: /*types*/
   using uv_t = ::uv_prepare_t;
@@ -450,8 +458,10 @@ void prepare::prepare_cb(::uv_prepare_t *_uv_handle)
     \sa libuv API documentation: [`uv_check_t — Check handle`](http://docs.libuv.org/en/v1.x/check.html#uv-check-t-check-handle). */
 class check : public handle
 {
+  //! \cond
   friend class handle::uv_interface;
   friend class handle::instance< check >;
+  //! \endcond
 
 public: /*types*/
   using uv_t = ::uv_check_t;
@@ -553,8 +563,10 @@ void check::check_cb(::uv_check_t *_uv_handle)
     \sa libuv API documentation: [`uv_signal_t — Signal handle`](http://docs.libuv.org/en/v1.x/signal.html#uv-signal-t-signal-handle). */
 class signal : public handle
 {
+  //! \cond
   friend class handle::uv_interface;
   friend class handle::instance< signal >;
+  //! \endcond
 
 public: /*types*/
   using uv_t = ::uv_signal_t;

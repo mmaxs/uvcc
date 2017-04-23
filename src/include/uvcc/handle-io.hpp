@@ -24,9 +24,11 @@ namespace uv
     \note `read_start()`/`read_stop()` and `read_pause()`/`read_resume()` functions are mutually exclusive and thread-safe. */
 class io : public handle
 {
+  //! \cond
   friend class handle::instance< io >;
   friend class output;
   friend class fs;
+  //! \endcond
 
 public: /*types*/
   using uv_t = void;
@@ -59,9 +61,7 @@ protected: /*types*/
   //! \addtogroup doxy_group__internals
   //! \{
 
-  //! \cond
   enum class rdcmd  { UNKNOWN, STOP, PAUSE, START, RESUME };
-  //! \endcond
 
   struct properties : handle::properties
   {

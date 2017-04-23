@@ -30,7 +30,9 @@ namespace uv
     depending on the actual type of the `io` argument passed to the `run()` member function. */
 class output : public request
 {
+  //! \cond
   friend class request::instance< output >;
+  //! \endcond
 
 public: /*types*/
   using uv_t = union {

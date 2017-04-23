@@ -26,9 +26,11 @@ namespace uv
     \brief The open file handle. */
 class file : public io
 {
+  //! \cond
   friend class handle::uv_interface;
   friend class handle::instance< file >;
   friend class fs;
+  //! \endcond
 
 public: /*types*/
   using uv_t = ::uv_fs_t;
