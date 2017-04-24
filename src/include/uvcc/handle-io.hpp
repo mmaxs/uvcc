@@ -28,6 +28,7 @@ class io : public handle
   friend class handle::instance< io >;
   friend class output;
   friend class fs;
+  friend class process;
   //! \endcond
 
 public: /*types*/

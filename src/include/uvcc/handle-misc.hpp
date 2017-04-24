@@ -4,6 +4,7 @@
 
 #include "uvcc/utility.hpp"
 #include "uvcc/handle-base.hpp"
+#include "uvcc/handle-io.hpp"
 
 #include <cstdint>      // uint64_t
 #include <uv.h>
@@ -31,7 +32,8 @@ public: /*types*/
   using on_send_t = std::function< void(async _handle, _Args_&&... _args) >;
   /*!< \brief The function type of the callback called by the `async` event.
        \note
-        1. All the arguments are passed and stored by value along with the function object when the `async` handle variable is created.
+        1. All the additional templated arguments are passed and stored by value along with the function object
+           when the `async` handle variable is created.
         2. The `async` event is not a facility for executing a given callback function on the target loop on every `async::send()` call.
        \sa libuv API documentation: [`uv_async_cb`](http://docs.libuv.org/en/v1.x/async.html#c.uv_async_cb),
                                     [`uv_async_send()`](http://docs.libuv.org/en/v1.x/async.html#c.uv_async_send). */
@@ -141,6 +143,8 @@ public: /*types*/
   template< typename... _Args_ >
   using on_timer_t = std::function< void(timer _handle, _Args_&&... _args) >;
   /*!< \brief The function type of the callback called by the timer scheduled with `timer::start()` function.
+       \note All the additional templated arguments are passed and stored by value along with the function object
+       when the `timer` handle is started with `timer::start()` functions.
        \sa libuv API documentation: [`uv_timer_cb`](http://docs.libuv.org/en/v1.x/timer.html#c.uv_timer_cb). */
 
 protected: /*types*/
@@ -573,8 +577,8 @@ public: /*types*/
   template< typename... _Args_ >
   using on_signal_t = std::function< void(signal _handle, _Args_&&... _args) >;
   /*!< \brief The function type of the `signal` handler.
-       \note All the arguments are passed and stored by value along with the function object when the `signal` handle
-       is started with `signal::start()`/`signal::start_oneshot()` functions.
+       \note All the additional templated arguments are passed and stored by value along with the function object
+       when the `signal` handle is started with `signal::start()`/`signal::start_oneshot()` functions.
        \sa libuv API documentation: [`uv_signal_cb`](http://docs.libuv.org/en/v1.x/signal.html#c.uv_signal_cb). */
 
 protected: /*types*/
@@ -612,7 +616,7 @@ public: /*constructors*/
   signal(signal&&) noexcept = default;
   signal& operator =(signal&&) noexcept = default;
 
-  /*! \brief Create a `siganl` handle. */
+  /*! \brief Create a `signal` handle. */
   signal(uv::loop &_loop)
   {
     uv_handle = instance::create();
@@ -681,6 +685,134 @@ void signal::signal_cb(::uv_signal_t *_uv_handle, int)
 {
   auto &cb = instance::from(_uv_handle)->properties().cb;
   if (cb)  cb(signal(_uv_handle));
+}
+
+
+
+/*! \ingroup doxy_group__handle
+    \brief Process handle.
+    \sa libuv API documentation: [`uv_process_t — Process handle`](http://docs.libuv.org/en/v1.x/process.html#uv-process-t-process-handle). */
+class process : public handle
+{
+  //! \cond
+  friend class handle::uv_interface;
+  friend class handle::instance< process >;
+  //! \endcond
+
+public: /*types*/
+  using uv_t = ::uv_process_t;
+  using on_exit_t = std::function< void(process _handle, int64_t _exit_status, int _termination_signal) >;
+  /*!< \brief The function type of the callback called when the child process exits.
+       \sa libuv API documentation: [`uv_exit_cb`](http://docs.libuv.org/en/v1.x/process.html#c.uv_exit_cb). */
+
+protected: /*types*/
+  //! \cond internals
+  //! \addtogroup doxy_group__internals
+  //! \{
+
+  struct properties : handle::properties
+  {
+    ::uv_process_options_t spawn_options = { 0,};
+    on_exit_t exit_cb;
+    struct stdio_container : ::uv_stdio_container_t
+    {
+      static_assert(sizeof(data.stream) == sizeof(io), "incompatible type sizes");
+
+      ~stdio_container()  { reinterpret_cast< io& >(data.stream).~io(); }
+      stdio_container()
+      {
+        flags = UV_IGNORE;
+        new(&data.stream) io;
+      }
+    } ios[3];
+
+    properties()
+    {
+      spawn_options.exit_cb = process::exit_cb;
+      spawn_options.stdio_count = 3;
+      spawn_options.stdio = ios;
+    }
+  };
+
+  struct uv_interface : handle::uv_handle_interface  {};
+
+  //! \}
+  //! \endcond
+
+private: /*types*/
+  using instance = handle::instance< process >;
+
+private: /*functions*/
+  template < typename = void > static void exit_cb(::uv_process_t*, int64_t, int);
+
+protected: /*constructors*/
+  //! \cond
+  explicit process(uv_t *_uv_handle) : handle(reinterpret_cast< handle::uv_t* >(_uv_handle))  {}
+  //! \endcond
+
+public: /*constructors*/
+  ~process() = default;
+
+  process(const process&) = default;
+  process& operator =(const process&) = default;
+
+  process(process&&) noexcept = default;
+  process& operator =(process&&) noexcept = default;
+
+  /*! \brief Create a `process` handle. */
+  process(uv::loop &_loop)
+  {
+    uv_handle = instance::create();
+    static_cast< uv_t* >(uv_handle)->loop = static_cast< loop::uv_t* >(_loop);
+    instance::from(uv_handle)->book_loop();
+  }
+
+public: /*interface*/
+  /*! \brief The PID of the spawned process. It’s set after calling `process::spawn()`. */
+  int pid() const noexcept  { return static_cast< uv_t* >(uv_handle)->pid; }
+
+  /*! \name Functions to prepare for spawning a child process: */
+  //! \{
+
+  /*! \brief Used to set the callback function called when the spawned process exits. */
+  on_exit_t& on_exit() const noexcept  { return instance::from(uv_handle)->properties().exit_cb; }
+
+  void prepare_stdin(::uv_stdio_flags _flags)  const noexcept  {}
+  void prepare_stdout(::uv_stdio_flags _flags)  const noexcept  {}
+  void prepare_stderr(::uv_stdio_flags _flags)  const noexcept  {}
+
+  io& stdin_stream() const noexcept  { return reinterpret_cast< io& >(instance::from(uv_handle)->properties().ios[0].data.stream); }
+  io& stdout_stream() const noexcept  { return reinterpret_cast< io& >(instance::from(uv_handle)->properties().ios[1].data.stream); }
+  io& stderr_stream() const noexcept  { return reinterpret_cast< io& >(instance::from(uv_handle)->properties().ios[2].data.stream); }
+
+  //! \}
+
+  /*! \brief Create and start a new child process.
+      \sa libuv API documentation: [`uv_spawn()`](http://docs.libuv.org/en/v1.x/process.html#c.uv_spawn). */
+  int spawn() const noexcept
+  {
+    auto &properties = instance::from(uv_handle)->properties();
+    return uv_status(
+        ::uv_spawn(static_cast< uv_t* >(uv_handle)->loop, static_cast< uv_t* >(uv_handle), &properties.spawn_options)
+    );
+  }
+  int spawn(::uv_process_flags _flags) const noexcept
+  {
+    auto &spawn_options = instance::from(uv_handle)->properties().spawn_options;
+    spawn_options.flags |= _flags;
+    return spawn();
+  }
+
+public: /*conversion operators*/
+  explicit operator const uv_t*() const noexcept  { return static_cast< const uv_t* >(uv_handle); }
+  explicit operator       uv_t*()       noexcept  { return static_cast<       uv_t* >(uv_handle); }
+};
+
+template< typename >
+void process::exit_cb(::uv_process_t* _uv_handle, int64_t _exit_status, int _termination_signal)
+{
+  auto &exit_cb = instance::from(_uv_handle)->properties().exit_cb;
+  if (exit_cb)  exit_cb(process(_uv_handle), _exit_status, _termination_signal);
 }
 
 
