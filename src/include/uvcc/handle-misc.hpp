@@ -768,7 +768,7 @@ public: /*constructors*/
   }
 
 public: /*interface*/
-  /*! \brief The PID of the spawned process. It’s set after calling `process::spawn()`. */
+  /*! \brief The PID of the spawned process. It’s set after calling `spawn()`. */
   int pid() const noexcept  { return static_cast< uv_t* >(uv_handle)->pid; }
 
   /*! \name Functions to prepare for spawning a child process: */
@@ -777,6 +777,7 @@ public: /*interface*/
   /*! \brief Used to set the callback function called when the spawned process exits. */
   on_exit_t& on_exit() const noexcept  { return instance::from(uv_handle)->properties().exit_cb; }
 
+  /*! \brief Specify how a stdio streams should be transmitted to the child process. */
   void prepare_stdin(::uv_stdio_flags _flags)  const noexcept  {}
   void prepare_stdout(::uv_stdio_flags _flags)  const noexcept  {}
   void prepare_stderr(::uv_stdio_flags _flags)  const noexcept  {}
