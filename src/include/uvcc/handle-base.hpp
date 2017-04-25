@@ -257,7 +257,14 @@ protected: /*functions*/
 
 public: /*interface*/
   void swap(handle &_that) noexcept  { std::swap(uv_handle, _that.uv_handle); }
-  std::uintptr_t id() const noexcept  { return reinterpret_cast< std::uintptr_t >(instance< handle >::from(uv_handle)); }
+
+  /*! \brief The unique ID of the instance managed by this handle variable or **0** if the handle is void. */
+  std::uintptr_t id() const noexcept
+  {
+    return reinterpret_cast< std::uintptr_t >(
+        uv_handle ? instance< handle >::from(uv_handle) : 0
+    );
+  }
 
   /*! \brief The current number of existing references to the same object as this handle variable refers to. */
   long nrefs() const noexcept  { return instance< handle >::from(uv_handle)->refs.get_value(); }
@@ -344,7 +351,8 @@ public: /*conversion operators*/
   explicit operator const uv_t*() const noexcept  { return instance< handle >::from(uv_handle)->uv_interface()->type(uv_handle) == UV_FILE ? nullptr : static_cast< const uv_t* >(uv_handle); }
   explicit operator       uv_t*()       noexcept  { return instance< handle >::from(uv_handle)->uv_interface()->type(uv_handle) == UV_FILE ? nullptr : static_cast<       uv_t* >(uv_handle); }
 
-  explicit operator bool() const noexcept  { return (uv_status() >= 0); }  /*!< \brief Equivalent to `(uv_status() >= 0)`. */
+  /*! \brief Equivalent to `(id() and uv_status() >= 0)`. */
+  explicit operator bool() const noexcept  { return (uv_handle and uv_status() >= 0); }
 
 public: /*comparison operators*/
   friend bool operator ==(const handle &_lhs, const handle _rhs) noexcept  { return (_lhs.uv_handle == _rhs.uv_handle); }
