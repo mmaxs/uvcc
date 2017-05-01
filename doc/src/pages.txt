@@ -7,8 +7,9 @@ Additional custom pages.
 
 uvcc is C++ bindings for libuv.
 
-\sa _docs.libuv.org_: [libuv API documentation](http://docs.libuv.org/en/v1.x/)\n
-    _nikhilm.github.io/uvbook_: [An Introduction to libuv](http://nikhilm.github.io/uvbook)\n
+\sa _docs.libuv.org_: [libuv documentation](http://docs.libuv.org/en/v1.x/)\n
+    _nikhilm.github.io/uvbook_: [An Introduction to libuv](http://nikhilm.github.io/uvbook)
+    (now it is incorporated as the [User guide](http://docs.libuv.org/en/v1.x/guide.html) part of the libuv documentation)\n
     _github.com/thlorenz/libuv-dox_: [Documenting types and methods of libuv, mostly by reading  uv.h](https://github.com/thlorenz/libuv-dox)
 
 */
