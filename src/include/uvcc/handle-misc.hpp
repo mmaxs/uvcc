@@ -10,7 +10,8 @@
 #include <uv.h>
 
 #include <functional>   // function bind placeholders::
-#include <vector>
+#include <vector>       // vector
+#include <memory>       // unique_ptr make_unique()
 
 
 namespace uv
@@ -713,39 +714,16 @@ protected: /*types*/
 
   struct properties : handle::properties
   {
-    /*types*/
-    struct stdio_container : ::uv_stdio_container_t
-    {
-      static_assert(sizeof(data.stream) == sizeof(io), "incompatible type sizes");
+    struct stdio : io  { stdio() noexcept = default; };
 
-      ~stdio_container()  { reinterpret_cast< io& >(data.stream).~io(); }
-      stdio_container()
-      {
-        flags = UV_IGNORE;
-        new(&data.stream) io;
-      }
-    };
-
-    /*data*/
     ::uv_process_options_t spawn_options = { 0,};
     on_exit_t exit_cb;
-    std::vector< stdio_container > stdios;
+    std::unique_ptr< ::uv_stdio_container_t[] > stdio_uv_containers;
+    std::vector< stdio > stdio_uvcc_endpoints;
 
-    /*constructors*/
     properties()
     {
       spawn_options.exit_cb = process::exit_cb;
-    }
-
-    /*interface*/
-    void prepare_stdio_container(unsigned _number)
-    {
-      if (_number >= stdios.size())
-      {
-        stdios.resize(_number + 1);
-        spawn_options.stdio = stdios.data();
-        spawn_options.stdio_count = stdios.size();
-      }
     }
   };
 
@@ -783,30 +761,33 @@ public: /*constructors*/
   }
 
 public: /*interface*/
-  /*! \brief The PID of the spawned process. It’s set after calling `spawn()`. */
+  /*! \brief The PID of the spawned process. It is set after calling `spawn()`. */
   int pid() const noexcept  { return static_cast< uv_t* >(uv_handle)->pid; }
+
+  /*! \name Functions to prepare for spawning a child process:: */
+  //! \{
 
   /*! \brief Set the callback function called when the spawned process exits. */
   on_exit_t& on_exit() const noexcept  { return instance::from(uv_handle)->properties().exit_cb; }
 
-  /*! \name Functions for specifying how stdio streams should be transmitted to the child process: */
-  //! \{
-  /*! \brief Set flags.
-      \details `UV_INHERIT_FD` `UV_INHERIT_STREAM` `UVCC_IPC_PIPE`
-      \sa libuv API documentation: [`uv_stdio_flags`](http://docs.libuv.org/en/v1.x/process.html#c.uv_stdio_flags). */
-  void prepare_stdio_stream(unsigned _number, ::uv_stdio_flags _flags)  const
+  /*! \brief Set the stdio stream that should be transmitted to the child process.
+      \sa libuv API documentation: [`uv_process_options_t.stdio`](http://docs.libuv.org/en/v1.x/process.html#c.uv_process_options_t.stdio),
+                                   [`uv_process_options_t`](http://docs.libuv.org/en/v1.x/process.html#c.uv_process_options_t),
+                                   [`uv_stdio_container_t`](http://docs.libuv.org/en/v1.x/process.html#c.uv_stdio_container_t),
+                                   [`uv_stdio_flags`](http://docs.libuv.org/en/v1.x/process.html#c.uv_stdio_flags). */
+  void stdio_stream(unsigned _number, io _io)  const
   {
-    auto &properties = instance::from(uv_handle)->properties();
-    properties.prepare_stdio_container(_number);
-    properties.stdios[_number].flags = _flags;
+    auto &stdio_uvcc_endpoints = instance::from(uv_handle)->properties().stdio_uvcc_endpoints;
+    if (_number >= stdio_uvcc_endpoints.size())  stdio_uvcc_endpoints.resize(_number + 1);
+    stdio_uvcc_endpoints[_number] = static_cast< properties::stdio&& >(_io);
   }
-  /*! \brief Set the stream. */
-  io& stdio_stream(unsigned _number) const
+  io stdio_stream(unsigned _number) const
   {
-    auto &properties = instance::from(uv_handle)->properties();
-    properties.prepare_stdio_container(_number);
-    return reinterpret_cast< io& >(properties.stdios[_number].data.stream);
+    auto &stdio_uvcc_endpoints = instance::from(uv_handle)->properties().stdio_uvcc_endpoints;
+    if (_number >= stdio_uvcc_endpoints.size())  stdio_uvcc_endpoints.resize(_number + 1);
+    return stdio_uvcc_endpoints[_number];
   }
+
   //! \}
 
   /*! \brief Create and start a new child process.
@@ -815,30 +796,44 @@ public: /*interface*/
   {
     auto &properties = instance::from(uv_handle)->properties();
 
-    for (auto &stdio_container : properties.stdios)
+    if (!properties.stdio_uvcc_endpoints.empty())
     {
-      auto &stdio_stream = reinterpret_cast< io& >(stdio_container.data.stream);
-      if (stdio_container.flags & UV_CREATE_PIPE)
+      properties.stdio_uv_containers = std::make_unique< ::uv_stdio_container_t[] >(properties.stdio_uvcc_endpoints.size());
+      for (std::size_t i = 0; i < properties.stdio_uvcc_endpoints.size(); ++i)
       {
-      }
-      else if (stdio_container.flags & UV_INHERIT_FD)
-      {
-        if (stdio_stream.id() and stdio_stream.type() != UV_FILE)
+        auto io_endpoint = static_cast< io& >(properties.stdio_uvcc_endpoints[i]);
+        if (!io_endpoint.id())
         {
-          int flags = stdio_container.flags;
-          flags ^= UV_INHERIT_FD;
-          flags |= UV_INHERIT_STREAM;
-          stdio_container.flags = static_cast< decltype(stdio_container.flags) >(flags);
+          properties.stdio_uv_containers[i].flags = UV_IGNORE;
+          properties.stdio_uv_containers[i].data.fd = -1;
         }
-        // XXX: it must be turned to fd !
+        else switch (io_endpoint.type())
+        {
+          case UV_NAMED_PIPE:
+              break;
+          case UV_STREAM:
+          case UV_TCP:
+          case UV_TTY:
+              properties.stdio_uv_containers[i].flags = UV_INHERIT_STREAM;
+              properties.stdio_uv_containers[i].data.stream = static_cast< stream::uv_t* >(static_cast< stream& >(io_endpoint));
+              break;
+          case UV_FILE:
+              properties.stdio_uv_containers[i].flags = UV_INHERIT_FD;
+              properties.stdio_uv_containers[i].data.fd = static_cast< file& >(io_endpoint).fd();
+              break;
+          default:
+              properties.stdio_uv_containers[i].flags = UV_IGNORE;
+              properties.stdio_uv_containers[i].data.fd = -1;
+        }
       }
-      else if (stdio_container.flags & UV_INHERIT_STREAM)
-      {
-      }
-      else
-      {
-        stdio_container.flags = UV_IGNORE;
-      }
+      properties.spawn_options.stdio_count = properties.stdio_uvcc_endpoints.size();
+      properties.spawn_options.stdio = properties.stdio_uv_containers.get();
+    }
+    else
+    {
+      properties.stdio_uv_containers.reset();
+      properties.spawn_options.stdio_count = 0;
+      properties.spawn_options.stdio = nullptr;
     }
 
     return uv_status(
