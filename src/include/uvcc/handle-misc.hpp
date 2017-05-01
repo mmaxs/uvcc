@@ -10,6 +10,7 @@
 #include <uv.h>
 
 #include <functional>   // function bind placeholders::
+#include <vector>
 
 
 namespace uv
@@ -712,8 +713,7 @@ protected: /*types*/
 
   struct properties : handle::properties
   {
-    ::uv_process_options_t spawn_options = { 0,};
-    on_exit_t exit_cb;
+    /*types*/
     struct stdio_container : ::uv_stdio_container_t
     {
       static_assert(sizeof(data.stream) == sizeof(io), "incompatible type sizes");
@@ -724,13 +724,28 @@ protected: /*types*/
         flags = UV_IGNORE;
         new(&data.stream) io;
       }
-    } ios[3];
+    };
 
+    /*data*/
+    ::uv_process_options_t spawn_options = { 0,};
+    on_exit_t exit_cb;
+    std::vector< stdio_container > stdios;
+
+    /*constructors*/
     properties()
     {
       spawn_options.exit_cb = process::exit_cb;
-      spawn_options.stdio_count = 3;
-      spawn_options.stdio = ios;
+    }
+
+    /*interface*/
+    void prepare_stdio_container(unsigned _number)
+    {
+      if (_number >= stdios.size())
+      {
+        stdios.resize(_number + 1);
+        spawn_options.stdio = stdios.data();
+        spawn_options.stdio_count = stdios.size();
+      }
     }
   };
 
@@ -771,21 +786,27 @@ public: /*interface*/
   /*! \brief The PID of the spawned process. It’s set after calling `spawn()`. */
   int pid() const noexcept  { return static_cast< uv_t* >(uv_handle)->pid; }
 
-  /*! \name Functions to prepare for spawning a child process: */
-  //! \{
-
-  /*! \brief Used to set the callback function called when the spawned process exits. */
+  /*! \brief Set the callback function called when the spawned process exits. */
   on_exit_t& on_exit() const noexcept  { return instance::from(uv_handle)->properties().exit_cb; }
 
-  /*! \brief Specify how a stdio streams should be transmitted to the child process. */
-  void prepare_stdin(::uv_stdio_flags _flags)  const noexcept  {}
-  void prepare_stdout(::uv_stdio_flags _flags)  const noexcept  {}
-  void prepare_stderr(::uv_stdio_flags _flags)  const noexcept  {}
-
-  io& stdin_stream() const noexcept  { return reinterpret_cast< io& >(instance::from(uv_handle)->properties().ios[0].data.stream); }
-  io& stdout_stream() const noexcept  { return reinterpret_cast< io& >(instance::from(uv_handle)->properties().ios[1].data.stream); }
-  io& stderr_stream() const noexcept  { return reinterpret_cast< io& >(instance::from(uv_handle)->properties().ios[2].data.stream); }
-
+  /*! \name Functions for specifying how stdio streams should be transmitted to the child process: */
+  //! \{
+  /*! \brief Set flags.
+      \details `UV_INHERIT_FD` `UV_INHERIT_STREAM` `UVCC_IPC_PIPE`
+      \sa libuv API documentation: [`uv_stdio_flags`](http://docs.libuv.org/en/v1.x/process.html#c.uv_stdio_flags). */
+  void prepare_stdio_stream(unsigned _number, ::uv_stdio_flags _flags)  const
+  {
+    auto &properties = instance::from(uv_handle)->properties();
+    properties.prepare_stdio_container(_number);
+    properties.stdios[_number].flags = _flags;
+  }
+  /*! \brief Set the stream. */
+  io& stdio_stream(unsigned _number) const
+  {
+    auto &properties = instance::from(uv_handle)->properties();
+    properties.prepare_stdio_container(_number);
+    return reinterpret_cast< io& >(properties.stdios[_number].data.stream);
+  }
   //! \}
 
   /*! \brief Create and start a new child process.
@@ -793,6 +814,33 @@ public: /*interface*/
   int spawn() const noexcept
   {
     auto &properties = instance::from(uv_handle)->properties();
+
+    for (auto &stdio_container : properties.stdios)
+    {
+      auto &stdio_stream = reinterpret_cast< io& >(stdio_container.data.stream);
+      if (stdio_container.flags & UV_CREATE_PIPE)
+      {
+      }
+      else if (stdio_container.flags & UV_INHERIT_FD)
+      {
+        if (stdio_stream.id() and stdio_stream.type() != UV_FILE)
+        {
+          int flags = stdio_container.flags;
+          flags ^= UV_INHERIT_FD;
+          flags |= UV_INHERIT_STREAM;
+          stdio_container.flags = static_cast< decltype(stdio_container.flags) >(flags);
+        }
+        // XXX: it must be turned to fd !
+      }
+      else if (stdio_container.flags & UV_INHERIT_STREAM)
+      {
+      }
+      else
+      {
+        stdio_container.flags = UV_IGNORE;
+      }
+    }
+
     return uv_status(
         ::uv_spawn(static_cast< uv_t* >(uv_handle)->loop, static_cast< uv_t* >(uv_handle), &properties.spawn_options)
     );
