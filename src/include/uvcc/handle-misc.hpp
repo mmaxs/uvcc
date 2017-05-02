@@ -776,8 +776,13 @@ public: /*constructors*/
   process(uv::loop &_loop)
   {
     uv_handle = instance::create();
-    static_cast< uv_t* >(uv_handle)->loop = static_cast< loop::uv_t* >(_loop);
-    instance::from(uv_handle)->book_loop();
+
+    auto instance_ptr = instance::from(uv_handle);
+
+    // initialize the handle
+    ::uv_spawn(static_cast< uv::loop::uv_t* >(_loop), static_cast< uv_t* >(uv_handle), &instance_ptr->properties().spawn_options);
+
+    instance_ptr->book_loop();
   }
 
 public: /*interface*/
@@ -790,7 +795,7 @@ public: /*interface*/
   /*! \brief Set the callback function called when the spawned process exits. */
   on_exit_t& on_exit() const noexcept  { return instance::from(uv_handle)->properties().exit_cb; }
 
-  /*! \brief Set the inherited stream that should be available to the spawned process as the given stdio fd number.
+  /*! \brief Set the io endpoint that should be available to the spawned process as the target stdio file descriptor number.
       \sa libuv API documentation: [`uv_process_options_t.stdio`](http://docs.libuv.org/en/v1.x/process.html#c.uv_process_options_t.stdio),
                                    [`uv_process_options_t`](http://docs.libuv.org/en/v1.x/process.html#c.uv_process_options_t),
                                    [`uv_stdio_container_t`](http://docs.libuv.org/en/v1.x/process.html#c.uv_stdio_container_t),
@@ -821,33 +826,60 @@ public: /*interface*/
 
     properties.stdio_uvcc_endpoints[_target_fd_number] = static_cast< properties::stdio_endpoint&& >(_io);  // move assignment
   }
+  /*! \brief Set the file descriptor that should be inherited by the spawned process as the target stdio descriptor number. */
+  void inherit_stdio(unsigned _target_fd_number, ::uv_file _fd)  const
+  {
+    auto &properties = instance::from(uv_handle)->properties();
+
+    properties.ensure_stdio_number(_target_fd_number);
+
+    properties.stdio_uv_containers[_target_fd_number].flags = UV_INHERIT_FD;
+    properties.stdio_uv_containers[_target_fd_number].data.fd = _fd;
+  }
 
   /*! \brief Create a pipe to the spawned process' stdio fd number.
+      \details Only `UV_READABLE_PIPE` and `UV_WRITABLE_PIPE` flags from the
+      [`uv_stdio_flags`](http://docs.libuv.org/en/v1.x/process.html#c.uv_stdio_flags) enumeration take effect.\n
+      Set `_ipc` parameter to `true` if the created pipe is going to be used for handle passing between processes.
       \sa libuv API documentation: [`uv_stdio_flags`](http://docs.libuv.org/en/v1.x/process.html#c.uv_stdio_flags),
                                    [`uv_process_options_t.stdio`](http://docs.libuv.org/en/v1.x/process.html#c.uv_process_options_t.stdio). */
-  int create_stdio_pipe(unsigned _target_fd_number) const
+  int create_stdio_pipe(unsigned _target_fd_number, uv::loop &_pipe_loop, ::uv_stdio_flags _pipe_flags, bool _ipc = false) const
   {
     auto &properties = instance::from(uv_handle)->properties();
     properties.ensure_stdio_number(_target_fd_number);
+
+    pipe p(_pipe_loop, _ipc);
+    if (!p)  return uv_status(p.uv_status());
+
+    int flags = UV_CREATE_PIPE;
+    if (_pipe_flags & UV_READABLE_PIPE)  flags |= UV_READABLE_PIPE;
+    if (_pipe_flags & UV_WRITABLE_PIPE)  flags |= UV_WRITABLE_PIPE;
+    properties.stdio_uv_containers[_target_fd_number].flags = static_cast< ::uv_stdio_flags >(flags);
+    properties.stdio_uv_containers[_target_fd_number].data.stream = static_cast< stream::uv_t* >(p);
+
+    properties.stdio_uvcc_endpoints[_target_fd_number] = static_cast< properties::stdio_endpoint&& >(static_cast< io& >(p));  // move assignment
     return 0;
   }
 
-  /*! \brief The endpoint to be set for the spawned process as the target stdio fd number. */
-  io stdio(unsigned _target_fd_number) const
+  /*! \brief The stdio endpoints to be set for the spawned process. */
+  std::vector< io >& stdio() const
   {
     auto &properties = instance::from(uv_handle)->properties();
-    properties.ensure_stdio_number(_target_fd_number);
-    return properties.stdio_uvcc_endpoints[_target_fd_number];
+    return reinterpret_cast< std::vector< io >& >(properties.stdio_uvcc_endpoints);
   }
 
   //! \}
 
   /*! \brief Create and start a new child process.
-      \sa libuv API documentation: [`uv_spawn()`](http://docs.libuv.org/en/v1.x/process.html#c.uv_spawn). */
-  int spawn() const noexcept
+      \sa libuv API documentation: [`uv_spawn()`](http://docs.libuv.org/en/v1.x/process.html#c.uv_spawn),
+                                   [`uv_process_flags`](http://docs.libuv.org/en/v1.x/process.html#c.uv_process_flags). */
+  int spawn(const char *_file, char *_argv[], ::uv_process_flags _flags = static_cast< ::uv_process_flags >(0)) const noexcept
   {
     auto &properties = instance::from(uv_handle)->properties();
     {
+      properties.spawn_options.file = _file;
+      properties.spawn_options.args = _argv;
+      properties.spawn_options.flags |= _flags;
       properties.spawn_options.stdio_count = properties.stdio_uv_containers.size();
       properties.spawn_options.stdio = properties.stdio_uv_containers.data();
     }
@@ -856,14 +888,9 @@ public: /*interface*/
         ::uv_spawn(static_cast< uv_t* >(uv_handle)->loop, static_cast< uv_t* >(uv_handle), &properties.spawn_options)
     );
   }
-  int spawn(::uv_process_flags _flags) const noexcept
+  int spawn(const char *_file, const char *_argv[], ::uv_process_flags _flags = static_cast< ::uv_process_flags >(0)) const noexcept
   {
-    auto &properties = instance::from(uv_handle)->properties();
-    {
-      properties.spawn_options.flags |= _flags;
-    }
-
-    return spawn();
+    return spawn(_file, const_cast< char** >(_argv), _flags);
   }
 
 public: /*conversion operators*/
