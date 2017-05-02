@@ -203,8 +203,7 @@ public: /*constructors*/
 
     instance::from(uv_handle)->book_loop();
 
-    uv_ret = ::uv_tcp_open(static_cast< uv_t* >(uv_handle), _socket);
-    if (uv_status(uv_ret) < 0)  return;
+    uv_status(::uv_tcp_open(static_cast< uv_t* >(uv_handle), _socket));
   }
 
 public: /*interface*/
@@ -300,6 +299,7 @@ class pipe : public stream
   friend class handle::instance< pipe >;
   friend class connect;
   friend class write;
+  friend class process;
   //! \endcond
 
 public: /*types*/
@@ -311,6 +311,16 @@ private: /*types*/
 protected: /*constructors*/
   //! \cond
   explicit pipe(uv_t *_uv_handle) : stream(reinterpret_cast< stream::uv_t* >(_uv_handle))  {}
+
+  pipe(uv::loop &_loop, bool _ipc)
+  {
+    uv_handle = instance::create();
+
+    auto uv_ret = ::uv_pipe_init(static_cast< uv::loop::uv_t* >(_loop), static_cast< uv_t* >(uv_handle), _ipc);
+    if (uv_status(uv_ret) < 0)  return;
+
+    instance::from(uv_handle)->book_loop();
+  }
   //! \endcond
 
 public: /*constructors*/
@@ -326,29 +336,18 @@ public: /*constructors*/
       \sa libuv API documentation: [`uv_pipe_init()`](http://docs.libuv.org/en/v1.x/pipe.html#c.uv_pipe_init),
                                    [`uv_pipe_bind()`](http://docs.libuv.org/en/v1.x/pipe.html#c.uv_pipe_bind). */
   pipe(uv::loop &_loop, const char* _name, bool _ipc = false)
+    : pipe(_loop, _ipc)
   {
-    uv_handle = instance::create();
-
-    auto uv_ret = ::uv_pipe_init(static_cast< uv::loop::uv_t* >(_loop), static_cast< uv_t* >(uv_handle), _ipc);
-    if (uv_status(uv_ret) < 0)  return;
-
-    instance::from(uv_handle)->book_loop();
-
+    if (uv_status() < 0)  return;
     uv_status(::uv_pipe_bind(static_cast< uv_t* >(uv_handle), _name));
   }
   /*! \brief Create a pipe object from an existing OS native pipe descriptor.
       \sa libuv API documentation: [`uv_pipe_open()`](http://docs.libuv.org/en/v1.x/pipe.html#c.uv_pipe_open). */
   pipe(uv::loop &_loop, ::uv_file _fd, bool _ipc = false)
+    : pipe(_loop, _ipc)
   {
-    uv_handle = instance::create();
-
-    auto uv_ret = ::uv_pipe_init(static_cast< uv::loop::uv_t* >(_loop), static_cast< uv_t* >(uv_handle), _ipc);
-    if (uv_status(uv_ret) < 0)  return;
-
-    instance::from(uv_handle)->book_loop();
-
-    uv_ret = ::uv_pipe_open(static_cast< uv_t* >(uv_handle), _fd);
-    if (uv_status(uv_ret) < 0)  return;
+    if (uv_status() < 0)  return;
+    uv_status(::uv_pipe_open(static_cast< uv_t* >(uv_handle), _fd));
   }
 
 public: /*interface*/
