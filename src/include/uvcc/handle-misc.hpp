@@ -11,7 +11,6 @@
 
 #include <functional>   // function bind placeholders::
 #include <vector>       // vector
-#include <memory>       // unique_ptr make_unique()
 
 
 namespace uv
@@ -649,6 +648,7 @@ public: /*interface*/
         ::uv_signal_start(static_cast< uv_t* >(uv_handle), signal_cb, _signum)
     );
   }
+
 #if (UV_VERSION_MAJOR >= 1) && (UV_VERSION_MINOR >= 12)
   /*! \brief Start the handle with the given callback, watching for the given signal.
       \details The signal handler is reset the moment the signal is received.
@@ -714,16 +714,36 @@ protected: /*types*/
 
   struct properties : handle::properties
   {
-    struct stdio : io  { stdio() noexcept = default; };
+    struct stdio_container : ::uv_stdio_container_t
+    {
+      stdio_container() noexcept  // to provide proper initialization
+      {
+        flags = UV_IGNORE;
+        data.fd = -1;
+      }
+    };
+    struct stdio_endpoint : io
+    {
+      stdio_endpoint() noexcept = default;  // to provide demandable access to protected `io` default ctor
+    };
 
     ::uv_process_options_t spawn_options = { 0,};
     on_exit_t exit_cb;
-    std::unique_ptr< ::uv_stdio_container_t[] > stdio_uv_containers;
-    std::vector< stdio > stdio_uvcc_endpoints;
+    std::vector< stdio_container > stdio_uv_containers;
+    std::vector< stdio_endpoint > stdio_uvcc_endpoints;
 
     properties()
     {
       spawn_options.exit_cb = process::exit_cb;
+    }
+
+    void ensure_stdio_number(unsigned _target_fd_number)
+    {
+      if (_target_fd_number >= stdio_uv_containers.size())
+      {
+        stdio_uv_containers.resize(_target_fd_number + 1);
+        stdio_uvcc_endpoints.resize(_target_fd_number + 1);
+      }
     }
   };
 
@@ -770,22 +790,54 @@ public: /*interface*/
   /*! \brief Set the callback function called when the spawned process exits. */
   on_exit_t& on_exit() const noexcept  { return instance::from(uv_handle)->properties().exit_cb; }
 
-  /*! \brief Set the stdio stream that should be transmitted to the child process.
+  /*! \brief Set the inherited stream that should be available to the spawned process as the given stdio fd number.
       \sa libuv API documentation: [`uv_process_options_t.stdio`](http://docs.libuv.org/en/v1.x/process.html#c.uv_process_options_t.stdio),
                                    [`uv_process_options_t`](http://docs.libuv.org/en/v1.x/process.html#c.uv_process_options_t),
                                    [`uv_stdio_container_t`](http://docs.libuv.org/en/v1.x/process.html#c.uv_stdio_container_t),
                                    [`uv_stdio_flags`](http://docs.libuv.org/en/v1.x/process.html#c.uv_stdio_flags). */
-  void stdio_stream(unsigned _number, io _io)  const
+  void inherit_stdio(unsigned _target_fd_number, io _io)  const
   {
-    auto &stdio_uvcc_endpoints = instance::from(uv_handle)->properties().stdio_uvcc_endpoints;
-    if (_number >= stdio_uvcc_endpoints.size())  stdio_uvcc_endpoints.resize(_number + 1);
-    stdio_uvcc_endpoints[_number] = static_cast< properties::stdio&& >(_io);
+    auto &properties = instance::from(uv_handle)->properties();
+
+    properties.ensure_stdio_number(_target_fd_number);
+
+    if (_io.id())  switch (_io.type())
+    {
+      case UV_NAMED_PIPE:
+      case UV_STREAM:
+      case UV_TCP:
+      case UV_TTY:
+          properties.stdio_uv_containers[_target_fd_number].flags = UV_INHERIT_STREAM;
+          properties.stdio_uv_containers[_target_fd_number].data.stream = static_cast< stream::uv_t* >(static_cast< stream& >(_io));
+          break;
+      case UV_FILE:
+          properties.stdio_uv_containers[_target_fd_number].flags = UV_INHERIT_FD;
+          properties.stdio_uv_containers[_target_fd_number].data.fd = static_cast< file& >(_io).fd();
+          break;
+      default:
+          properties.stdio_uv_containers[_target_fd_number].flags = UV_IGNORE;
+          properties.stdio_uv_containers[_target_fd_number].data.fd = -1;
+    }
+
+    properties.stdio_uvcc_endpoints[_target_fd_number] = static_cast< properties::stdio_endpoint&& >(_io);  // move assignment
   }
-  io stdio_stream(unsigned _number) const
+
+  /*! \brief Create a pipe to the spawned process' stdio fd number.
+      \sa libuv API documentation: [`uv_stdio_flags`](http://docs.libuv.org/en/v1.x/process.html#c.uv_stdio_flags),
+                                   [`uv_process_options_t.stdio`](http://docs.libuv.org/en/v1.x/process.html#c.uv_process_options_t.stdio). */
+  int create_stdio_pipe(unsigned _target_fd_number) const
   {
-    auto &stdio_uvcc_endpoints = instance::from(uv_handle)->properties().stdio_uvcc_endpoints;
-    if (_number >= stdio_uvcc_endpoints.size())  stdio_uvcc_endpoints.resize(_number + 1);
-    return stdio_uvcc_endpoints[_number];
+    auto &properties = instance::from(uv_handle)->properties();
+    properties.ensure_stdio_number(_target_fd_number);
+    return 0;
+  }
+
+  /*! \brief The endpoint to be set for the spawned process as the target stdio fd number. */
+  io stdio(unsigned _target_fd_number) const
+  {
+    auto &properties = instance::from(uv_handle)->properties();
+    properties.ensure_stdio_number(_target_fd_number);
+    return properties.stdio_uvcc_endpoints[_target_fd_number];
   }
 
   //! \}
@@ -795,45 +847,9 @@ public: /*interface*/
   int spawn() const noexcept
   {
     auto &properties = instance::from(uv_handle)->properties();
-
-    if (!properties.stdio_uvcc_endpoints.empty())
     {
-      properties.stdio_uv_containers = std::make_unique< ::uv_stdio_container_t[] >(properties.stdio_uvcc_endpoints.size());
-      for (std::size_t i = 0; i < properties.stdio_uvcc_endpoints.size(); ++i)
-      {
-        auto io_endpoint = static_cast< io& >(properties.stdio_uvcc_endpoints[i]);
-        if (!io_endpoint.id())
-        {
-          properties.stdio_uv_containers[i].flags = UV_IGNORE;
-          properties.stdio_uv_containers[i].data.fd = -1;
-        }
-        else switch (io_endpoint.type())
-        {
-          case UV_NAMED_PIPE:
-              break;
-          case UV_STREAM:
-          case UV_TCP:
-          case UV_TTY:
-              properties.stdio_uv_containers[i].flags = UV_INHERIT_STREAM;
-              properties.stdio_uv_containers[i].data.stream = static_cast< stream::uv_t* >(static_cast< stream& >(io_endpoint));
-              break;
-          case UV_FILE:
-              properties.stdio_uv_containers[i].flags = UV_INHERIT_FD;
-              properties.stdio_uv_containers[i].data.fd = static_cast< file& >(io_endpoint).fd();
-              break;
-          default:
-              properties.stdio_uv_containers[i].flags = UV_IGNORE;
-              properties.stdio_uv_containers[i].data.fd = -1;
-        }
-      }
-      properties.spawn_options.stdio_count = properties.stdio_uvcc_endpoints.size();
-      properties.spawn_options.stdio = properties.stdio_uv_containers.get();
-    }
-    else
-    {
-      properties.stdio_uv_containers.reset();
-      properties.spawn_options.stdio_count = 0;
-      properties.spawn_options.stdio = nullptr;
+      properties.spawn_options.stdio_count = properties.stdio_uv_containers.size();
+      properties.spawn_options.stdio = properties.stdio_uv_containers.data();
     }
 
     return uv_status(
@@ -842,8 +858,11 @@ public: /*interface*/
   }
   int spawn(::uv_process_flags _flags) const noexcept
   {
-    auto &spawn_options = instance::from(uv_handle)->properties().spawn_options;
-    spawn_options.flags |= _flags;
+    auto &properties = instance::from(uv_handle)->properties();
+    {
+      properties.spawn_options.flags |= _flags;
+    }
+
     return spawn();
   }
 
