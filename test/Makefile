@@ -1,5 +1,14 @@
 
 # additional settings, sources, and prerequisites for specific targets
+
+ifdef DEBUG
+CPPFLAGS += -U NDEBUG
+else
+CPPFLAGS += -D NDEBUG
+endif
+
+WFLAGS += -Wall -Wpedantic -Wno-variadic-macros -Wno-format-zero-length
+
 ifeq ($(platform),WINDOWS)
 LDSTATIC += -static-libgcc -static-libstdc++ -static
 LDLIBS += $(LIBUV)/libuv.dll
