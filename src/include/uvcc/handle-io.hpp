@@ -436,11 +436,11 @@ inline io io::guess_handle(uv::loop &_loop, ::uv_file _fd)
   default:
   case UV_UNKNOWN_HANDLE: ret.uv_status(UV_EBADF);
       break;
-  case UV_NAMED_PIPE: ret = pipe(_loop, _fd, false);
+  case UV_NAMED_PIPE: ret = pipe(_loop, _fd, false, false);
       break;
-  case UV_TCP: ret = tcp(_loop, _fd);
+  case UV_TCP: ret = tcp(_loop, _fd, false);
       break;
-  case UV_TTY: ret = tty(_loop, _fd, true);
+  case UV_TTY: ret = tty(_loop, _fd, true, false);
       break;
   case UV_UDP: ret = udp(_loop, static_cast< ::uv_os_sock_t >(_fd));
       break;

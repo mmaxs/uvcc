@@ -16,8 +16,8 @@ sighandler_t sigpipe_handler = signal(SIGPIPE, SIG_IGN);  // ignore SIGPIPE
 } while (0)
 
 
-uv::pipe in(uv::loop::Default(), fileno(stdin)),
-         out(uv::loop::Default(), fileno(stdout));
+uv::pipe in(uv::loop::Default(), fileno(stdin), false, false),
+         out(uv::loop::Default(), fileno(stdout), false, false);
 
 constexpr std::size_t BUFFER_SIZE = 8192;
 constexpr std::size_t WRITE_QUEUE_SIZE_UPPER_LIMIT = 128*BUFFER_SIZE,
