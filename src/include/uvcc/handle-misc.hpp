@@ -776,13 +776,8 @@ public: /*constructors*/
   process(uv::loop &_loop)
   {
     uv_handle = instance::create();
-
-    auto instance_ptr = instance::from(uv_handle);
-
-    // initialize the handle
-    ::uv_spawn(static_cast< uv::loop::uv_t* >(_loop), static_cast< uv_t* >(uv_handle), &instance_ptr->properties().spawn_options);
-
-    instance_ptr->book_loop();
+    static_cast< uv_t* >(uv_handle)->loop = static_cast< loop::uv_t* >(_loop);
+    instance::from(uv_handle)->book_loop();
   }
 
 public: /*interface*/
