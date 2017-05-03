@@ -94,11 +94,12 @@ const char* handle_type_name(::uv_handle_t *_uv_handle) noexcept
   const char *ret;
   switch (_uv_handle->type)
   {
+    case UV_UNKNOWN_HANDLE: ret = "UNKNOWN"; break;
 #define XX(X, x) case UV_##X: ret = #x; break;
     UV_HANDLE_TYPE_MAP(XX)
 #undef XX
     case UV_FILE: ret = "file"; break;
-    default: ret = "<unknown>"; break;
+    default: ret = "<UNDEFINED>"; break;
   }
   return ret;
 }
