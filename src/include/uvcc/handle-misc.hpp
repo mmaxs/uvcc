@@ -743,6 +743,9 @@ protected: /*types*/
       {
         stdio_uv_containers.resize(_target_fd_number + 1);
         stdio_uvcc_endpoints.resize(_target_fd_number + 1);
+
+        spawn_options.stdio_count = stdio_uv_containers.size();
+        spawn_options.stdio = stdio_uv_containers.data();
       }
     }
   };
@@ -781,16 +784,38 @@ public: /*constructors*/
   }
 
 public: /*interface*/
-  /*! \brief The PID of the spawned process. It is set after calling `spawn()`. */
+  /*! \brief Force child processes spawned by this process not to inherit file descriptors/handles that this process has inherited from its parent.
+      \sa libuv API documentation: [`uv_disable_stdio_inheritance()`](http://docs.libuv.org/en/v1.x/process.html#c.uv_disable_stdio_inheritance). */
+  static void disable_stdio_inheritance() noexcept  { ::uv_disable_stdio_inheritance(); }
+
+  /*! \brief Send the specified signal to the given PID.
+      \sa libuv API documentation: [`uv_kill()`](http://docs.libuv.org/en/v1.x/process.html#c.uv_kill). */
+  static int kill(int _pid, int _signum) noexcept  { return ::uv_kill(_pid, _signum); }
+
+  /*! \brief The PID of the child process. It is set after calling `spawn()`. */
   int pid() const noexcept  { return static_cast< uv_t* >(uv_handle)->pid; }
 
   /*! \name Functions to prepare for spawning a child process:: */
   //! \{
 
-  /*! \brief Set the callback function called when the spawned process exits. */
+  /*! \brief Set the callback function called when the child process exits. */
   on_exit_t& on_exit() const noexcept  { return instance::from(uv_handle)->properties().exit_cb; }
 
-  /*! \brief Set the io endpoint that should be available to the spawned process as the target stdio file descriptor number.
+  /*! \brief Set pointer to environment for the child process. If `nullptr` the parents environment is used. */
+  void set_environment(char *_envp[]) const noexcept
+  {
+    auto &spawn_options = instance::from(uv_handle)->properties().spawn_options;
+    spawn_options.env = _envp;
+  }
+
+  /*! \brief Set current working directory when spawning the child process. */
+  void set_working_dir(const char *_cwd) const noexcept
+  {
+    auto &spawn_options = instance::from(uv_handle)->properties().spawn_options;
+    spawn_options.cwd = _cwd;
+  }
+
+  /*! \brief Set the io endpoint that should be available to the child process as the target stdio file descriptor number.
       \sa libuv API documentation: [`uv_process_options_t.stdio`](http://docs.libuv.org/en/v1.x/process.html#c.uv_process_options_t.stdio),
                                    [`uv_process_options_t`](http://docs.libuv.org/en/v1.x/process.html#c.uv_process_options_t),
                                    [`uv_stdio_container_t`](http://docs.libuv.org/en/v1.x/process.html#c.uv_stdio_container_t),
@@ -821,7 +846,8 @@ public: /*interface*/
 
     properties.stdio_uvcc_endpoints[_target_fd_number] = static_cast< properties::stdio_endpoint&& >(_io);  // move assignment
   }
-  /*! \brief Set the file descriptor that should be inherited by the spawned process as the target stdio descriptor number. */
+
+  /*! \brief Set the file descriptor that should be inherited by the child process as the target stdio descriptor number. */
   void inherit_stdio(unsigned _target_fd_number, ::uv_file _fd)  const
   {
     auto &properties = instance::from(uv_handle)->properties();
@@ -832,7 +858,7 @@ public: /*interface*/
     properties.stdio_uv_containers[_target_fd_number].data.fd = _fd;
   }
 
-  /*! \brief Create a pipe to the spawned process' stdio fd number.
+  /*! \brief Create a pipe to the child process' stdio fd number.
       \details Only `UV_READABLE_PIPE` and `UV_WRITABLE_PIPE` flags from the
       [`uv_stdio_flags`](http://docs.libuv.org/en/v1.x/process.html#c.uv_stdio_flags) enumeration take effect.\n
       Set `_ipc` parameter to `true` if the created pipe is going to be used for handle passing between processes.
@@ -841,6 +867,7 @@ public: /*interface*/
   int create_stdio_pipe(unsigned _target_fd_number, uv::loop &_pipe_loop, ::uv_stdio_flags _pipe_flags, bool _ipc = false) const
   {
     auto &properties = instance::from(uv_handle)->properties();
+
     properties.ensure_stdio_number(_target_fd_number);
 
     pipe p(_pipe_loop, _ipc);
@@ -856,11 +883,44 @@ public: /*interface*/
     return 0;
   }
 
-  /*! \brief The stdio endpoints to be set for the spawned process. */
-  std::vector< io >& stdio() const
+  /*! \brief The stdio endpoints to be set for the child process. */
+  std::vector< io >& stdio() const noexcept
   {
     auto &properties = instance::from(uv_handle)->properties();
     return reinterpret_cast< std::vector< io >& >(properties.stdio_uvcc_endpoints);
+  }
+
+  /*! \brief Set the child process' user id.
+      \details Specifying a value of **-1** clears the `UV_PROCESS_SETUID` flag.
+      \note On Windows this function is no-op.
+      \sa libuv API documentation: [`uv_process_options_t.uid`](http://docs.libuv.org/en/v1.x/process.html#c.uv_process_options_t.uid),
+                                   [`uv_process_flags`](http://docs.libuv.org/en/v1.x/process.html#c.uv_process_flags), */
+  void set_uid(::uv_uid_t _uid) const noexcept
+  {
+#ifndef _WIN32
+    auto &spawn_options = instance::from(uv_handle)->properties().spawn_options;
+    if (_uid == -1)
+      spawn_options.flags &= ~UV_PROCESS_SETUID;
+    else
+      spawn_options.flags |= UV_PROCESS_SETUID;
+    spawn_options.uid = _uid;
+#endif
+  }
+  /*! \brief Set the child process' group id.
+      \details Specifying a value of **-1** clears the `UV_PROCESS_SETGID` flag.
+      \note On Windows this function is no-op.
+      \sa libuv API documentation: [`uv_process_options_t.gid`](http://docs.libuv.org/en/v1.x/process.html#c.uv_process_options_t.gid),
+                                   [`uv_process_flags`](http://docs.libuv.org/en/v1.x/process.html#c.uv_process_flags), */
+  void set_gid(::uv_gid_t _gid) const noexcept
+  {
+#ifndef _WIN32
+    auto &spawn_options = instance::from(uv_handle)->properties().spawn_options;
+    if (_gid == -1)
+      spawn_options.flags &= ~UV_PROCESS_SETGID;
+    else
+      spawn_options.flags |= UV_PROCESS_SETGID;
+    spawn_options.uid = _gid;
+#endif
   }
 
   //! \}
@@ -875,8 +935,6 @@ public: /*interface*/
       properties.spawn_options.file = _file;
       properties.spawn_options.args = _argv;
       properties.spawn_options.flags |= _flags;
-      properties.spawn_options.stdio_count = properties.stdio_uv_containers.size();
-      properties.spawn_options.stdio = properties.stdio_uv_containers.data();
     }
 
     return uv_status(
@@ -886,6 +944,12 @@ public: /*interface*/
   int spawn(const char *_file, const char *_argv[], ::uv_process_flags _flags = static_cast< ::uv_process_flags >(0)) const noexcept
   {
     return spawn(_file, const_cast< char** >(_argv), _flags);
+  }
+
+  /*! \brief Send the specified signal to the child process. */
+  int kill(int _signum) const noexcept
+  {
+    return uv_status(::uv_process_kill(static_cast< uv_t* >(uv_handle), _signum));
   }
 
 public: /*conversion operators*/
