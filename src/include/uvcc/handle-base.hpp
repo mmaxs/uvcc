@@ -354,10 +354,6 @@ public: /*conversion operators*/
 
   /*! \brief Equivalent to `(id() and uv_status() >= 0)`. */
   explicit operator bool() const noexcept  { return (uv_handle and uv_status() >= 0); }
-
-public: /*comparison operators*/
-  friend bool operator ==(const handle &_lhs, const handle _rhs) noexcept  { return (_lhs.uv_handle == _rhs.uv_handle); }
-  friend bool operator !=(const handle &_lhs, const handle _rhs) noexcept  { return !(_lhs == _rhs); }
 };
 
 
