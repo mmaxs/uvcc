@@ -148,12 +148,16 @@ public: /*interface*/
                                    [`uv_udp_t.send_queue_size`](http://docs.libuv.org/en/v1.x/udp.html#c.uv_udp_t.send_queue_size). */
   std::size_t write_queue_size() const noexcept  { return instance::from(uv_handle)->uv_interface()->write_queue_size(uv_handle); }
 
+  /*! \brief Set the input buffer allocation callback. */
   on_buffer_alloc_t& on_alloc() const noexcept  { return instance::from(uv_handle)->properties().alloc_cb; }
+
+  /*! \brief Set the read callback. */
   on_read_t& on_read() const noexcept  { return instance::from(uv_handle)->properties().read_cb; }
 
   /*! \brief Start reading incoming data from the I/O endpoint.
-      \details The handle is tried to be set for reading if only nonempty `_alloc_cb` and `_read_cb` functions
-      are provided, or else `UV_EINVAL` is returned with no involving any libuv API or uvcc function.
+      \details The handle is tried to be set for reading if only nonempty `_alloc_cb` and `_read_cb` callbacks
+      are provided or was previously set with `on_alloc()` and `on_read()` functions.
+      Otherwise `UV_EINVAL` is returned with no involving any libuv API function.
       Repeated call to this function results in the automatic call to `read_stop()` firstly.
       In the repeated calls `_alloc_cb` and/or `_read_cb` functions may be empty values, which means that
       they aren't changed from the previous call.
