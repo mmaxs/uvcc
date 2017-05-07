@@ -19,7 +19,7 @@ namespace uv
 
 /*! \ingroup doxy_group__handle
     \brief Async handle.
-    \sa libuv API documentation: [`uv_async_t — Async handle`](http://docs.libuv.org/en/v1.x/async.html#uv-async-t-async-handle). */
+    \sa libuv API documentation: [`uv_async_t` — Async handle](http://docs.libuv.org/en/v1.x/async.html#uv-async-t-async-handle). */
 class async : public handle
 {
   //! \cond
@@ -131,7 +131,7 @@ void async::async_cb(::uv_async_t *_uv_handle)
 
 /*! \ingroup doxy_group__handle
     \brief Timer handle.
-    \sa libuv API documentation: [`uv_timer_t — Timer handle`](http://docs.libuv.org/en/v1.x/timer.html#uv-timer-t-timer-handle). */
+    \sa libuv API documentation: [`uv_timer_t` — Timer handle](http://docs.libuv.org/en/v1.x/timer.html#uv-timer-t-timer-handle). */
 class timer : public handle
 {
   //! \cond
@@ -258,7 +258,7 @@ void timer::timer_cb(::uv_timer_t *_uv_handle)
 //! \{
 
 /*! \brief Idle handle.
-    \sa libuv API documentation: [`uv_idle_t — Idle handle`](http://docs.libuv.org/en/v1.x/idle.html#uv-idle-t-idle-handle). */
+    \sa libuv API documentation: [`uv_idle_t` — Idle handle](http://docs.libuv.org/en/v1.x/idle.html#uv-idle-t-idle-handle). */
 class idle : public handle
 {
   //! \cond
@@ -359,7 +359,7 @@ void idle::idle_cb(::uv_idle_t *_uv_handle)
 
 
 /*! \brief Prepare handle.
-    \sa libuv API documentation: [`uv_prepare_t — Prepare handle`](http://docs.libuv.org/en/v1.x/prepare.html#uv-prepare-t-prepare-handle). */
+    \sa libuv API documentation: [`uv_prepare_t` — Prepare handle](http://docs.libuv.org/en/v1.x/prepare.html#uv-prepare-t-prepare-handle). */
 class prepare : public handle
 {
   //! \cond
@@ -460,7 +460,7 @@ void prepare::prepare_cb(::uv_prepare_t *_uv_handle)
 
 
 /*! \brief Check handle.
-    \sa libuv API documentation: [`uv_check_t — Check handle`](http://docs.libuv.org/en/v1.x/check.html#uv-check-t-check-handle). */
+    \sa libuv API documentation: [`uv_check_t` — Check handle](http://docs.libuv.org/en/v1.x/check.html#uv-check-t-check-handle). */
 class check : public handle
 {
   //! \cond
@@ -565,7 +565,7 @@ void check::check_cb(::uv_check_t *_uv_handle)
 
 /*! \ingroup doxy_group__handle
     \brief Signal handle.
-    \sa libuv API documentation: [`uv_signal_t — Signal handle`](http://docs.libuv.org/en/v1.x/signal.html#uv-signal-t-signal-handle). */
+    \sa libuv API documentation: [`uv_signal_t` — Signal handle](http://docs.libuv.org/en/v1.x/signal.html#uv-signal-t-signal-handle). */
 class signal : public handle
 {
   //! \cond
@@ -637,13 +637,13 @@ public: /*interface*/
   /*! \brief Start the handle with the given signal callback, watching for the given signal.
       \details The signal handling is tried to be started if only nonempty `_signal_cb` function
       is provided or was previously set with `on_signal()` function.
-      Otherwise `UV_EINVAL` is returned with no involving any libuv API function.
-      Repeated call to this function results in the automatic call to `read_stop()` firstly.
-      In the repeated calls `_alloc_cb` and/or `_read_cb` functions may be empty values, which means that
-      they aren't changed from the previous call.
-
+      Otherwise, `UV_EINVAL` error is returned with no involving any libuv API function.
+      Repeated call to this function results in the automatic call to `stop()` firstly.
+      In the repeated calls `_signal_cb` function object may be empty value, which means that
+      it isn't changed from the previous call.
       \note On successful start this function adds an extra reference to the handle instance,
-      which is released when the counterpart function `stop()` is called. */
+      which is released when the counterpart function `stop()` is called.
+      \sa libuv API documentation: [`uv_signal_t` — Signal handle](http://docs.libuv.org/en/v1.x/signal.html#uv-signal-t-signal-handle). */
   int start(int _signum, const on_signal_t &_signal_cb) const
   {
     auto instance_ptr = instance::from(uv_handle);
@@ -711,7 +711,7 @@ void signal::signal_cb(::uv_signal_t *_uv_handle, int)
 
 /*! \ingroup doxy_group__handle
     \brief Process handle.
-    \sa libuv API documentation: [`uv_process_t — Process handle`](http://docs.libuv.org/en/v1.x/process.html#uv-process-t-process-handle). */
+    \sa libuv API documentation: [`uv_process_t` — Process handle](http://docs.libuv.org/en/v1.x/process.html#uv-process-t-process-handle). */
 class process : public handle
 {
   //! \cond

@@ -29,7 +29,7 @@ namespace uv
     \brief The base class for the libuv handles.
     \details Derived classes conceptually are just interfaces to the data stored
     in the base class, so there are no any virtual member functions.
-    \sa libuv API documentation: [`uv_handle_t — Base handle`](http://docs.libuv.org/en/v1.x/handle.html#uv-handle-t-base-handle). */
+    \sa libuv API documentation: [`uv_handle_t` — Base handle](http://docs.libuv.org/en/v1.x/handle.html#uv-handle-t-base-handle). */
 class handle
 {
   //! \cond

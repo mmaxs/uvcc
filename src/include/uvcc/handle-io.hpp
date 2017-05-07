@@ -155,12 +155,12 @@ public: /*interface*/
   on_read_t& on_read() const noexcept  { return instance::from(uv_handle)->properties().read_cb; }
 
   /*! \brief Start reading incoming data from the I/O endpoint.
-      \details The handle is tried to be set for reading if only nonempty `_alloc_cb` and `_read_cb` callbacks
-      are provided or was previously set with `on_alloc()` and `on_read()` functions.
-      Otherwise `UV_EINVAL` is returned with no involving any libuv API function.
+      \details The handle is tried to be set for reading if only nonempty `_alloc_cb` and `_read_cb`
+      callbacks are provided or was previously set with `on_alloc()` and `on_read()` functions.
+      Otherwise, `UV_EINVAL` error is returned with no involving any libuv API function.
       Repeated call to this function results in the automatic call to `read_stop()` firstly.
-      In the repeated calls `_alloc_cb` and/or `_read_cb` functions may be empty values, which means that
-      they aren't changed from the previous call.
+      In the repeated calls `_alloc_cb` and/or `_read_cb` function objectcs may be empty values,
+      which means that they aren't changed from the previous call.
 
       Additional parameters are:
       \arg `_size` - can be set to specify suggested length of the read buffer.
@@ -232,7 +232,8 @@ public: /*interface*/
     return uv_ret;
   }
   /*! \brief Restart reading incoming data from the I/O endpoint using `_alloc_cb` and `_read_cb`
-      functions having been explicitly set before or provided with the previous `read_start()` call.
+      functions having been explicitly set before with `on_alloc()` and `on_read()` functions
+      or provided with the previous `read_start()` call.
       Repeated call to this function results in the automatic call to `read_stop()` firstly.
       \note On successful restart this function adds an extra reference to the handle instance,
       which is released when the counterpart function `read_stop()` is called. */

@@ -23,7 +23,7 @@ namespace uv
     \brief The base class for the libuv requests.
     \details Derived classes conceptually are just interfaces to the data stored
     in the base class, so there are no any virtual member functions.
-    \sa libuv API documentation: [`uv_req_t — Base request`](http://docs.libuv.org/en/v1.x/request.html#uv-req-t-base-request). */
+    \sa libuv API documentation: [`uv_req_t` — Base request](http://docs.libuv.org/en/v1.x/request.html#uv-req-t-base-request). */
 class request
 {
 public: /*types*/
