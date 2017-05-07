@@ -575,11 +575,10 @@ class signal : public handle
 
 public: /*types*/
   using uv_t = ::uv_signal_t;
-  template< typename... _Args_ >
-  using on_signal_t = std::function< void(signal _handle, _Args_&&... _args) >;
-  /*!< \brief The function type of the `signal` handler.
-       \note All the additional templated arguments are passed and stored by value along with the function object
-       when the `signal` handle is started with `signal::start()`/`signal::start_oneshot()` functions.
+  using on_signal_t = std::function< void(signal _handle, bool _oneshot) >;
+  /*!< \brief The function type of the signal callback.
+       \details
+       The `_oneshot` parameter indicates that the signal handling was started in mode of `start_oneshot()` function.
        \sa libuv API documentation: [`uv_signal_cb`](http://docs.libuv.org/en/v1.x/signal.html#c.uv_signal_cb). */
 
 protected: /*types*/
@@ -589,7 +588,7 @@ protected: /*types*/
 
   struct properties : handle::properties
   {
-    std::function< void(signal) > cb;
+    std::function< void(signal) > signal_cb;
   };
 
   struct uv_interface : handle::uv_handle_interface  {};
@@ -632,21 +631,38 @@ public: /*interface*/
   /*! \brief Get the signal number being monitored by this handle. */
   int signum() const noexcept  { return static_cast< uv_t* >(uv_handle)->signum; }
 
-  /*! \brief Start the handle with the given callback, watching for the given signal.
-      \note All arguments are copied (or moved) to the internal callback function object. For passing arguments by reference
-      (when parameters are used as output ones), wrap them with `std::ref()` or use raw pointers. */
-  template< class _Cb_, typename... _Args_,
-      typename = std::enable_if_t< std::is_convertible< _Cb_, on_signal_t< _Args_&&... > >::value >
-  >
-  int start(int _signum, _Cb_ &&_cb, _Args_&&... _args) const
-  {
-    instance::from(uv_handle)->properties().cb = std::bind(
-        std::forward< _Cb_ >(_cb), std::placeholders::_1, std::forward< _Args_ >(_args)...
-    );
+  /*! \brief Set the signal callback. */
+  on_signal_t& on_signal() const noexcept  { return instance::from(uv_handle)->properties().signal_cb; }
 
-    return uv_status(
-        ::uv_signal_start(static_cast< uv_t* >(uv_handle), signal_cb, _signum)
-    );
+  /*! \brief Start the handle with the given signal callback, watching for the given signal.
+      \details The signal handling is tried to be started if only nonempty `_signal_cb` function
+      is provided or was previously set with `on_signal()` function.
+      Otherwise `UV_EINVAL` is returned with no involving any libuv API function.
+      Repeated call to this function results in the automatic call to `read_stop()` firstly.
+      In the repeated calls `_alloc_cb` and/or `_read_cb` functions may be empty values, which means that
+      they aren't changed from the previous call.
+
+      \note On successful start this function adds an extra reference to the handle instance,
+      which is released when the counterpart function `stop()` is called. */
+  int start(int _signum, const on_signal_t &_signal_cb) const
+  {
+    auto instance_ptr = instance::from(uv_handle);
+    auto &properties = instance_ptr->properties();
+
+    if (!_signal_cb and !properties.signal_cb)  return uv_status(UV_EINVAL);
+    if (_signal_cb)  properties.signal_cb = _signal_cb;
+
+    instance_ptr->ref();  // make sure it will exist for the future signal_cb() calls until stop()
+
+    uv_status(0);
+    auto uv_ret = ::uv_signal_start(static_cast< uv_t* >(uv_handle), signal_cb, _signum);
+    if (uv_ret < 0)
+    {
+      uv_status(uv_ret);
+      instance_ptr->unref();  // release the reference on start failure
+    }
+
+    return uv_ret;
   }
 
 #if (UV_VERSION_MAJOR >= 1) && (UV_VERSION_MINOR >= 12)
@@ -654,15 +670,17 @@ public: /*interface*/
       \details The signal handler is reset the moment the signal is received.
       \note All arguments are copied (or moved) to the internal callback function object. For passing arguments by reference
       (when parameters are used as output ones), wrap them with `std::ref()` or use raw pointers. */
-  template< class _Cb_, typename... _Args_,
-      typename = std::enable_if_t< std::is_convertible< _Cb_, on_signal_t< _Args_&&... > >::value >
-  >
-  int start_oneshot(int _signum, _Cb_ &&_cb, _Args_&&... _args) const
+  int start_oneshot(int _signum) const
   {
-    instance::from(uv_handle)->properties().cb = std::bind(
-        std::forward< _Cb_ >(_cb), std::placeholders::_1, std::forward< _Args_ >(_args)...
-    );
+    auto instance_ptr = instance::from(uv_handle);
+    auto &properties = instance_ptr->properties();
 
+    if (!_signal_cb)  return uv_status(UV_EINVAL);
+    if (_signal_cb)  properties.signal_cb = _signal_cb;
+
+    instance_ptr->ref();  // make sure it will exist for the future signal_cb() calls until stop()
+
+    uv_status(0);
     return uv_status(
         ::uv_signal_start_oneshot(static_cast< uv_t* >(uv_handle), signal_cb, _signum)
     );
