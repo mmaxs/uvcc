@@ -586,9 +586,12 @@ protected: /*types*/
   //! \addtogroup doxy_group__internals
   //! \{
 
+  enum class op  { UNKNOWN, STOP, START, START_ONESHOT };
+
   struct properties : handle::properties
   {
-    std::function< void(signal) > signal_cb;
+    op op_state = op::UNKNOWN;
+    on_signal_t signal_cb;
   };
 
   struct uv_interface : handle::uv_handle_interface  {};
@@ -650,9 +653,23 @@ public: /*interface*/
     auto &properties = instance_ptr->properties();
 
     if (!_signal_cb and !properties.signal_cb)  return uv_status(UV_EINVAL);
-    if (_signal_cb)  properties.signal_cb = _signal_cb;
 
-    instance_ptr->ref();  // make sure it will exist for the future signal_cb() calls until stop()
+    auto op_state0 = properties.op_state;
+    properties.op_state = op::START;
+
+    switch (op_state0)
+    {
+    case op::UNKNOWN:
+    case op::STOP:
+        instance_ptr->ref();  // REF:START - make sure it will exist for the future signal_cb() calls until stop()
+        break;
+    case op::START:
+    case op::START_ONESHOT:
+        uv_status(::uv_signal_stop(static_cast< uv_t* >(uv_handle)));
+        break;
+    }
+
+    if (_signal_cb)  properties.signal_cb = _signal_cb;
 
     uv_status(0);
     auto uv_ret = ::uv_signal_start(static_cast< uv_t* >(uv_handle), signal_cb, _signum);
@@ -664,35 +681,113 @@ public: /*interface*/
 
     return uv_ret;
   }
-
-#if (UV_VERSION_MAJOR >= 1) && (UV_VERSION_MINOR >= 12)
-  /*! \brief Start the handle with the given callback, watching for the given signal.
-      \details The signal handler is reset the moment the signal is received.
-      \note All arguments are copied (or moved) to the internal callback function object. For passing arguments by reference
-      (when parameters are used as output ones), wrap them with `std::ref()` or use raw pointers. */
-  int start_oneshot(int _signum) const
+  /*! \brief Start the handle watching for the given signal.
+      \details The appropriate signal callback should be explicitly set before
+      with `on_signal()` function or provided with the previous `start()` call.
+      Otherwise, `UV_EINVAL` error is returned with no involving any libuv API function.
+      Repeated call to this function results in the automatic call to `stop()` firstly.
+      \note On successful start this function adds an extra reference to the handle instance,
+      which is released when the counterpart function `stop()` is called. */
+  int start(int _signum) const
   {
     auto instance_ptr = instance::from(uv_handle);
     auto &properties = instance_ptr->properties();
 
-    if (!_signal_cb)  return uv_status(UV_EINVAL);
-    if (_signal_cb)  properties.signal_cb = _signal_cb;
+    if (!properties.signal_cb)  return uv_status(UV_EINVAL);
 
-    instance_ptr->ref();  // make sure it will exist for the future signal_cb() calls until stop()
+    auto op_state0 = properties.op_state;
+    properties.op_state = op::START;
+
+    switch (op_state0)
+    {
+    case op::UNKNOWN:
+    case op::STOP:
+        instance_ptr->ref();  // REF:START
+        break;
+    case op::START:
+    case op::START_ONESHOT:
+        uv_status(::uv_signal_stop(static_cast< uv_t* >(uv_handle)));
+        break;
+    }
 
     uv_status(0);
-    return uv_status(
-        ::uv_signal_start_oneshot(static_cast< uv_t* >(uv_handle), signal_cb, _signum)
-    );
+    auto uv_ret = ::uv_signal_start(static_cast< uv_t* >(uv_handle), signal_cb, _signum);
+    if (uv_ret < 0)
+    {
+      uv_status(uv_ret);
+      instance_ptr->unref();
+    }
+
+    return uv_ret;
+  }
+
+#if (UV_VERSION_MAJOR >= 1) && (UV_VERSION_MINOR >= 12)
+  /*! \brief Start the handle with the given callback, watching for the given signal on one occasion only.
+      \details The signal handler is called for the first occasion of the signal received,
+      after which the handle is immediately stopped.
+      \note On successful start this function adds an extra reference to the handle instance,
+      which is **automatically released** when the signal is received or if none has received,
+      when the counterpart function `stop()` is called.
+      \sa `signal::start()` */
+  int start_oneshot(int _signum, const on_signal_t &_signal_cb) const
+  {
+    auto instance_ptr = instance::from(uv_handle);
+    auto &properties = instance_ptr->properties();
+
+    if (!_signal_cb and !properties.signal_cb)  return uv_status(UV_EINVAL);
+
+    auto op_state0 = properties.op_state;
+    properties.op_state = op::START_ONESHOT;
+
+    switch (op_state0)
+    {
+    case op::UNKNOWN:
+    case op::STOP:
+        instance_ptr->ref();  // REF:START_ONESHOT
+        break;
+    case op::START:
+    case op::START_ONESHOT:
+        uv_status(::uv_signal_stop(static_cast< uv_t* >(uv_handle)));
+        break;
+    }
+
+    if (_signal_cb)  properties.signal_cb = _signal_cb;
+
+    uv_status(0);
+    auto uv_ret = ::uv_signal_start_oneshot(static_cast< uv_t* >(uv_handle), signal_cb, _signum);
+    if (uv_ret < 0)
+    {
+      uv_status(uv_ret);
+      instance_ptr->unref();
+    }
+
+    return uv_ret;
   }
 #endif
 
   /*! \brief Stop the handle, the callback will no longer be called. */
   int stop() const noexcept
   {
-    return uv_status(
-        ::uv_signal_stop(static_cast< uv_t* >(uv_handle))
-    );
+    auto instance_ptr = instance::from(uv_handle);
+    auto &properties = instance_ptr->properties();
+
+    auto op_state0 = properties.op_state;
+    properties.op_state = op::STOP;
+
+    auto uv_ret = uv_status(::uv_signal_stop(static_cast< uv_t* >(uv_handle)));
+
+    switch (op_state0)
+    {
+    case op::UNKNOWN:
+    case op::STOP:
+        break;
+    case op::START:
+    case op::START_ONESHOT:
+        instance_ptr->unref();  // UNREF:STOP - release the reference from start() or fruitless start_oneshot()
+        break;
+    }
+
+    return uv_ret;
   }
 
 public: /*conversion operators*/
@@ -703,8 +798,19 @@ public: /*conversion operators*/
 template< typename >
 void signal::signal_cb(::uv_signal_t *_uv_handle, int)
 {
-  auto &cb = instance::from(_uv_handle)->properties().cb;
-  if (cb)  cb(signal(_uv_handle));
+  auto instance_ptr = instance::from(_uv_handle);
+  auto &signal_cb = instance_ptr->properties().signal_cb;
+
+  if (instance_ptr->properties().op_state == op::START_ONESHOT)
+  {
+    instance_ptr->properties().op_state = op::UNKNOWN;
+
+    ref_guard< instance > unref_handle(*instance_ptr, adopt_ref);  // UNREF:START_ONESHOT
+
+    if (signal_cb)  signal_cb(signal(_uv_handle), true);
+  }
+  else
+    if (signal_cb)  signal_cb(signal(_uv_handle), false);
 }
 
 
