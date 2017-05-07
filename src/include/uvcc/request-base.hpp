@@ -184,8 +184,7 @@ public: /*interface*/
   /*! \brief The status value returned by the last executed libuv API function on this request. */
   int uv_status() const noexcept  { return instance< request >::from(uv_req)->uv_error; }
 
-  const on_destroy_t& on_destroy() const noexcept  { return instance< request >::from(uv_req)->destroy_cb_storage.value(); }
-        on_destroy_t& on_destroy()       noexcept  { return instance< request >::from(uv_req)->destroy_cb_storage.value(); }
+  on_destroy_t& on_destroy() const noexcept  { return instance< request >::from(uv_req)->destroy_cb_storage.value(); }
 
   /*! \brief The tag indicating a libuv type of the request.
       \sa libuv API documentation: [`uv_req_t.type`](http://docs.libuv.org/en/v1.x/request.html#c.uv_req_t.type). */

@@ -173,8 +173,7 @@ private: /*functions*/
   template< typename = void > static void close_cb(::uv_fs_t*);
 
 public: /*interface*/
-  const on_request_t& on_request() const noexcept  { return instance::from(uv_req)->request_cb_storage.value(); }
-        on_request_t& on_request()       noexcept  { return instance::from(uv_req)->request_cb_storage.value(); }
+  on_request_t& on_request() const noexcept  { return instance::from(uv_req)->request_cb_storage.value(); }
 
   /*! \brief The file which this close request has been running on.
       \details It is guaranteed that it will be a valid instance at least within the request callback. */
@@ -302,8 +301,7 @@ private: /*functions*/
   template< typename = void > static void read_cb(::uv_fs_t*);
 
 public: /*interface*/
-  const on_request_t& on_request() const noexcept  { return instance::from(uv_req)->request_cb_storage.value(); }
-        on_request_t& on_request()       noexcept  { return instance::from(uv_req)->request_cb_storage.value(); }
+  on_request_t& on_request() const noexcept  { return instance::from(uv_req)->request_cb_storage.value(); }
 
   /*! \brief The file which this read request has been running on.
       \details It is guaranteed that it will be a valid instance at least within the request callback. */
@@ -460,8 +458,7 @@ private: /*functions*/
   template< typename = void > static void write_cb(::uv_fs_t*);
 
 public: /*interface*/
-  const on_request_t& on_request() const noexcept  { return instance::from(uv_req)->request_cb_storage.value(); }
-        on_request_t& on_request()       noexcept  { return instance::from(uv_req)->request_cb_storage.value(); }
+  on_request_t& on_request() const noexcept  { return instance::from(uv_req)->request_cb_storage.value(); }
 
   /*! \brief The file which this write request has been running on.
       \details It is guaranteed that it will be a valid instance at least within the request callback. */
@@ -663,8 +660,7 @@ private: /*functions*/
   template< typename = void > static void sync_cb(::uv_fs_t*);
 
 public: /*interface*/
-  const on_request_t& on_request() const noexcept  { return instance::from(uv_req)->request_cb_storage.value(); }
-        on_request_t& on_request()       noexcept  { return instance::from(uv_req)->request_cb_storage.value(); }
+  on_request_t& on_request() const noexcept  { return instance::from(uv_req)->request_cb_storage.value(); }
 
   /*! \brief The file which this sync request has been running on.
       \details It is guaranteed that it will be a valid instance at least within the request callback. */
@@ -794,8 +790,7 @@ private: /*functions*/
   template< typename = void > static void truncate_cb(::uv_fs_t*);
 
 public: /*interface*/
-  const on_request_t& on_request() const noexcept  { return instance::from(uv_req)->request_cb_storage.value(); }
-        on_request_t& on_request()       noexcept  { return instance::from(uv_req)->request_cb_storage.value(); }
+  on_request_t& on_request() const noexcept  { return instance::from(uv_req)->request_cb_storage.value(); }
 
   /*! \brief The file which this truncate request has been running on.
       \details It is guaranteed that it will be a valid instance at least within the request callback. */
@@ -953,8 +948,7 @@ private: /*functions*/
   template< typename = void > static void sendfile_cb(::uv_fs_t*);
 
 public: /*interface*/
-  const on_request_t& on_request() const noexcept  { return instance::from(uv_req)->request_cb_storage.value(); }
-        on_request_t& on_request()       noexcept  { return instance::from(uv_req)->request_cb_storage.value(); }
+  on_request_t& on_request() const noexcept  { return instance::from(uv_req)->request_cb_storage.value(); }
 
   /*! \brief The I/O endpoint which this sendfile request has been writing data to.
       \details It is guaranteed that it will be a valid instance at least within the request callback. */
@@ -1122,8 +1116,7 @@ private: /*functions*/
   template< typename = void > static void stat_cb(::uv_fs_t*);
 
 public: /*interface*/
-  const on_request_t& on_request() const noexcept  { return instance::from(uv_req)->request_cb_storage.value(); }
-        on_request_t& on_request()       noexcept  { return instance::from(uv_req)->request_cb_storage.value(); }
+  on_request_t& on_request() const noexcept  { return instance::from(uv_req)->request_cb_storage.value(); }
 
   /*! \brief The file which this stat request has been running on.
       \details It is guaranteed that it will be a valid instance at least within the request callback.\n\n
@@ -1328,8 +1321,7 @@ private: /*functions*/
   template< typename = void > static void chmod_cb(::uv_fs_t*);
 
 public: /*interface*/
-  const on_request_t& on_request() const noexcept  { return instance::from(uv_req)->request_cb_storage.value(); }
-        on_request_t& on_request()       noexcept  { return instance::from(uv_req)->request_cb_storage.value(); }
+  on_request_t& on_request() const noexcept  { return instance::from(uv_req)->request_cb_storage.value(); }
 
   /*! \brief The file which this chmod request has been running on.
       \details It is guaranteed that it will be a valid instance at least within the request callback.\n\n
@@ -1523,8 +1515,7 @@ private: /*functions*/
   template< typename = void > static void chown_cb(::uv_fs_t*);
 
 public: /*interface*/
-  const on_request_t& on_request() const noexcept  { return instance::from(uv_req)->request_cb_storage.value(); }
-        on_request_t& on_request()       noexcept  { return instance::from(uv_req)->request_cb_storage.value(); }
+  on_request_t& on_request() const noexcept  { return instance::from(uv_req)->request_cb_storage.value(); }
 
   /*! \brief The file which this chown request has been running on.
       \details It is guaranteed that it will be a valid instance at least within the request callback.\n\n
@@ -1717,8 +1708,7 @@ private: /*functions*/
   template< typename = void > static void utime_cb(::uv_fs_t*);
 
 public: /*interface*/
-  const on_request_t& on_request() const noexcept  { return instance::from(uv_req)->request_cb_storage.value(); }
-        on_request_t& on_request()       noexcept  { return instance::from(uv_req)->request_cb_storage.value(); }
+  on_request_t& on_request() const noexcept  { return instance::from(uv_req)->request_cb_storage.value(); }
 
   /*! \brief The file which this utime request has been running on.
       \details It is guaranteed that it will be a valid instance at least within the request callback.\n\n
@@ -1901,8 +1891,7 @@ private: /*functions*/
   template< typename = void > static void unlink_cb(::uv_fs_t*);
 
 public: /*interface*/
-  const on_request_t& on_request() const noexcept  { return instance::from(uv_req)->request_cb_storage.value(); }
-        on_request_t& on_request()       noexcept  { return instance::from(uv_req)->request_cb_storage.value(); }
+  on_request_t& on_request() const noexcept  { return instance::from(uv_req)->request_cb_storage.value(); }
 
   /*! \brief The file path affected by request.
       \sa libuv API documentation: [`uv_fs_t.path`](http://docs.libuv.org/en/v1.x/fs.html#c.uv_fs_t.path). */
@@ -2002,8 +1991,7 @@ private: /*functions*/
   template< typename = void > static void mkdir_cb(::uv_fs_t*);
 
 public: /*interface*/
-  const on_request_t& on_request() const noexcept  { return instance::from(uv_req)->request_cb_storage.value(); }
-        on_request_t& on_request()       noexcept  { return instance::from(uv_req)->request_cb_storage.value(); }
+  on_request_t& on_request() const noexcept  { return instance::from(uv_req)->request_cb_storage.value(); }
 
   /*! \brief The file path affected by request.
       \sa libuv API documentation: [`uv_fs_t.path`](http://docs.libuv.org/en/v1.x/fs.html#c.uv_fs_t.path). */
@@ -2103,8 +2091,7 @@ private: /*functions*/
   template< typename = void > static void mkdtemp_cb(::uv_fs_t*);
 
 public: /*interface*/
-  const on_request_t& on_request() const noexcept  { return instance::from(uv_req)->request_cb_storage.value(); }
-        on_request_t& on_request()       noexcept  { return instance::from(uv_req)->request_cb_storage.value(); }
+  on_request_t& on_request() const noexcept  { return instance::from(uv_req)->request_cb_storage.value(); }
 
   /*! \brief The path of the directory created by request.
       \sa libuv API documentation: [`uv_fs_t.path`](http://docs.libuv.org/en/v1.x/fs.html#c.uv_fs_t.path). */
@@ -2204,8 +2191,7 @@ private: /*functions*/
   template< typename = void > static void rmdir_cb(::uv_fs_t*);
 
 public: /*interface*/
-  const on_request_t& on_request() const noexcept  { return instance::from(uv_req)->request_cb_storage.value(); }
-        on_request_t& on_request()       noexcept  { return instance::from(uv_req)->request_cb_storage.value(); }
+  on_request_t& on_request() const noexcept  { return instance::from(uv_req)->request_cb_storage.value(); }
 
   /*! \brief The file path affected by request.
       \sa libuv API documentation: [`uv_fs_t.path`](http://docs.libuv.org/en/v1.x/fs.html#c.uv_fs_t.path). */
@@ -2305,8 +2291,7 @@ private: /*functions*/
   template< typename = void > static void scandir_cb(::uv_fs_t*);
 
 public: /*interface*/
-  const on_request_t& on_request() const noexcept  { return instance::from(uv_req)->request_cb_storage.value(); }
-        on_request_t& on_request()       noexcept  { return instance::from(uv_req)->request_cb_storage.value(); }
+  on_request_t& on_request() const noexcept  { return instance::from(uv_req)->request_cb_storage.value(); }
 
   /*! \brief The file path affected by request.
       \sa libuv API documentation: [`uv_fs_t.path`](http://docs.libuv.org/en/v1.x/fs.html#c.uv_fs_t.path). */
@@ -2416,8 +2401,7 @@ private: /*functions*/
   template< typename = void > static void rename_cb(::uv_fs_t*);
 
 public: /*interface*/
-  const on_request_t& on_request() const noexcept  { return instance::from(uv_req)->request_cb_storage.value(); }
-        on_request_t& on_request()       noexcept  { return instance::from(uv_req)->request_cb_storage.value(); }
+  on_request_t& on_request() const noexcept  { return instance::from(uv_req)->request_cb_storage.value(); }
 
   /*! \brief The file path affected by request.
       \warning On Windows the pointer actually refers to `WCHAR` string.
@@ -2535,8 +2519,7 @@ private: /*functions*/
   template< typename = void > static void access_cb(::uv_fs_t*);
 
 public: /*interface*/
-  const on_request_t& on_request() const noexcept  { return instance::from(uv_req)->request_cb_storage.value(); }
-        on_request_t& on_request()       noexcept  { return instance::from(uv_req)->request_cb_storage.value(); }
+  on_request_t& on_request() const noexcept  { return instance::from(uv_req)->request_cb_storage.value(); }
 
   /*! \brief The file path affected by request.
       \sa libuv API documentation: [`uv_fs_t.path`](http://docs.libuv.org/en/v1.x/fs.html#c.uv_fs_t.path). */
@@ -2636,8 +2619,7 @@ private: /*functions*/
   template< typename = void > static void link_cb(::uv_fs_t*);
 
 public: /*interface*/
-  const on_request_t& on_request() const noexcept  { return instance::from(uv_req)->request_cb_storage.value(); }
-        on_request_t& on_request()       noexcept  { return instance::from(uv_req)->request_cb_storage.value(); }
+  on_request_t& on_request() const noexcept  { return instance::from(uv_req)->request_cb_storage.value(); }
 
   /*! \brief The file path affected by request.
       \warning On Windows the pointer actually refers to `WCHAR` string.
@@ -2778,8 +2760,7 @@ private: /*functions*/
   template< typename = void > static void readlink_cb(::uv_fs_t*);
 
 public: /*interface*/
-  const on_request_t& on_request() const noexcept  { return instance::from(uv_req)->request_cb_storage.value(); }
-        on_request_t& on_request()       noexcept  { return instance::from(uv_req)->request_cb_storage.value(); }
+  on_request_t& on_request() const noexcept  { return instance::from(uv_req)->request_cb_storage.value(); }
 
   /*! \brief The file path affected by request.
       \sa libuv API documentation: [`uv_fs_t.path`](http://docs.libuv.org/en/v1.x/fs.html#c.uv_fs_t.path). */
@@ -2882,8 +2863,7 @@ private: /*functions*/
   template< typename = void > static void realpath_cb(::uv_fs_t*);
 
 public: /*interface*/
-  const on_request_t& on_request() const noexcept  { return instance::from(uv_req)->request_cb_storage.value(); }
-        on_request_t& on_request()       noexcept  { return instance::from(uv_req)->request_cb_storage.value(); }
+  on_request_t& on_request() const noexcept  { return instance::from(uv_req)->request_cb_storage.value(); }
 
   /*! \brief The file path affected by request.
       \sa libuv API documentation: [`uv_fs_t.path`](http://docs.libuv.org/en/v1.x/fs.html#c.uv_fs_t.path). */

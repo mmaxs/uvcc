@@ -229,11 +229,9 @@ public: /*interface*/
   /*! \brief The status value returned by the last executed libuv API function. */
   int uv_status() const noexcept  { return instance::from(uv_loop)->uv_error; }
 
-  const on_destroy_t& on_destroy() const noexcept  { return instance::from(uv_loop)->destroy_cb_storage.value(); }
-        on_destroy_t& on_destroy()       noexcept  { return instance::from(uv_loop)->destroy_cb_storage.value(); }
+  on_destroy_t& on_destroy() const noexcept  { return instance::from(uv_loop)->destroy_cb_storage.value(); }
 
-  const on_exit_t& on_exit() const noexcept  { return instance::from(uv_loop)->exit_cb_storage.value(); }
-        on_exit_t& on_exit()       noexcept  { return instance::from(uv_loop)->exit_cb_storage.value(); }
+  on_exit_t& on_exit() const noexcept  { return instance::from(uv_loop)->exit_cb_storage.value(); }
 
   /*! \details The pointer to the user-defined arbitrary data.
       \sa libuv API documentation: [`uv_loop_t.data`](http://docs.libuv.org/en/v1.x/loop.html#c.uv_loop_t.data). */

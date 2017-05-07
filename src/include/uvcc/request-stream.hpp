@@ -60,8 +60,7 @@ private: /*functions*/
   template< typename = void > static void connect_cb(::uv_connect_t*, int);
 
 public: /*interface*/
-  const on_request_t& on_request() const noexcept  { return instance::from(uv_req)->request_cb_storage.value(); }
-        on_request_t& on_request()       noexcept  { return instance::from(uv_req)->request_cb_storage.value(); }
+  on_request_t& on_request() const noexcept  { return instance::from(uv_req)->request_cb_storage.value(); }
 
   /*! \brief The stream which this connect request has been running on. */
   stream handle() const noexcept  { return stream(static_cast< uv_t* >(uv_req)->handle); }
@@ -175,8 +174,7 @@ private: /*functions*/
   template< typename = void > static void write2_cb(::uv_write_t*, int);
 
 public: /*interface*/
-  const on_request_t& on_request() const noexcept  { return instance::from(uv_req)->request_cb_storage.value(); }
-        on_request_t& on_request()       noexcept  { return instance::from(uv_req)->request_cb_storage.value(); }
+  on_request_t& on_request() const noexcept  { return instance::from(uv_req)->request_cb_storage.value(); }
 
   /*! \brief The stream which this write request has been running on. */
   stream handle() const noexcept  { return stream(static_cast< uv_t* >(uv_req)->handle); }
@@ -331,8 +329,7 @@ private: /*functions*/
   template< typename = void > static void shutdown_cb(::uv_shutdown_t*, int);
 
 public: /*interface*/
-  const on_request_t& on_request() const noexcept  { return instance::from(uv_req)->request_cb_storage.value(); }
-        on_request_t& on_request()       noexcept  { return instance::from(uv_req)->request_cb_storage.value(); }
+  on_request_t& on_request() const noexcept  { return instance::from(uv_req)->request_cb_storage.value(); }
 
   /*! \brief The stream which this shutdown request has been running on. */
   stream handle() const noexcept  { return stream(static_cast< uv_t* >(uv_req)->handle); }

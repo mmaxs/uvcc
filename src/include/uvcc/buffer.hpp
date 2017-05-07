@@ -229,8 +229,7 @@ public: /*interface*/
   /*! \brief The current number of existing references to the same buffer as this variable refers to. */
   long nrefs() const noexcept  { return instance::from(uv_buf)->refs.get_value(); }
 
-  const sink_cb_t& sink_cb() const noexcept  { return instance::from(uv_buf)->sink_cb_storage.value(); }
-        sink_cb_t& sink_cb()       noexcept  { return instance::from(uv_buf)->sink_cb_storage.value(); }
+  sink_cb_t& sink_cb() const noexcept  { return instance::from(uv_buf)->sink_cb_storage.value(); }
 
   /*! \brief The number of the `uv_buf_t` structures in the array. */
   std::size_t count() const noexcept  { return instance::from(uv_buf)->buf_count; }

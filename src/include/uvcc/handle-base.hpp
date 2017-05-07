@@ -272,8 +272,7 @@ public: /*interface*/
   /*! \brief The status value returned by the last executed libuv API function on this handle. */
   int uv_status() const noexcept  { return instance< handle >::from(uv_handle)->uv_error; }
 
-  const on_destroy_t& on_destroy() const noexcept  { return instance< handle >::from(uv_handle)->destroy_cb_storage.value(); }
-        on_destroy_t& on_destroy()       noexcept  { return instance< handle >::from(uv_handle)->destroy_cb_storage.value(); }
+  on_destroy_t& on_destroy() const noexcept  { return instance< handle >::from(uv_handle)->destroy_cb_storage.value(); }
 
   /*! \brief The tag indicating the libuv type of the handle. */
   ::uv_handle_type type() const noexcept  { return instance< handle >::from(uv_handle)->uv_interface()->type(uv_handle); }

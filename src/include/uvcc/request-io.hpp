@@ -109,8 +109,7 @@ public: /*constructors*/
   output& operator =(output&&) noexcept = default;
 
 public: /*interface*/
-  const on_request_t& on_request() const noexcept  { return instance::from(uv_req)->request_cb_storage.value(); }
-        on_request_t& on_request()       noexcept  { return instance::from(uv_req)->request_cb_storage.value(); }
+  on_request_t& on_request() const noexcept  { return instance::from(uv_req)->request_cb_storage.value(); }
 
   /*! \brief The I/O endpoint handle where this output request has been taking place. */
   io handle() const noexcept

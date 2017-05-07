@@ -72,8 +72,7 @@ private: /*functions*/
   template< typename = void > static void udp_send_cb(::uv_udp_send_t*, int);
 
 public: /*interface*/
-  const on_request_t& on_request() const noexcept  { return instance::from(uv_req)->request_cb_storage.value(); }
-        on_request_t& on_request()       noexcept  { return instance::from(uv_req)->request_cb_storage.value(); }
+  on_request_t& on_request() const noexcept  { return instance::from(uv_req)->request_cb_storage.value(); }
 
   /*! \brief The UDP handle where this send request has been taking place. */
   udp handle() const noexcept  { return udp(static_cast< uv_t* >(uv_req)->handle); }

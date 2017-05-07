@@ -77,8 +77,7 @@ private: /*functions*/
   template< typename = void > static void after_work_cb(::uv_work_t*, int);
 
 public: /*interface*/
-  const on_request_t& on_request() const noexcept  { return instance::from(uv_req)->request_cb_storage.value(); }
-        on_request_t& on_request()       noexcept  { return instance::from(uv_req)->request_cb_storage.value(); }
+  on_request_t& on_request() const noexcept  { return instance::from(uv_req)->request_cb_storage.value(); }
 
   /*! \brief The libuv loop that started this `work` request and where completion will be reported.
       \details It is guaranteed that it will be a valid instance at least within the request callback. */

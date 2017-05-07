@@ -105,8 +105,7 @@ private: /*functions*/
   }
 
 public: /*interface*/
-  const on_request_t& on_request() const noexcept  { return instance::from(uv_req)->request_cb_storage.value(); }
-        on_request_t& on_request()       noexcept  { return instance::from(uv_req)->request_cb_storage.value(); }
+  on_request_t& on_request() const noexcept  { return instance::from(uv_req)->request_cb_storage.value(); }
 
   /*! \brief The libuv loop that started this `getaddrinfo` request and where completion will be reported.
       \details It is guaranteed that it will be a valid instance at least within the request callback. */
@@ -190,8 +189,7 @@ private: /*functions*/
   template< typename = void > static void getnameinfo_cb(::uv_getnameinfo_t*, int, const char*, const char*);
 
 public: /*interface*/
-  const on_request_t& on_request() const noexcept  { return instance::from(uv_req)->request_cb_storage.value(); }
-        on_request_t& on_request()       noexcept  { return instance::from(uv_req)->request_cb_storage.value(); }
+  on_request_t& on_request() const noexcept  { return instance::from(uv_req)->request_cb_storage.value(); }
 
   /*! \brief The libuv loop that started this `getnameinfo` request and where completion will be reported.
       \details It is guaranteed that it will be a valid instance at least within the request callback. */
