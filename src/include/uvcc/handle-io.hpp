@@ -231,11 +231,12 @@ public: /*interface*/
 
     return uv_ret;
   }
-  /*! \brief Restart reading incoming data from the I/O endpoint using `_alloc_cb` and `_read_cb`
-      functions having been explicitly set before with `on_alloc()` and `on_read()` functions
-      or provided with the previous `read_start()` call.
+  /*! \brief Start reading incoming data from the I/O endpoint.
+      \details The appropriate input buffer allocation and read callbacks should be explicitly set before
+      with `on_alloc()` and `on_read()` functions or provided with the previous `read_start()` call.
+      Otherwise, `UV_EINVAL` error is returned with no involving any libuv API function.
       Repeated call to this function results in the automatic call to `read_stop()` firstly.
-      \note On successful restart this function adds an extra reference to the handle instance,
+      \note On successful start this function adds an extra reference to the handle instance,
       which is released when the counterpart function `read_stop()` is called. */
   int read_start(std::size_t _size = 0, int64_t _offset = -1) const
   {
