@@ -151,28 +151,26 @@ public: /*interface*/
   /*! \brief Set the input buffer allocation callback. */
   on_buffer_alloc_t& on_alloc() const noexcept  { return instance::from(uv_handle)->properties().alloc_cb; }
 
-  /*! \brief Set the read callback. */
+  /*! \brief Set the read callback function. */
   on_read_t& on_read() const noexcept  { return instance::from(uv_handle)->properties().read_cb; }
 
   /*! \brief Start reading incoming data from the I/O endpoint.
-      \details The handle is tried to be set for reading if only nonempty `_alloc_cb` and `_read_cb`
-      callbacks are provided or was previously set with `on_alloc()` and `on_read()` functions.
-      Otherwise, `UV_EINVAL` error is returned with no involving any libuv API function.
-      Repeated call to this function results in the automatic call to `read_stop()` firstly.
-      In the repeated calls `_alloc_cb` and/or `_read_cb` function objectcs may be empty values,
-      which means that they aren't changed from the previous call.
+      \details The appropriate input buffer allocation and read callbacks should be explicitly provided
+      before with `on_alloc()` and `on_read()` functions. Otherwise, `UV_EINVAL` error is returned with
+      no involving any libuv API function.
 
-      Additional parameters are:
+      Repeated call to this function results in the automatic call to `read_stop()` firstly.
+
+      Parameters are:
       \arg `_size` - can be set to specify suggested length of the read buffer.
       \arg `_offset` - the starting offset for reading from. It is primarily intended for `uv::file` I/O endpoints
                        and the default value of \b -1 means using of the current file position. For other I/O endpoint
-                       types it is used as a starting value for the artificial calculated offset argument passed to
-                       `io::on_read_t` callback function, and the default value of \b -1 means to continue calculating
-                       from the offset stored after the last read (or, if it has never been started yet, from the initial
-                       value of \b 0).
+                       types it is used as a starting value for `_offset` argument of `io::on_read_t` callback function,
+                       and the default value of \b -1 means to continue calculating from the offset calculated and internally
+                       stored after the last read operation (or, if it has never been started yet, from the initial value of \b 0).
 
       \note On successful start this function adds an extra reference to the handle instance,
-      which is released when the counterpart function `read_stop()` is called.
+      which is released when the counterpart function `read_stop()` (or `read_pause()`) is called.
 
       For `uv::stream` and `uv::udp` endpoints the function is just a wrapper around
       [`uv_read_start()`](http://docs.libuv.org/en/v1.x/stream.html#c.uv_read_start) and
@@ -190,56 +188,6 @@ public: /*interface*/
       \sa libuv API documentation: [`uv_fs_read()`](http://docs.libuv.org/en/v1.x/fs.html#c.uv_fs_read),
                                    [`uv_read_start()`](http://docs.libuv.org/en/v1.x/stream.html#c.uv_read_start),
                                    [`uv_udp_recv_start()`](http://docs.libuv.org/en/v1.x/udp.html#c.uv_udp_recv_start). */
-  int read_start(const on_buffer_alloc_t &_alloc_cb, const on_read_t &_read_cb, std::size_t _size = 0, int64_t _offset = -1) const
-  {
-    auto instance_ptr = instance::from(uv_handle);
-    auto &properties = instance_ptr->properties();
-
-    std::lock_guard< decltype(properties.rdstate_switch) > lk(properties.rdstate_switch);
-
-    if (!_alloc_cb and !properties.alloc_cb)  return uv_status(UV_EINVAL);
-    if (!_read_cb and !properties.read_cb)  return uv_status(UV_EINVAL);
-
-    bool extra_ref = false;
-    auto rdcmd_state0 = properties.rdcmd_state;
-    properties.rdcmd_state = rdcmd::START;
-
-    switch (rdcmd_state0)
-    {
-    case rdcmd::UNKNOWN:
-    case rdcmd::STOP:
-    case rdcmd::PAUSE:
-        instance_ptr->ref();  // REF:START - make sure it will exist for the future io_read_cb() calls until read_stop()/read_pause()
-        extra_ref = true;
-        break;
-    case rdcmd::START:
-    case rdcmd::RESUME:
-        uv_status(instance_ptr->uv_interface()->read_stop(uv_handle));
-        break;
-    }
-
-    if (_alloc_cb)  properties.alloc_cb = _alloc_cb;
-    if (_read_cb)  properties.read_cb = _read_cb;
-    properties.rdsize = _size;
-
-    uv_status(0);
-    auto uv_ret = instance_ptr->uv_interface()->read_start(uv_handle, _offset);
-    if (uv_ret < 0)
-    {
-      uv_status(uv_ret);
-      properties.rdcmd_state = rdcmd::UNKNOWN;  // FIXME: here the initial state must be restored for read_stop() to work properly
-      if (extra_ref)  instance_ptr->unref();  // release the reference on start failure
-    }
-
-    return uv_ret;
-  }
-  /*! \brief Start reading incoming data from the I/O endpoint.
-      \details The appropriate input buffer allocation and read callbacks should be explicitly set before
-      with `on_alloc()` and `on_read()` functions or provided with the previous `read_start()` call.
-      Otherwise, `UV_EINVAL` error is returned with no involving any libuv API function.
-      Repeated call to this function results in the automatic call to `read_stop()` firstly.
-      \note On successful start this function adds an extra reference to the handle instance,
-      which is released when the counterpart function `read_stop()` is called. */
   int read_start(std::size_t _size = 0, int64_t _offset = -1) const
   {
     auto instance_ptr = instance::from(uv_handle);
@@ -249,7 +197,6 @@ public: /*interface*/
 
     if (!properties.alloc_cb or !properties.read_cb)  return uv_status(UV_EINVAL);
 
-    bool extra_ref = false;
     auto rdcmd_state0 = properties.rdcmd_state;
     properties.rdcmd_state = rdcmd::START;
 
@@ -258,12 +205,11 @@ public: /*interface*/
     case rdcmd::UNKNOWN:
     case rdcmd::STOP:
     case rdcmd::PAUSE:
-        instance_ptr->ref();  // REF:START
-        extra_ref = true;
         break;
     case rdcmd::START:
     case rdcmd::RESUME:
         uv_status(instance_ptr->uv_interface()->read_stop(uv_handle));
+        instance_ptr->unref();  // UNREF:RESTART - emulate reat_stop()
         break;
     }
 
@@ -274,11 +220,31 @@ public: /*interface*/
     if (uv_ret < 0)
     {
       uv_status(uv_ret);
-      properties.rdcmd_state = rdcmd::UNKNOWN;  // FIXME: here the initial state must be restored for read_stop() to work properly
-      if (extra_ref)  instance_ptr->unref();
+      properties.rdcmd_state = rdcmd::UNKNOWN;
     }
+    else
+      instance_ptr->ref();  // REF:START - make sure it will exist for the future io_read_cb() calls until read_stop()/read_pause()
 
     return uv_ret;
+  }
+
+  /*! \brief Start reading incoming data from the I/O endpoint with provided
+      input buffer allocation callback (`_alloc_cb`) and read callback function (`_read_cb`).
+      \details This is equivalent for
+      ```
+      io.on_alloc() = _alloc_cb;
+      io.on_read() = _read_cb;
+      io.read_start(_size, _offset);
+      ```
+      \sa `io::read_start()` */
+  int read_start(const on_buffer_alloc_t &_alloc_cb, const on_read_t &_read_cb, std::size_t _size = 0, int64_t _offset = -1) const
+  {
+    auto &properties = instance::from(uv_handle)->properties();
+
+    properties.alloc_cb = _alloc_cb;
+    properties.read_cb = _read_cb;
+
+    return read_start(_size, _offset);
   }
 
   /*! \brief Stop reading data from the I/O endpoint.
@@ -315,10 +281,10 @@ public: /*interface*/
       \details
       \arg `read_pause(true)` - a \e "pause" command that is functionally equivalent to `read_stop()`.  Returns `0`
       or relevant libuv error code. Exit code of `2` is returned if the handle is not currently in reading state.
-      \arg `read_pause(false)` - a _no op_ command that returns immediately with exit code of `1`.
+      \arg `read_pause(false)` - a _no-op_ command that returns immediately with exit code of `1`.
 
       To be used in conjunction with `read_resume()` control command.
-      \sa `read_resume()` */
+      \sa `io::read_resume()` */
   int read_pause(bool _trigger_condition) const
   {
     if (!_trigger_condition)  return 1;
@@ -339,7 +305,7 @@ public: /*interface*/
     case rdcmd::RESUME:
         properties.rdcmd_state = rdcmd::PAUSE;
         ret = uv_status(instance_ptr->uv_interface()->read_stop(uv_handle));
-        instance_ptr->unref();  // UNREF:PAUSE
+        instance_ptr->unref();  // UNREF:PAUSE - functionally equivalent to read_stop()
         break;
     }
     return ret;
@@ -350,13 +316,11 @@ public: /*interface*/
       \arg `read_resume(true)` - a \e "resume" command that is functionally equivalent to `read_start()` except
       that it cannot \e "start" and is refused if the previous control command was not \e "pause" (i.e. `read_pause()`).
       Returns `0` or relevant libuv error code. Exit code of `2` is returned if the handle is not in read pause state.
-      \arg `read_resume(false)` - a _no op_ command that returns immediately with exit code of `1`.
+      \arg `read_resume(false)` - a _no-op_ command that returns immediately with exit code of `1`.
 
       To be used in conjunction with `read_pause()` control command.
-
-      \note `read_pause()`/`read_resume()` commands are intended for temporary pausing the read process for example in
-      such a cases when a consumer which the data being read is sent to becomes overwhelmed with them and its input queue
-      (and/or a sender output queue) has been considerably increased.
+      \note On successful resuming this function adds an extra reference to the handle instance,
+      which is released when the counterpart function `read_pause()` (or `read_stop()`) is called.
 
       The different control command interoperating semantics is described as follows:
       \verbatim
@@ -373,7 +337,11 @@ public: /*interface*/
         "resume" is functionally equivalent to "start"
         "pause" is functionally equivalent to "stop"
         "restart" is functionally equivalent to "stop" followed by "start"
-      \endverbatim */
+      \endverbatim
+
+      `read_pause()`/`read_resume()` commands are intended for temporary pausing the read process for example in
+      such a cases when a consumer which the data being read is sent to becomes overwhelmed with them and its input queue
+      (and/or a sender output queue) has been considerably increased. */
   int read_resume(bool _trigger_condition)
   {
     if (!_trigger_condition)  return 1;
@@ -392,16 +360,15 @@ public: /*interface*/
     case rdcmd::PAUSE:
         properties.rdcmd_state = rdcmd::RESUME;
 
-        instance_ptr->ref();  // REF:RESUME
-
         uv_status(0);
         ret = instance_ptr->uv_interface()->read_start(uv_handle, properties.rdoffset);
         if (ret < 0)
         {
           uv_status(ret);
           properties.rdcmd_state = rdcmd::UNKNOWN;
-          instance_ptr->unref();
         }
+        else
+          instance_ptr->ref();  // REF:RESUME - functionally equivalent to read_start()
 
         break;
     case rdcmd::START:
