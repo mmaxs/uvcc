@@ -29,13 +29,10 @@ class async : public handle
 
 public: /*types*/
   using uv_t = ::uv_async_t;
-  template< typename... _Args_ >
-  using on_send_t = std::function< void(async _handle, _Args_&&... _args) >;
-  /*!< \brief The function type of the callback called by the `async` event.
-       \note
-        1. All the additional templated arguments are passed and stored by value along with the function object
-           when the `async` handle variable is created.
-        2. The `async` event is not a facility for executing a given callback function on the target loop on every `async::send()` call.
+  using on_send_t = std::function< void(async _handle) >;
+  /*!< \brief The function type of the callback called on the event raised by `async::send()` function.
+       \note The `async` event is not a facility for executing the given callback function
+       on the target loop on every `async::send()` call.
        \sa libuv API documentation: [`uv_async_cb`](http://docs.libuv.org/en/v1.x/async.html#c.uv_async_cb),
                                     [`uv_async_send()`](http://docs.libuv.org/en/v1.x/async.html#c.uv_async_send). */
 
@@ -46,7 +43,7 @@ protected: /*types*/
 
   struct properties : handle::properties
   {
-    std::function< void(async) > cb;
+    on_send_t async_cb;
   };
 
   struct uv_interface : handle::uv_handle_interface  {};
@@ -74,46 +71,25 @@ public: /*constructors*/
   async(async&&) noexcept = default;
   async& operator =(async&&) noexcept = default;
 
-  /*! \brief Create an `async` handle with no callback function. */
-  explicit async(uv::loop &_loop)
-  {
-    uv_handle = instance::create();
-
-    auto uv_ret = ::uv_async_init(static_cast< uv::loop::uv_t* >(_loop), static_cast< uv_t* >(uv_handle), nullptr);
-    if (uv_status(uv_ret) < 0)  return;
-
-    instance::from(uv_handle)->book_loop();
-  }
-
-  /*! \brief Create an `async` handle with specified callback function.
-      \note All arguments are copied (or moved) to the internal callback function object. For passing arguments by reference
-      (when parameters are used as output ones), wrap them with `std::ref()` or use raw pointers.
+  /*! \brief Create an `async` handle.
       \sa libuv API documentation: [`uv_async_init()`](http://docs.libuv.org/en/v1.x/async.html#c.uv_async_init). */
-  template< class _Cb_, typename... _Args_,
-      typename = std::enable_if_t< std::is_convertible< _Cb_, on_send_t< _Args_&&... > >::value >
-  >
-  async(uv::loop &_loop, _Cb_ &&_cb, _Args_&&... _args)
+  explicit async(uv::loop &_loop)
   {
     uv_handle = instance::create();
 
     auto uv_ret = ::uv_async_init(static_cast< uv::loop::uv_t* >(_loop), static_cast< uv_t* >(uv_handle), async_cb);
     if (uv_status(uv_ret) < 0)  return;
 
-    instance::from(uv_handle)->properties().cb = std::bind(
-        std::forward< _Cb_ >(_cb), std::placeholders::_1, std::forward< _Args_ >(_args)...
-    );
     instance::from(uv_handle)->book_loop();
   }
 
 public: /*interface*/
-  /*! \brief Wakeup the event loop and call the `async` handle’s callback.
+  /*! \brief Set the `async` event callback. */
+  on_send_t& on_send() const noexcept  { return instance::from(uv_handle)->properties().async_cb; }
+
+  /*! \brief Wakeup the event loop and call the `async` callback.
       \sa libuv API documentation: [`uv_async_send()`](http://docs.libuv.org/en/v1.x/async.html#c.uv_async_send). */
-  int send() const noexcept
-  {
-    return uv_status(
-        ::uv_async_send(static_cast< uv_t* >(uv_handle))
-    );
-  }
+  int send() const noexcept  { return uv_status(::uv_async_send(static_cast< uv_t* >(uv_handle))); }
 
 public: /*conversion operators*/
   explicit operator const uv_t*() const noexcept  { return static_cast< const uv_t* >(uv_handle); }
@@ -123,8 +99,8 @@ public: /*conversion operators*/
 template< typename >
 void async::async_cb(::uv_async_t *_uv_handle)
 {
-  auto &cb = instance::from(_uv_handle)->properties().cb;
-  if (cb)  cb(async(_uv_handle));
+  auto &async_cb = instance::from(_uv_handle)->properties().async_cb;
+  if (async_cb)  async_cb(async(_uv_handle));
 }
 
 
