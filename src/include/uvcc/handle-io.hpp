@@ -200,6 +200,7 @@ public: /*interface*/
     if (!_alloc_cb and !properties.alloc_cb)  return uv_status(UV_EINVAL);
     if (!_read_cb and !properties.read_cb)  return uv_status(UV_EINVAL);
 
+    bool extra_ref = false;
     auto rdcmd_state0 = properties.rdcmd_state;
     properties.rdcmd_state = rdcmd::START;
 
@@ -209,6 +210,7 @@ public: /*interface*/
     case rdcmd::STOP:
     case rdcmd::PAUSE:
         instance_ptr->ref();  // REF:START - make sure it will exist for the future io_read_cb() calls until read_stop()/read_pause()
+        extra_ref = true;
         break;
     case rdcmd::START:
     case rdcmd::RESUME:
@@ -225,8 +227,8 @@ public: /*interface*/
     if (uv_ret < 0)
     {
       uv_status(uv_ret);
-      properties.rdcmd_state = rdcmd::UNKNOWN;
-      instance_ptr->unref();  // release the reference on start failure
+      properties.rdcmd_state = rdcmd::UNKNOWN;  // FIXME: here the initial state must be restored for read_stop() to work properly
+      if (extra_ref)  instance_ptr->unref();  // release the reference on start failure
     }
 
     return uv_ret;
@@ -247,6 +249,7 @@ public: /*interface*/
 
     if (!properties.alloc_cb or !properties.read_cb)  return uv_status(UV_EINVAL);
 
+    bool extra_ref = false;
     auto rdcmd_state0 = properties.rdcmd_state;
     properties.rdcmd_state = rdcmd::START;
 
@@ -256,6 +259,7 @@ public: /*interface*/
     case rdcmd::STOP:
     case rdcmd::PAUSE:
         instance_ptr->ref();  // REF:START
+        extra_ref = true;
         break;
     case rdcmd::START:
     case rdcmd::RESUME:
@@ -270,8 +274,8 @@ public: /*interface*/
     if (uv_ret < 0)
     {
       uv_status(uv_ret);
-      properties.rdcmd_state = rdcmd::UNKNOWN;
-      instance_ptr->unref();
+      properties.rdcmd_state = rdcmd::UNKNOWN;  // FIXME: here the initial state must be restored for read_stop() to work properly
+      if (extra_ref)  instance_ptr->unref();
     }
 
     return uv_ret;
