@@ -91,6 +91,19 @@ public: /*interface*/
       \sa libuv API documentation: [`uv_async_send()`](http://docs.libuv.org/en/v1.x/async.html#c.uv_async_send). */
   int send() const noexcept  { return uv_status(::uv_async_send(static_cast< uv_t* >(uv_handle))); }
 
+  /*! \brief Set the given `async` callback and send wakeup event to the target loop.
+      \details This is equivalent for
+      ```
+      async.on_send() = _async_cb;
+      async.send();
+      ```
+      \sa `async::send()` */
+  int send(const on_send_t &_async_cb) const noexcept
+  {
+    instance::from(uv_handle)->properties().async_cb = _async_cb;
+    return uv_status(::uv_async_send(static_cast< uv_t* >(uv_handle)));
+  }
+
 public: /*conversion operators*/
   explicit operator const uv_t*() const noexcept  { return static_cast< const uv_t* >(uv_handle); }
   explicit operator       uv_t*()       noexcept  { return static_cast<       uv_t* >(uv_handle); }
