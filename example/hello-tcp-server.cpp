@@ -55,10 +55,7 @@ int main(int _argc, char *_argv[])
           return;
         }
         else
-        {
-          // detach server handle from the loop after the first connection - aka stop listening
-          ::uv_unref(static_cast< uv_handle_t* >(_server));
-        }
+          _server.attached(false);  // detach server handle from the loop after the first client connection - aka stop listening
 
         // accept a new connection
         auto client = static_cast< uv::tcp&& >(_server.accept());
