@@ -158,9 +158,9 @@ private: /*functions*/
     uv::buffer ret{ buf_size };
     ret.sink_cb() = [this](uv::buffer &_buf)
     {
-      if (pool_destroying)  return;  // buffers that are being destroyed on `spare_items_pool` emptying
+      if (pool_destroying)  return;  // buffers, that are being destroyed on `spare_items_pool` emptying
                                      // during its destroying when executing the `buffer_pool` class'
-                                     // destructor are not to be added back into `spare_items_pool`
+                                     // destructor, are not to be added back into `spare_items_pool`
 
       _buf.len() = buf_size;  // restore buffer size
       spare_items_pool.push_back(std::move(_buf));
