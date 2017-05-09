@@ -159,7 +159,7 @@ public: /*interface*/
       before with `on_alloc()` and `on_read()` functions. Otherwise, `UV_EINVAL` error is returned with
       no involving any libuv API function.
 
-      Repeated call to this function results in the automatic call to `read_stop()` firstly.
+      Repeated call to this function results in the automatic call to `read_stop()` first.
 
       Parameters are:
       \arg `_size` - can be set to specify suggested length of the read buffer.
