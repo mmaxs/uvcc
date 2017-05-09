@@ -372,18 +372,27 @@ struct handle::uv_handle_interface : virtual uv_interface
     uvcc_debug_condition(loop_alive, "is loop [0x%08tX] (stop_flag=%u) associated with handle [0x%08tX] alive", (ptrdiff_t)uv_handle->loop, uv_handle->loop->stop_flag, (ptrdiff_t)uv_handle);
     if (loop_alive)
     {
-      uvcc_debug_log_if(true, "handle [0x%08tX]: call close callback asynchronously", (ptrdiff_t)uv_handle);
-      uvcc_debug_log_if(uv_handle->type == 0, "handle [0x%08tX]: don't call ::uv_close() for the handle not having been initialized by libuv", (ptrdiff_t)uv_handle);
-      ::uv_close(uv_handle, close_cb);
+      uvcc_debug_log_if(uv_handle->type == 0, "handle [0x%08tX]: don't call ::uv_close() for handle not having been initialized by libuv", (ptrdiff_t)uv_handle);
+      if (uv_handle->type != 0)
+      {
+        uvcc_debug_log_if(true, "handle [0x%08tX]: call close callback asynchronously", (ptrdiff_t)uv_handle);
+        ::uv_close(uv_handle, close_cb);
+      }
+      else
+      {
+        uvcc_debug_log_if(true, "handle [0x%08tX]: call close callback synchronously", (ptrdiff_t)uv_handle);
+        close_cb(uv_handle);
+      }
     }
     else*/
     // the (loop_alive == 1) state or (stop_flag == 0) doesn't mean that loop is running or will be running,
     // therefore don't let the destroy procedure ever to rely on the libuv loop
     {
       uvcc_debug_log_if(true, "handle [0x%08tX]: call close callback synchronously", (ptrdiff_t)uv_handle);
-      uvcc_debug_log_if(uv_handle->type == 0, "handle [0x%08tX]: don't call ::uv_close() for the handle not having been initialized by libuv", (ptrdiff_t)uv_handle);
 
+      uvcc_debug_log_if(uv_handle->type == 0, "handle [0x%08tX]: don't call ::uv_close() for handle not having been initialized by libuv", (ptrdiff_t)uv_handle);
       if (uv_handle->type != 0)  ::uv_close(uv_handle, nullptr);
+
       close_cb(uv_handle);
     }
   }
