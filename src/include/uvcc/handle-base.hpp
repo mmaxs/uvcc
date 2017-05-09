@@ -71,6 +71,9 @@ protected: /*types*/
     virtual int fileno(void*, ::uv_os_fd_t&) const noexcept = 0;
     virtual int is_active(void*) const noexcept = 0;
     virtual int is_closing(void*) const noexcept = 0;
+    virtual void ref(void*) const noexcept = 0;
+    virtual void unref(void*) const noexcept = 0;
+    virtual int has_ref(void*) const noexcept = 0;
   };
   struct uv_handle_interface;
   struct uv_fs_interface;
@@ -299,9 +302,29 @@ public: /*interface*/
       running on the handle. */
   uv::loop loop() const noexcept  { return uv::loop(instance< handle >::from(uv_handle)->uv_interface()->loop(uv_handle)); }
 
+  /*! \name Functions to detach/attach a handle to the libuv loop for processing handle's events:
+      They provide access to the libuv API functions to reference/un-reference the given handle by the event loop
+      that the handle is running on:
+      [`uv_ref()`](http://docs.libuv.org/en/v1.x/handle.html#c.uv_ref),
+      [`uv_unref()`](http://docs.libuv.org/en/v1.x/handle.html#c.uv_unref),
+      [`uv_has_ref()`](http://docs.libuv.org/en/v1.x/handle.html#c.uv_has_ref).
+      \sa libuv API documentation: [Reference counting](http://docs.libuv.org/en/v1.x/handle.html#reference-counting). */
+  //! \{
+  void attached(bool _state) const noexcept
+  {
+    if (_state)
+      ::uv_ref(static_cast< uv_t* >(uv_handle));
+    else
+      ::uv_unref(static_cast< uv_t* >(uv_handle));
+  }
+  bool attached() const noexcept
+  {
+    return instance< handle >::from(uv_handle)->uv_interface()->has_ref(uv_handle);
+  }
+  //! \}
+
   /*! \brief The pointer to the user-defined arbitrary data. libuv and uvcc does not use this field. */
-  void* const& data() const noexcept  { return instance< handle >::from(uv_handle)->uv_interface()->data(uv_handle); }
-  void*      & data()       noexcept  { return instance< handle >::from(uv_handle)->uv_interface()->data(uv_handle); }
+  void*& data() const noexcept  { return instance< handle >::from(uv_handle)->uv_interface()->data(uv_handle); }
 
   /*! \brief Check if the handle is active.
       \sa libuv API documentation: [`uv_is_active()`](http://docs.libuv.org/en/v1.x/handle.html#c.uv_is_active). */
@@ -411,10 +434,12 @@ struct handle::uv_handle_interface : virtual uv_interface
     return ::uv_fileno(static_cast< ::uv_handle_t* >(_uv_handle), &_h);
   }
 
-  int is_active(void *_uv_handle) const noexcept override
-  { return ::uv_is_active(static_cast< ::uv_handle_t* >(_uv_handle)); }
-  int is_closing(void *_uv_handle) const noexcept override
-  { return ::uv_is_closing(static_cast< ::uv_handle_t* >(_uv_handle)); }
+  int is_active(void *_uv_handle) const noexcept override  { return ::uv_is_active(static_cast< ::uv_handle_t* >(_uv_handle)); }
+  int is_closing(void *_uv_handle) const noexcept override  { return ::uv_is_closing(static_cast< ::uv_handle_t* >(_uv_handle)); }
+
+  void ref(void *_uv_handle) const noexcept override  { ::uv_ref(static_cast< ::uv_handle_t* >(_uv_handle)); }
+  void unref(void *_uv_handle) const noexcept override  { ::uv_unref(static_cast< ::uv_handle_t* >(_uv_handle)); }
+  int has_ref(void *_uv_handle) const noexcept override  { return ::uv_has_ref(static_cast< ::uv_handle_t* >(_uv_handle)); }
 };
 //! \}
 //! \endcond
@@ -479,6 +504,10 @@ struct handle::uv_fs_interface : virtual uv_interface
   }
 
   int is_active(void *_uv_fs) const noexcept override  { return 0; }
+
+  void ref(void *_uv_fs) const noexcept override  {}
+  void unref(void *_uv_fs) const noexcept override  {}
+  int has_ref(void *_uv_fs) const noexcept override  { return 0; }
 };
 //! \}
 //! \endcond
