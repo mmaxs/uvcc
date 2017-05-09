@@ -94,13 +94,21 @@ public: /*interface*/
   /*! \brief Set the given `async` callback and send wakeup event to the target loop.
       \details This is equivalent for
       ```
-      async.on_send() = _async_cb;
+      async.on_send() = std::bind(std::forward< _Cb_ >(_cb), std::placeholders::_1, _args...);
       async.send();
       ```
       \sa `async::send()` */
-  int send(const on_send_t &_async_cb) const noexcept
+  template< class _Cb_, typename... _Args_, typename = std::enable_if_t<
+      std::is_convertible<
+          decltype(std::bind(std::declval< _Cb_ >(), std::placeholders::_1, static_cast< _Args_&& >(std::declval< _Args_ >())...)),
+          on_send_t
+      >::value
+  > >
+  int send(_Cb_ &&_cb, _Args_&&... _args) const noexcept
   {
-    instance::from(uv_handle)->properties().async_cb = _async_cb;
+    instance::from(uv_handle)->properties().async_cb = std::bind(
+        std::forward< _Cb_ >(_cb), std::placeholders::_1, std::forward< _Args_ >(_args)...
+    );
     return uv_status(::uv_async_send(static_cast< uv_t* >(uv_handle)));
   }
 
