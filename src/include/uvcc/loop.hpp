@@ -79,10 +79,10 @@ private: /*types*/
       });
 
       uv_error = ::uv_loop_close(&uv_loop_struct);
-      auto loop_not_closed = (uv_error == UV_EBUSY);
-      uvcc_debug_condition(loop_not_closed, "loop [0x%08tX] (is_alive=%i)", (ptrdiff_t)&uv_loop_struct, ::uv_loop_alive(&uv_loop_struct));
+      auto loop_closed = (uv_error == 0);
+      uvcc_debug_condition(loop_closed, "loop [0x%08tX] (is_alive=%i)", (ptrdiff_t)&uv_loop_struct, ::uv_loop_alive(&uv_loop_struct));
 
-      if (loop_not_closed)  // this may be because of:
+      if (!loop_closed)  // this may be because of:
       {
         // 1) there are handles associated with the loop that are in deed not closed by the time the loop instance destroying
         unsigned num_open_handles = 0;
@@ -114,9 +114,9 @@ private: /*types*/
         } while (uv_error);
 
         uv_error = ::uv_loop_close(&uv_loop_struct);
-        loop_not_closed = (uv_error == UV_EBUSY);
-        uvcc_debug_condition(loop_not_closed, "loop [0x%08tX] (is_alive=%i)", (ptrdiff_t)&uv_loop_struct, ::uv_loop_alive(&uv_loop_struct));
-        if (loop_not_closed)  throw std::runtime_error(__PRETTY_FUNCTION__);
+        loop_closed = (uv_error == 0);
+        uvcc_debug_condition(loop_closed, "loop [0x%08tX] (is_alive=%i)", (ptrdiff_t)&uv_loop_struct, ::uv_loop_alive(&uv_loop_struct));
+        if (!loop_closed)  throw std::runtime_error(__PRETTY_FUNCTION__);
       }
     }
 
