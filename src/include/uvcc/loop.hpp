@@ -66,7 +66,7 @@ private: /*types*/
     instance()
     {
       uv_error = ::uv_loop_init(&uv_loop_struct);
-      uvcc_debug_function_return("instance [0x%08tX] for loop [0x%08tX]: uv_error=%i", (ptrdiff_t)this, (ptrdiff_t)&uv_loop_struct, uv_error);
+      uvcc_debug_function_return("instance [0x%08tX] for loop [0x%08tX] (uv_error=%i)", (ptrdiff_t)this, (ptrdiff_t)&uv_loop_struct, uv_error);
     }
 
   public: /*constructors*/
@@ -91,7 +91,7 @@ private: /*types*/
             [](::uv_handle_t *_h, void *_n){ if (!::uv_is_closing(_h))  ++*static_cast< unsigned* >(_n); },
             &num_open_handles
         );
-        uvcc_debug_condition(num_open_handles == 0, "{number of not closed handles associated with loop [0x%08tX]}=%u", (ptrdiff_t)&uv_loop_struct, num_open_handles);
+        uvcc_debug_condition(num_open_handles == 0, "loop [0x%08tX] (num_open_handles=%u)", (ptrdiff_t)&uv_loop_struct, num_open_handles);
         if (num_open_handles)
         {
           // it is not a proper circumstances for the libuv loop to be closed
@@ -152,7 +152,7 @@ private: /*types*/
     {
       uvcc_debug_function_enter("loop [0x%08tX]", (ptrdiff_t)&uv_loop_struct);
       auto nrefs = refs.dec();
-      uvcc_debug_condition(nrefs == 0, "{nrefs to loop [0x%08tX]}=%li", (ptrdiff_t)&uv_loop_struct, nrefs);
+      uvcc_debug_condition(nrefs == 0, "loop [0x%08tX] (nrefs=%li)", (ptrdiff_t)&uv_loop_struct, nrefs);
       if (nrefs == 0)  destroy();
     }
   };

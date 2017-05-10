@@ -172,7 +172,7 @@ protected: /*types*/
     {
       uvcc_debug_function_enter("handle [0x%08tX]", (ptrdiff_t)&uv_handle_struct);
       auto nrefs = refs.dec();
-      uvcc_debug_condition(nrefs == 0, "{nrefs to handle [0x%08tX]}=%li", (ptrdiff_t)&uv_handle_struct, nrefs);
+      uvcc_debug_condition(nrefs == 0, "handle [0x%08tX] (nrefs=%li)", (ptrdiff_t)&uv_handle_struct, nrefs);
       if (nrefs == 0)  uv_interface_ptr->close(&uv_handle_struct);
     }
 
