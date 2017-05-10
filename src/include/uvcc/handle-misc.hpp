@@ -679,13 +679,18 @@ protected: /*functions*/
 
 public: /*interface*/
   /*! \brief Get the signal number being watched for by this handle. */
-  int signum() const noexcept  { return static_cast< uv_t* >(uv_handle)->signum; }
+  int signum() const noexcept
+  {
+    auto signum = static_cast< uv_t* >(uv_handle)->signum;
+    return  signum ? signum : instance::from(uv_handle)->properties().signum;
+  }
 
   /*! \brief Set the signal callback. */
   on_signal_t& on_signal() const noexcept  { return instance::from(uv_handle)->properties().signal_cb; }
 
   /*! \brief Start the handle for watching for the signal.
-      \details Repeated call to this function results in the automatic call to `stop()` first.
+      \details Repeated call to this function results in the automatic call to `stop()` first
+      (possible signal events are not missed if the signal number has not changed).
       \note On successful start this function adds an extra reference to the handle instance,
       which is released when the counterpart function `stop()` is called.
       \sa libuv API documentation: [`uv_signal_t` — Signal handle](http://docs.libuv.org/en/v1.x/signal.html#uv-signal-t-signal-handle). */
@@ -713,9 +718,10 @@ public: /*interface*/
   }
 
   /*! \brief Start the handle with the given signal callback, watching for the given signal number.
-      \details This is equivalent for
+      \details This function overload allows to change the signal number being watched for by the handle.
+      This is equivalent for
       ```
-      signal.signum() = _signum;  // change the signal number being watched for
+      signal.signum() = _signum;  // (virtually) change the signal number being watched for
       signal.on_signal() = std::bind(
           std::forward< _Cb_ >(_cb), std::placeholders::_1, std::placeholders::_2, std::forward< _Args_ >(_args)...
       );
