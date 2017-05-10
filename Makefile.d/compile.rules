@@ -44,7 +44,7 @@ $({OBJECT-FILES}): $(MAKEFILE_LIST)
 $({OBJECT-FILES}): private {compile-parts} = $(filter-out $(addprefix %,$(CXX_HEADER_SUFFIXES)) $(MAKEFILE_LIST),$^)
 $({OBJECT-FILES}):
 	$(info $(-LINE-FEED-) *** ($@: $^))
-	$(COMPILE.cc) $(CXXSTD) $(WFLAGS) $(IFLAGS) $({compile-parts})  -o $@
+	$(COMPILE.cc) $(CXXSTD) $(DBGFLAGS) $(WFLAGS) $(IFLAGS) $({compile-parts})  -o $@
 
 
 # do compile the object files

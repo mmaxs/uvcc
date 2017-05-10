@@ -18,6 +18,7 @@ CXX = c++
 ifeq ($(platform),WINDOWS)
 CXX = x86_64-w64-mingw32-c++
 endif
+CXX += -pipe
 ifdef VERBOSE
 CXX += -v
 endif
@@ -43,7 +44,7 @@ endif
 
 
 # compiler flags: CXXFLAGS WFLAGS
-CXXFLAGS = $(CXXSTD) -O2 -g -pipe
+CXXFLAGS = $(CXXSTD) -O2
 
 ifdef UVCC_DEBUG
 WFLAGS += -Wall -Wpedantic -Wno-variadic-macros
@@ -93,6 +94,10 @@ LDLIBS =
 #   -Wl,-soname=$(notdir $(LDOUT)).$(SONAME_VERSION)
 #  and if both SONAME_VERSION and SOFILE_VERSION variables are nonempty, linker output is set to
 #   $(LDOUT).$(SONAME_VERSION).$(SOFILE_VERSION)
+
+
+# debugging flags
+DBGFLAGS = -g
 
 
 # AR common settings and flags
