@@ -16,9 +16,16 @@ int main(int _argc, char *_argv[])
 
   t.start(0, 1000,
       [](uv::timer _t, int &_count){
-        fprintf(stdout, "timer: count=%i repeat=%" PRIi64 "\n", _count, _t.repeat_value());
+        auto rv = _t.repeat_interval();
+        fprintf(stdout, "timer: count=%i repeat=%" PRIi64 "\n", _count, rv);
         fflush(stdout);
-        _t.repeat_value(_t.repeat_value()/3);
+
+        rv = rv/3;
+        fprintf(stdout, "timer: count=%i repeat:=%" PRIi64 "\n\n", _count, rv);
+        fflush(stdout);
+
+        _t.repeat_interval(rv);
+
         if (--_count <= 0)  _t.stop();
       },
       std::ref(count)
