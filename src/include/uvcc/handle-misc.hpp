@@ -90,7 +90,23 @@ public: /*interface*/
 
   /*! \brief Wakeup the event loop and call the `async` callback.
       \sa libuv API documentation: [`uv_async_send()`](http://docs.libuv.org/en/v1.x/async.html#c.uv_async_send). */
-  int send() const noexcept  { return uv_status(::uv_async_send(static_cast< uv_t* >(uv_handle))); }
+  int send() const
+  {
+    auto instance_ptr = instance::from(uv_handle);
+
+    instance_ptr->ref();  // the reference must be added before async event sending and possible executing
+                          // of the callback in another thread that will release this reference
+
+    uv_status(0);
+    auto uv_ret = ::uv_async_send(static_cast< uv_t* >(uv_handle));
+    if (uv_ret < 0)
+    {
+      uv_status(uv_ret);
+      instance_ptr->unref();
+    }
+
+    return uv_ret;
+  }
 
   /*! \brief Set the given `async` callback and send wakeup event to the target loop.
       \details This is equivalent for
@@ -105,12 +121,12 @@ public: /*interface*/
           on_send_t
       >::value
   > >
-  int send(_Cb_ &&_cb, _Args_&&... _args) const noexcept
+  int send(_Cb_ &&_cb, _Args_&&... _args) const
   {
     instance::from(uv_handle)->properties().async_cb = std::bind(
         std::forward< _Cb_ >(_cb), std::placeholders::_1, std::forward< _Args_ >(_args)...
     );
-    return uv_status(::uv_async_send(static_cast< uv_t* >(uv_handle)));
+    return send();
   }
 
 public: /*conversion operators*/
@@ -121,7 +137,11 @@ public: /*conversion operators*/
 template< typename >
 void async::async_cb(::uv_async_t *_uv_handle)
 {
-  auto &async_cb = instance::from(_uv_handle)->properties().async_cb;
+  auto instance_ptr = instance::from(_uv_handle);
+  auto &async_cb = instance_ptr->properties().async_cb;
+
+  ref_guard< instance > unref_handle(*instance_ptr, adopt_ref);
+
   if (async_cb)  async_cb(async(_uv_handle));
 }
 
@@ -223,7 +243,7 @@ public: /*interface*/
   /*! \brief Stop the timer, the callback will not be called anymore. */
   int stop() const noexcept
   {
-    auto instance_ptr = instance::from(static_cast< uv_t* >(uv_handle));
+    auto instance_ptr = instance::from(uv_handle);
     auto &properties = instance_ptr->properties();
 
     auto uv_ret = uv_status(::uv_timer_stop(static_cast< uv_t* >(uv_handle)));
