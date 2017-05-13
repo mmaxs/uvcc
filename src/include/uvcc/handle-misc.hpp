@@ -681,7 +681,9 @@ protected: /*functions*/
     auto &properties = instance_ptr->properties();
 
     auto opcmd_state0 = properties.opcmd_state;
+
     properties.opcmd_state = _startcmd_state;
+    instance_ptr->ref();  // REF:START/START_ONESHOT -- make sure it will exist for the future signal_cb() calls until stop()
 
     switch (opcmd_state0)
     {
@@ -691,7 +693,7 @@ protected: /*functions*/
     case opcmd::START:
     case opcmd::START_ONESHOT:
         // uv_status(::uv_signal_stop(static_cast< uv_t* >(uv_handle)));  // ::uv_signal_start() does this when necessary
-        instance_ptr->unref();  // UNREF:RESTART - emulate stop()
+        instance_ptr->unref();  // UNREF:RESTART -- emulate stop()
         break;
     }
 
@@ -701,9 +703,8 @@ protected: /*functions*/
     {
       uv_status(uv_ret);
       properties.opcmd_state = opcmd::UNKNOWN;
+      instance_ptr->unref();  // UNREF:START_FAILURE -- release the extra reference on start failure
     }
-    else
-      instance_ptr->ref();  // REF:START/START_ONESHOT - make sure it will exist for the future signal_cb() calls until stop()
 
     return uv_ret;
   }
@@ -803,7 +804,7 @@ public: /*interface*/
         break;
     case opcmd::START:
     case opcmd::START_ONESHOT:
-        instance_ptr->unref();  // UNREF:STOP - release the reference from start() or fruitless start_oneshot()
+        instance_ptr->unref();  // UNREF:STOP -- release the reference from start() or fruitless start_oneshot()
         break;
     }
 
@@ -824,7 +825,6 @@ void signal::signal_cb(::uv_signal_t *_uv_handle, int)
   if (instance_ptr->properties().opcmd_state == opcmd::START_ONESHOT)
   {
     instance_ptr->properties().opcmd_state = opcmd::UNKNOWN;
-
     ref_guard< instance > unref_handle(*instance_ptr, adopt_ref);  // UNREF:START_ONESHOT
 
     if (signal_cb)  signal_cb(signal(_uv_handle), true);
