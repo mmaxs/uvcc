@@ -270,7 +270,7 @@ void timer::timer_cb(::uv_timer_t *_uv_handle)
 
   auto repeat_interval0 = ::uv_timer_get_repeat(_uv_handle);
 
-  if (properties.timer_cb)  properties.timer_cb(timer(_uv_handle));
+  if (properties.timer_cb)  properties.timer_cb(timer(_uv_handle));  // FIXME: add try-catch wrapper for extra reference to not be lost
 
   auto repeat_interval1 = ::uv_timer_get_repeat(_uv_handle);
   if (repeat_interval0 == 0 and repeat_interval1 == 0 and properties.has_extra_ref)
