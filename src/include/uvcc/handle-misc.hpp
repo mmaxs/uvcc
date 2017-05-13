@@ -269,15 +269,27 @@ void timer::timer_cb(::uv_timer_t *_uv_handle)
   auto &properties = instance_ptr->properties();
 
   auto repeat_interval0 = ::uv_timer_get_repeat(_uv_handle);
-
-  if (properties.timer_cb)  properties.timer_cb(timer(_uv_handle));  // FIXME: add try-catch wrapper for extra reference to not be lost
-
-  auto repeat_interval1 = ::uv_timer_get_repeat(_uv_handle);
-  if (repeat_interval0 == 0 and repeat_interval1 == 0 and properties.has_extra_ref)
+  auto unref_handle = [=, &properties]()
   {
-    properties.has_extra_ref = false;
-    instance_ptr->unref();
+    auto repeat_interval1 = ::uv_timer_get_repeat(_uv_handle);
+    if (repeat_interval0 == 0 and repeat_interval1 == 0 and properties.has_extra_ref)
+    {
+      properties.has_extra_ref = false;
+      instance_ptr->unref();
+    }
+  };
+
+  try
+  {
+    if (properties.timer_cb)  properties.timer_cb(timer(_uv_handle));
   }
+  catch (...)
+  {
+    unref_handle();
+    throw;
+  }
+
+  unref_handle();
 }
 
 
