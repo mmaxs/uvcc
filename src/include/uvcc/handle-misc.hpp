@@ -153,7 +153,8 @@ protected: /*types*/
 
   struct properties : handle::properties
   {
-    std::function< void(timer) > cb;
+    bool has_extra_ref = false;
+    std::function< void(timer) > timer_cb;
   };
 
   struct uv_interface : handle::uv_handle_interface  {};
@@ -193,6 +194,13 @@ public: /*constructors*/
   }
 
 public: /*interface*/
+  /*! \brief _Get_ the timer repeat value. */
+  uint64_t repeat_interval() const noexcept  { return ::uv_timer_get_repeat(static_cast< uv_t* >(uv_handle)); }
+  /*! \brief _Set_ the repeat interval value in milliseconds.
+      \note Setting the repeat value to zero turns the timer to be non-repeating.
+      \sa [`uv_timer_set_repeat()`](http://docs.libuv.org/en/v1.x/timer.html#c.uv_timer_set_repeat). */
+  void repeat_interval(uint64_t _value) noexcept  { ::uv_timer_set_repeat(static_cast< uv_t* >(uv_handle), _value); }
+
   /*! \brief Start the timer and schedule the specified callback function.
       \details `_timeout` and `_repeat` parameters are in milliseconds.
       \note All arguments are copied (or moved) to the internal callback function object. For passing arguments by reference
@@ -203,7 +211,7 @@ public: /*interface*/
   >
   int start(uint64_t _timeout_value, uint64_t _repeat_value, _Cb_ &&_cb, _Args_&&... _args) const
   {
-    instance::from(uv_handle)->properties().cb = std::bind(
+    instance::from(uv_handle)->properties().timer_cb = std::bind(
         std::forward< _Cb_ >(_cb), std::placeholders::_1, std::forward< _Args_ >(_args)...
     );
 
@@ -215,26 +223,19 @@ public: /*interface*/
   /*! \brief Stop the timer, the callback will not be called anymore. */
   int stop() const noexcept
   {
-    return uv_status(
-        ::uv_timer_stop(static_cast< uv_t* >(uv_handle))
-    );
-  }
+    auto instance_ptr = instance::from(static_cast< uv_t* >(uv_handle));
+    auto &properties = instance_ptr->properties();
 
-  /*! \brief Stop the timer, and if it is repeating reschedule it using its repeat value as the timeout.
-      \details If the timer has never been started before it returns `UV_EINVAL`. */
-  int again() const noexcept
-  {
-    return uv_status(
-        ::uv_timer_again(static_cast< uv_t* >(uv_handle))
-    );
-  }
+    auto uv_ret = uv_status(::uv_timer_stop(static_cast< uv_t* >(uv_handle)));
 
-  /*! \brief _Get_ the timer repeat value. */
-  uint64_t repeat_value() const noexcept  { return ::uv_timer_get_repeat(static_cast< uv_t* >(uv_handle)); }
-  /*! \brief _Set_ the repeat interval value in milliseconds.
-      \note Setting the repeat value to zero turns the timer to be non-repeating.
-      \sa [`uv_timer_set_repeat()`](http://docs.libuv.org/en/v1.x/timer.html#c.uv_timer_set_repeat). */
-  void repeat_value(uint64_t _interval) noexcept  { ::uv_timer_set_repeat(static_cast< uv_t* >(uv_handle), _interval); }
+    if (properties.has_extra_ref)
+    {
+      properties.has_extra_ref = false;
+      instance_ptr->unref();
+    }
+
+    return uv_ret;
+  }
 
 public: /*conversion operators*/
   explicit operator const uv_t*() const noexcept  { return static_cast< const uv_t* >(uv_handle); }
@@ -244,8 +245,19 @@ public: /*conversion operators*/
 template< typename >
 void timer::timer_cb(::uv_timer_t *_uv_handle)
 {
-  auto &cb = instance::from(_uv_handle)->properties().cb;
-  if (cb)  cb(timer(_uv_handle));
+  auto instance_ptr = instance::from(_uv_handle);
+  auto &properties = instance_ptr->properties();
+
+  auto repeat_interval0 = ::uv_timer_get_repeat(_uv_handle);
+
+  if (properties.timer_cb)  properties.timer_cb(timer(_uv_handle));
+
+  auto repeat_interval1 = ::uv_timer_get_repeat(_uv_handle);
+  if (repeat_interval0 == 0 and repeat_interval1 == 0 and properties.has_extra_ref)
+  {
+    properties.has_extra_ref = false;
+    instance_ptr->unref();
+  }
 }
 
 
