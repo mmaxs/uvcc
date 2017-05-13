@@ -159,12 +159,8 @@ class timer : public handle
 
 public: /*types*/
   using uv_t = ::uv_timer_t;
-  template< typename... _Args_ >
-  using on_timer_t = std::function< void(timer _handle, _Args_&&... _args) >;
-  /*!< \brief The function type of the callback called by the timer scheduled with `timer::start()` function.
-       \note All the additional templated arguments are passed and stored by value along with the function object
-       when the `timer` handle is started with `timer::start()` functions.
-       \sa libuv API documentation: [`uv_timer_cb`](http://docs.libuv.org/en/v1.x/timer.html#c.uv_timer_cb). */
+  using on_timer_t = std::function< void(timer _handle) >;
+  /*!< \brief The function type of the callback called by the timer event. */
 
 protected: /*types*/
   //! \cond internals
@@ -174,7 +170,7 @@ protected: /*types*/
   struct properties : handle::properties
   {
     bool has_extra_ref = false;
-    std::function< void(timer) > timer_cb;
+    on_timer_t timer_cb;
   };
 
   struct uv_interface : handle::uv_handle_interface  {};
@@ -202,42 +198,87 @@ public: /*constructors*/
   timer(timer&&) noexcept = default;
   timer& operator =(timer&&) noexcept = default;
 
-  /*! \brief Create a `timer` handle. */
-  timer(uv::loop &_loop)
+  /*! \brief Create a `timer` handle which has a given repeat interval.
+      \details `_repeat_interval` is in milliseconds. */
+  explicit timer(uv::loop &_loop, uint64_t _repeat_interval = 0)
   {
     uv_handle = instance::create();
 
     auto uv_ret = ::uv_timer_init(static_cast< uv::loop::uv_t* >(_loop), static_cast< uv_t* >(uv_handle));
     if (uv_status(uv_ret) < 0)  return;
 
+    ::uv_timer_set_repeat(static_cast< uv_t* >(uv_handle), _repeat_interval);
+
     instance::from(uv_handle)->book_loop();
   }
 
 public: /*interface*/
-  /*! \brief _Get_ the timer repeat value. */
+  /*! \brief _Get_ the timer repeat interval in milliseconds. */
   uint64_t repeat_interval() const noexcept  { return ::uv_timer_get_repeat(static_cast< uv_t* >(uv_handle)); }
-  /*! \brief _Set_ the repeat interval value in milliseconds.
+  /*! \brief _Set_ the timer repeat interval in milliseconds.
       \note Setting the repeat value to zero turns the timer to be non-repeating.
       \sa [`uv_timer_set_repeat()`](http://docs.libuv.org/en/v1.x/timer.html#c.uv_timer_set_repeat). */
   void repeat_interval(uint64_t _value) noexcept  { ::uv_timer_set_repeat(static_cast< uv_t* >(uv_handle), _value); }
 
-  /*! \brief Start the timer and schedule the specified callback function.
-      \details `_timeout` and `_repeat` parameters are in milliseconds.
-      \note All arguments are copied (or moved) to the internal callback function object. For passing arguments by reference
-      (when parameters are used as output ones), wrap them with `std::ref()` or use raw pointers.
+  /*! \brief Set the timer callback. */
+  on_timer_t& on_timer() const noexcept  { return instance::from(uv_handle)->properties().timer_cb; }
+
+  /*! \brief Start the timer by scheduling a timer event after the `_timeout` interval expires.
+      \details The timer callback function will be called after `_timeout` milliseconds or, if it is equal to **0**,
+      on the next event loop iteration and then repeatedly after each `repeat_interval()`, if the latter is non-zero.
+
+      Repeated call to this function results in the automatic call to `stop()` first.
+      \note On successful start this function adds an extra reference to the handle instance,
+      which is automatically released when the timer stops because of being non-repeating or
+      the counterpart function `stop()` is called.
       \sa libuv API documentation: [`uv_timer_start()`](http://docs.libuv.org/en/v1.x/timer.html#c.uv_timer_start). */
-  template< class _Cb_, typename... _Args_,
-      typename = std::enable_if_t< std::is_convertible< _Cb_, on_timer_t< _Args_&&... > >::value >
-  >
-  int start(uint64_t _timeout_value, uint64_t _repeat_value, _Cb_ &&_cb, _Args_&&... _args) const
+  int start(uint64_t _timeout) const
+  {
+    auto instance_ptr = instance::from(uv_handle);
+    auto &properties = instance_ptr->properties();
+
+    if (!properties.has_extra_ref)
+    {
+      instance_ptr->ref();
+      properties.has_extra_ref = true;
+    }
+
+    uv_status(0);
+    auto uv_ret = ::uv_timer_start(static_cast< uv_t* >(uv_handle), timer_cb,
+        _timeout, ::uv_timer_get_repeat(static_cast< uv_t* >(uv_handle))
+    );
+    if (uv_ret < 0)
+    {
+      uv_status(uv_ret);
+      properties.has_extra_ref = false;
+      instance_ptr->unref();
+    }
+
+    return uv_ret;
+  }
+
+  /*! \brief Start the timer with the given callback.
+      \details This is equivalent for
+      ```
+      timer.on_timer() = std::bind(
+          std::forward< _Cb_ >(_cb), std::placeholders::_1, std::forward< _Args_ >(_args)...
+      );
+      timer.start(_timeout);
+      ```
+      \sa `timer::start()` */
+  template< class _Cb_, typename... _Args_, typename = std::enable_if_t<
+      std::is_convertible<
+          decltype(std::bind(std::declval< _Cb_ >(), std::placeholders::_1, static_cast< _Args_&& >(std::declval< _Args_ >())...)),
+          on_timer_t
+      >::value
+  > >
+  int start(uint64_t _timeout, _Cb_ &&_cb, _Args_&&... _args) const
   {
     instance::from(uv_handle)->properties().timer_cb = std::bind(
         std::forward< _Cb_ >(_cb), std::placeholders::_1, std::forward< _Args_ >(_args)...
     );
 
-    return uv_status(
-        ::uv_timer_start(static_cast< uv_t* >(uv_handle), timer_cb, _timeout_value, _repeat_value)
-    );
+    return start(_timeout);
   }
 
   /*! \brief Stop the timer, the callback will not be called anymore. */
@@ -265,31 +306,22 @@ public: /*conversion operators*/
 template< typename >
 void timer::timer_cb(::uv_timer_t *_uv_handle)
 {
-  auto instance_ptr = instance::from(_uv_handle);
+  auto instance_ptr = instance::from(_uv_handle); 
   auto &properties = instance_ptr->properties();
 
-  auto repeat_interval0 = ::uv_timer_get_repeat(_uv_handle);
-  auto unref_handle = [=, &properties]()
-  {
-    auto repeat_interval1 = ::uv_timer_get_repeat(_uv_handle);
-    if (repeat_interval0 == 0 and repeat_interval1 == 0 and properties.has_extra_ref)
-    {
-      properties.has_extra_ref = false;
-      instance_ptr->unref();
-    }
-  };
+#if 0
+  uvcc_debug_log_if(true, "timer [0x%08tX]: repeat_interval=%llu is_active=%i\n",
+    (ptrdiff_t)_uv_handle, ::uv_timer_get_repeat(_uv_handle), ::uv_is_active((::uv_handle_t*)_uv_handle)
+  );
+#endif
 
-  try
+  if (::uv_timer_get_repeat(_uv_handle) == 0 and properties.has_extra_ref)
   {
+    ref_guard< instance > unref_handle(*instance_ptr, adopt_ref);
     if (properties.timer_cb)  properties.timer_cb(timer(_uv_handle));
   }
-  catch (...)
-  {
-    unref_handle();
-    throw;
-  }
-
-  unref_handle();
+  else
+    if (properties.timer_cb)  properties.timer_cb(timer(_uv_handle));
 }
 
 
@@ -351,7 +383,7 @@ public: /*constructors*/
   idle& operator =(idle&&) noexcept = default;
 
   /*! \brief Create an `idle` handle. */
-  idle(uv::loop &_loop)
+  explicit idle(uv::loop &_loop)
   {
     uv_handle = instance::create();
 
@@ -452,7 +484,7 @@ public: /*constructors*/
   prepare& operator =(prepare&&) noexcept = default;
 
   /*! \brief Create an `prepare` handle. */
-  prepare(uv::loop &_loop)
+  explicit prepare(uv::loop &_loop)
   {
     uv_handle = instance::create();
 
@@ -553,7 +585,7 @@ public: /*constructors*/
   check& operator =(check&&) noexcept = default;
 
   /*! \brief Create an `check` handle. */
-  check(uv::loop &_loop)
+  explicit check(uv::loop &_loop)
   {
     uv_handle = instance::create();
 
@@ -754,7 +786,7 @@ public: /*interface*/
       decltype(std::bind(std::declval< _Cb_ >(), std::placeholders::_1, std::placeholders::_2, static_cast< _Args_&& >(std::declval< _Args_ >())...)),
       on_signal_t
   >::value > >
-  int start(_Cb_ &&_cb, _Args_&&... _args) const noexcept
+  int start(_Cb_ &&_cb, _Args_&&... _args) const
   {
     instance::from(uv_handle)->properties().signal_cb = std::bind(
         std::forward< _Cb_ >(_cb), std::placeholders::_1, std::placeholders::_2, std::forward< _Args_ >(_args)...
@@ -777,7 +809,7 @@ public: /*interface*/
       decltype(std::bind(std::declval< _Cb_ >(), std::placeholders::_1, std::placeholders::_2, static_cast< _Args_&& >(std::declval< _Args_ >())...)),
       on_signal_t
   >::value > >
-  int start(int _signum, _Cb_ &&_cb, _Args_&&... _args) const noexcept
+  int start(int _signum, _Cb_ &&_cb, _Args_&&... _args) const
   {
     instance::from(uv_handle)->properties().signum = _signum;
     instance::from(uv_handle)->properties().signal_cb = std::bind(
@@ -932,7 +964,7 @@ public: /*constructors*/
   process& operator =(process&&) noexcept = default;
 
   /*! \brief Create a `process` handle. */
-  process(uv::loop &_loop)
+  explicit process(uv::loop &_loop)
   {
     uv_handle = instance::create();
     static_cast< uv_t* >(uv_handle)->loop = static_cast< loop::uv_t* >(_loop);
