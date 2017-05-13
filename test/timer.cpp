@@ -12,18 +12,15 @@ int main(int _argc, char *_argv[])
 {
   int count = 10;
 
-  uv::timer t(uv::loop::Default());
-
-  t.start(0, 1000,
+  uv::timer(uv::loop::Default(), 1000).start(0,
       [](uv::timer _t, int &_count){
         auto rv = _t.repeat_interval();
         fprintf(stdout, "timer: count=%i repeat=%" PRIi64 "\n", _count, rv);
         fflush(stdout);
 
-        rv = rv/3;
+        rv = rv ? rv/3 : 1000;
         fprintf(stdout, "timer: count=%i repeat:=%" PRIi64 "\n\n", _count, rv);
         fflush(stdout);
-
         _t.repeat_interval(rv);
 
         if (--_count <= 0)  _t.stop();
