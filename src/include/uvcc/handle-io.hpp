@@ -198,7 +198,9 @@ public: /*interface*/
     if (!properties.alloc_cb or !properties.read_cb)  return uv_status(UV_EINVAL);
 
     auto rdcmd_state0 = properties.rdcmd_state;
+
     properties.rdcmd_state = rdcmd::START;
+    instance_ptr->ref();  // REF:START -- make sure it will exist for the future io_read_cb() calls until read_stop()/read_pause()
 
     switch (rdcmd_state0)
     {
@@ -209,7 +211,7 @@ public: /*interface*/
     case rdcmd::START:
     case rdcmd::RESUME:
         uv_status(instance_ptr->uv_interface()->read_stop(uv_handle));
-        instance_ptr->unref();  // UNREF:RESTART - emulate reat_stop()
+        instance_ptr->unref();  // UNREF:RESTART -- emulate reat_stop()
         break;
     }
 
@@ -221,9 +223,8 @@ public: /*interface*/
     {
       uv_status(uv_ret);
       properties.rdcmd_state = rdcmd::UNKNOWN;
+      instance_ptr->unref();  // UNREF:START_FAILURE -- release the extra reference on failure
     }
-    else
-      instance_ptr->ref();  // REF:START - make sure it will exist for the future io_read_cb() calls until read_stop()/read_pause()
 
     return uv_ret;
   }
@@ -270,7 +271,7 @@ public: /*interface*/
         break;
     case rdcmd::START:
     case rdcmd::RESUME:
-        instance_ptr->unref();  // UNREF:STOP - release the reference from read_start()/read_resume()
+        instance_ptr->unref();  // UNREF:STOP -- release the reference from read_start()/read_resume()
         break;
     }
 
@@ -305,7 +306,7 @@ public: /*interface*/
     case rdcmd::RESUME:
         properties.rdcmd_state = rdcmd::PAUSE;
         ret = uv_status(instance_ptr->uv_interface()->read_stop(uv_handle));
-        instance_ptr->unref();  // UNREF:PAUSE - functionally equivalent to read_stop()
+        instance_ptr->unref();  // UNREF:PAUSE -- functionally equivalent to read_stop()
         break;
     }
     return ret;
@@ -359,6 +360,7 @@ public: /*interface*/
         break;
     case rdcmd::PAUSE:
         properties.rdcmd_state = rdcmd::RESUME;
+        instance_ptr->ref();  // REF:RESUME -- functionally equivalent to read_start()
 
         uv_status(0);
         ret = instance_ptr->uv_interface()->read_start(uv_handle, properties.rdoffset);
@@ -366,9 +368,8 @@ public: /*interface*/
         {
           uv_status(ret);
           properties.rdcmd_state = rdcmd::UNKNOWN;
+          instance_ptr->unref();  // UNREF:RESUME_FAILURE -- release the extra reference on failure
         }
-        else
-          instance_ptr->ref();  // REF:RESUME - functionally equivalent to read_start()
 
         break;
     case rdcmd::START:

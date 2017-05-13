@@ -703,7 +703,7 @@ protected: /*functions*/
     {
       uv_status(uv_ret);
       properties.opcmd_state = opcmd::UNKNOWN;
-      instance_ptr->unref();  // UNREF:START_FAILURE -- release the extra reference on start failure
+      instance_ptr->unref();  // UNREF:START_FAILURE -- release the extra reference on failure
     }
 
     return uv_ret;
