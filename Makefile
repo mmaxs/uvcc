@@ -39,7 +39,7 @@ endif
 
 IFLAGS = -iquote $(ROOT)/src/include
 ifeq ($(platform),WINDOWS)
-IFLAGS = -iquote $(ROOT)/src/include -I $(LIBUV)/include
+IFLAGS += -I $(LIBUV)/include
 endif
 
 
