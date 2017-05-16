@@ -10,6 +10,7 @@
 #include <uv.h>
 
 #include <functional>   // function bind placeholders::
+#include <utility>      // forward() declval()
 #include <vector>       // vector
 #include <stdexcept>    // invalid_argument
 
@@ -342,19 +343,20 @@ class idle : public handle
 
 public: /*types*/
   using uv_t = ::uv_idle_t;
-  template< typename... _Args_ >
-  using on_idle_t = std::function< void(idle _handle, _Args_&&... _args) >;
-  /*!< \brief The function type of the callback being set with `idle::start()` function.
-       \sa libuv API documentation: [`uv_idle_cb`](http://docs.libuv.org/en/v1.x/idle.html#c.uv_idle_cb). */
+  using on_idle_t = std::function< void(idle _handle) >;
+  /*!< \brief The function type of the handle's callback. */
 
 protected: /*types*/
   //! \cond internals
   //! \addtogroup doxy_group__internals
   //! \{
 
+  enum class opcmd  { UNKNOWN, STOP, START };
+
   struct properties : handle::properties
   {
-    std::function< void(idle) > cb;
+    opcmd opcmd_state = opcmd::UNKNOWN;
+    on_idle_t idle_cb;
   };
 
   struct uv_interface : handle::uv_handle_interface  {};
@@ -394,29 +396,88 @@ public: /*constructors*/
   }
 
 public: /*interface*/
+  /*! \brief Set the handle's callback. */
+  on_idle_t& on_idle() const noexcept  { return instance::from(uv_handle)->properties().idle_cb; }
+
+  /*! \brief Start the handle.
+      \note On successful start this function adds an extra reference to the handle instance,
+      which is released when the counterpart function `stop()` is called. Repeated calls don't
+      change the reference count.
+      \sa libuv API documentation: [`uv_idle_t` — Idle handle](http://docs.libuv.org/en/v1.x/idle.html#uv-idle-t-idle-handle). */
+  int start() const
+  {
+    auto instance_ptr = instance::from(uv_handle);
+    auto &properties = instance_ptr->properties();
+
+    auto opcmd_state0 = properties.opcmd_state;
+
+    properties.opcmd_state = opcmd::START;
+    instance_ptr->ref();  // REF:START -- make sure it will exist for the future idle_cb() calls until stop()
+
+    switch (opcmd_state0)
+    {
+    case opcmd::UNKNOWN:
+    case opcmd::STOP:
+        break;
+    case opcmd::START:
+        // uv_status(::uv_idle_stop(static_cast< uv_t* >(uv_handle)));  // it does not need to stop
+        instance_ptr->unref();  // UNREF:START -- emulate stop()
+        break;
+    }
+
+    uv_status(0);
+    auto uv_ret = ::uv_idle_start(static_cast< uv_t* >(uv_handle), idle_cb);
+    if (uv_ret < 0)
+    {
+      uv_status(uv_ret);
+      properties.opcmd_state = opcmd::UNKNOWN;
+      instance_ptr->unref();  // UNREF:START_FAILURE -- release the extra reference on failure
+    }
+
+    return uv_ret;
+  }
+
   /*! \brief Start the handle with the given callback.
-      \note All arguments are copied (or moved) to the internal callback function object. For passing arguments by reference
-      (when parameters are used as output ones), wrap them with `std::ref()` or use raw pointers. */
-  template< class _Cb_, typename... _Args_,
-      typename = std::enable_if_t< std::is_convertible< _Cb_, on_idle_t< _Args_&&... > >::value >
-  >
+      \details This is equivalent for
+      ```
+      idle.on_idle() = std::bind(
+          std::forward< _Cb_ >(_cb), std::placeholders::_1, std::forward< _Args_ >(_args)...
+      );
+      idle.start();
+      ```
+      \sa `idle::start()` */
+  template< class _Cb_, typename... _Args_, typename = std::enable_if_t< std::is_convertible<
+      decltype(std::bind(std::declval< _Cb_ >(), std::placeholders::_1, static_cast< _Args_&& >(std::declval< _Args_ >())...)),
+      on_idle_t
+  >::value > >
   int start(_Cb_ &&_cb, _Args_&&... _args) const
   {
-    instance::from(uv_handle)->properties().cb = std::bind(
-        std::forward< _Cb_ >(_cb), std::placeholders::_1, std::forward< _Args_ >(_args)...
-    );
-
-    return uv_status(
-        ::uv_idle_start(static_cast< uv_t* >(uv_handle), idle_cb)
-    );
+    on_idle() = std::bind(std::forward< _Cb_ >(_cb), std::placeholders::_1, std::forward< _Args_ >(_args)...);
+    return start();
   }
 
   /*! \brief Stop the handle, the callback will no longer be called. */
   int stop() const noexcept
   {
-    return uv_status(
-        ::uv_idle_stop(static_cast< uv_t* >(uv_handle))
-    );
+    auto instance_ptr = instance::from(uv_handle);
+    auto &opcmd_state = instance_ptr->properties().opcmd_state;
+
+    auto opcmd_state0 = opcmd_state;
+    opcmd_state = opcmd::STOP;
+
+    auto uv_ret = uv_status(::uv_idle_stop(static_cast< uv_t* >(uv_handle)));
+
+    switch (opcmd_state0)
+    {
+    case opcmd::UNKNOWN:
+    case opcmd::STOP:
+        break;
+    case opcmd::START:
+        instance_ptr->unref();  // UNREF:STOP -- release the reference from start()
+        break;
+    }
+
+    return uv_ret;
   }
 
 public: /*conversion operators*/
@@ -427,8 +488,8 @@ public: /*conversion operators*/
 template< typename >
 void idle::idle_cb(::uv_idle_t *_uv_handle)
 {
-  auto &cb = instance::from(_uv_handle)->properties().cb;
-  if (cb)  cb(idle(_uv_handle));
+  auto &idle_cb = instance::from(_uv_handle)->properties().idle_cb;
+  if (idle_cb)  idle_cb(idle(_uv_handle));
 }
 
 
@@ -443,19 +504,20 @@ class prepare : public handle
 
 public: /*types*/
   using uv_t = ::uv_prepare_t;
-  template< typename... _Args_ >
-  using on_prepare_t = std::function< void(prepare _handle, _Args_&&... _args) >;
-  /*!< \brief The function type of the callback being set with `prepare::start()` function.
-       \sa libuv API documentation: [`uv_prepare_cb`](http://docs.libuv.org/en/v1.x/prepare.html#c.uv_prepare_cb). */
+  using on_prepare_t = std::function< void(prepare _handle) >;
+  /*!< \brief The function type of the handle's callback. */
 
 protected: /*types*/
   //! \cond internals
   //! \addtogroup doxy_group__internals
   //! \{
 
+  enum class opcmd  { UNKNOWN, STOP, START };
+
   struct properties : handle::properties
   {
-    std::function< void(prepare) > cb;
+    opcmd opcmd_state = opcmd::UNKNOWN;
+    on_prepare_t prepare_cb;
   };
 
   struct uv_interface : handle::uv_handle_interface  {};
@@ -495,29 +557,88 @@ public: /*constructors*/
   }
 
 public: /*interface*/
+  /*! \brief Set the handle's callback. */
+  on_prepare_t& on_prepare() const noexcept  { return instance::from(uv_handle)->properties().prepare_cb; }
+
+  /*! \brief Start the handle.
+      \note On successful start this function adds an extra reference to the handle instance,
+      which is released when the counterpart function `stop()` is called. Repeated calls don't
+      change the reference count.
+      \sa libuv API documentation: [`uv_prepare_t` — Prepare handle](http://docs.libuv.org/en/v1.x/prepare.html#uv-prepare-t-prepare-handle). */
+  int start() const
+  {
+    auto instance_ptr = instance::from(uv_handle);
+    auto &properties = instance_ptr->properties();
+
+    auto opcmd_state0 = properties.opcmd_state;
+
+    properties.opcmd_state = opcmd::START;
+    instance_ptr->ref();  // REF:START -- make sure it will exist for the future prepare_cb() calls until stop()
+
+    switch (opcmd_state0)
+    {
+    case opcmd::UNKNOWN:
+    case opcmd::STOP:
+        break;
+    case opcmd::START:
+        // uv_status(::uv_prepare_stop(static_cast< uv_t* >(uv_handle)));  // it does not need to stop
+        instance_ptr->unref();  // UNREF:START -- emulate stop()
+        break;
+    }
+
+    uv_status(0);
+    auto uv_ret = ::uv_prepare_start(static_cast< uv_t* >(uv_handle), prepare_cb);
+    if (uv_ret < 0)
+    {
+      uv_status(uv_ret);
+      properties.opcmd_state = opcmd::UNKNOWN;
+      instance_ptr->unref();  // UNREF:START_FAILURE -- release the extra reference on failure
+    }
+
+    return uv_ret;
+  }
+
   /*! \brief Start the handle with the given callback.
-      \note All arguments are copied (or moved) to the internal callback function object. For passing arguments by reference
-      (when parameters are used as output ones), wrap them with `std::ref()` or use raw pointers. */
-  template< class _Cb_, typename... _Args_,
-      typename = std::enable_if_t< std::is_convertible< _Cb_, on_prepare_t< _Args_&&... > >::value >
-  >
+      \details This is equivalent for
+      ```
+      prepare.on_prepare() = std::bind(
+          std::forward< _Cb_ >(_cb), std::placeholders::_1, std::forward< _Args_ >(_args)...
+      );
+      prepare.start();
+      ```
+      \sa `prepare::start()` */
+  template< class _Cb_, typename... _Args_, typename = std::enable_if_t< std::is_convertible<
+      decltype(std::bind(std::declval< _Cb_ >(), std::placeholders::_1, static_cast< _Args_&& >(std::declval< _Args_ >())...)),
+      on_prepare_t
+  >::value > >
   int start(_Cb_ &&_cb, _Args_&&... _args) const
   {
-    instance::from(uv_handle)->properties().cb = std::bind(
-        std::forward< _Cb_ >(_cb), std::placeholders::_1, std::forward< _Args_ >(_args)...
-    );
-
-    return uv_status(
-        ::uv_prepare_start(static_cast< uv_t* >(uv_handle), prepare_cb)
-    );
+    on_prepare() = std::bind(std::forward< _Cb_ >(_cb), std::placeholders::_1, std::forward< _Args_ >(_args)...);
+    return start();
   }
 
   /*! \brief Stop the handle, the callback will no longer be called. */
   int stop() const noexcept
   {
-    return uv_status(
-        ::uv_prepare_stop(static_cast< uv_t* >(uv_handle))
-    );
+    auto instance_ptr = instance::from(uv_handle);
+    auto &opcmd_state = instance_ptr->properties().opcmd_state;
+
+    auto opcmd_state0 = opcmd_state;
+    opcmd_state = opcmd::STOP;
+
+    auto uv_ret = uv_status(::uv_prepare_stop(static_cast< uv_t* >(uv_handle)));
+
+    switch (opcmd_state0)
+    {
+    case opcmd::UNKNOWN:
+    case opcmd::STOP:
+        break;
+    case opcmd::START:
+        instance_ptr->unref();  // UNREF:STOP -- release the reference from start()
+        break;
+    }
+
+    return uv_ret;
   }
 
 public: /*conversion operators*/
@@ -528,8 +649,8 @@ public: /*conversion operators*/
 template< typename >
 void prepare::prepare_cb(::uv_prepare_t *_uv_handle)
 {
-  auto &cb = instance::from(_uv_handle)->properties().cb;
-  if (cb)  cb(prepare(_uv_handle));
+  auto &prepare_cb = instance::from(_uv_handle)->properties().prepare_cb;
+  if (prepare_cb)  prepare_cb(prepare(_uv_handle));
 }
 
 
@@ -544,19 +665,20 @@ class check : public handle
 
 public: /*types*/
   using uv_t = ::uv_check_t;
-  template< typename... _Args_ >
-  using on_check_t = std::function< void(check _handle, _Args_&&... _args) >;
-  /*!< \brief The function type of the callback being set with `check::start()` function.
-       \sa libuv API documentation: [`uv_check_cb`](http://docs.libuv.org/en/v1.x/check.html#c.uv_check_cb). */
+  using on_check_t = std::function< void(check _handle) >;
+  /*!< \brief The function type of the handle's callback. */
 
 protected: /*types*/
   //! \cond internals
   //! \addtogroup doxy_group__internals
   //! \{
 
+  enum class opcmd  { UNKNOWN, STOP, START };
+
   struct properties : handle::properties
   {
-    std::function< void(check) > cb;
+    opcmd opcmd_state = opcmd::UNKNOWN;
+    on_check_t check_cb;
   };
 
   struct uv_interface : handle::uv_handle_interface  {};
@@ -596,29 +718,88 @@ public: /*constructors*/
   }
 
 public: /*interface*/
+  /*! \brief Set the handle's callback. */
+  on_check_t& on_check() const noexcept  { return instance::from(uv_handle)->properties().check_cb; }
+
+  /*! \brief Start the handle.
+      \note On successful start this function adds an extra reference to the handle instance,
+      which is released when the counterpart function `stop()` is called. Repeated calls don't
+      change the reference count.
+      \sa libuv API documentation: [`uv_check_t` — Check handle](http://docs.libuv.org/en/v1.x/check.html#uv-check-t-check-handle). */
+  int start() const
+  {
+    auto instance_ptr = instance::from(uv_handle);
+    auto &properties = instance_ptr->properties();
+
+    auto opcmd_state0 = properties.opcmd_state;
+
+    properties.opcmd_state = opcmd::START;
+    instance_ptr->ref();  // REF:START -- make sure it will exist for the future check_cb() calls until stop()
+
+    switch (opcmd_state0)
+    {
+    case opcmd::UNKNOWN:
+    case opcmd::STOP:
+        break;
+    case opcmd::START:
+        // uv_status(::uv_check_stop(static_cast< uv_t* >(uv_handle)));  // it does not need to stop
+        instance_ptr->unref();  // UNREF:START -- emulate stop()
+        break;
+    }
+
+    uv_status(0);
+    auto uv_ret = ::uv_check_start(static_cast< uv_t* >(uv_handle), check_cb);
+    if (uv_ret < 0)
+    {
+      uv_status(uv_ret);
+      properties.opcmd_state = opcmd::UNKNOWN;
+      instance_ptr->unref();  // UNREF:START_FAILURE -- release the extra reference on failure
+    }
+
+    return uv_ret;
+  }
+
   /*! \brief Start the handle with the given callback.
-      \note All arguments are copied (or moved) to the internal callback function object. For passing arguments by reference
-      (when parameters are used as output ones), wrap them with `std::ref()` or use raw pointers. */
-  template< class _Cb_, typename... _Args_,
-      typename = std::enable_if_t< std::is_convertible< _Cb_, on_check_t< _Args_&&... > >::value >
-  >
+      \details This is equivalent for
+      ```
+      check.on_check() = std::bind(
+          std::forward< _Cb_ >(_cb), std::placeholders::_1, std::forward< _Args_ >(_args)...
+      );
+      check.start();
+      ```
+      \sa `check::start()` */
+  template< class _Cb_, typename... _Args_, typename = std::enable_if_t< std::is_convertible<
+      decltype(std::bind(std::declval< _Cb_ >(), std::placeholders::_1, static_cast< _Args_&& >(std::declval< _Args_ >())...)),
+      on_check_t
+  >::value > >
   int start(_Cb_ &&_cb, _Args_&&... _args) const
   {
-    instance::from(uv_handle)->properties().cb = std::bind(
-        std::forward< _Cb_ >(_cb), std::placeholders::_1, std::forward< _Args_ >(_args)...
-    );
-
-    return uv_status(
-        ::uv_check_start(static_cast< uv_t* >(uv_handle), check_cb)
-    );
+    on_check() = std::bind(std::forward< _Cb_ >(_cb), std::placeholders::_1, std::forward< _Args_ >(_args)...);
+    return start();
   }
 
   /*! \brief Stop the handle, the callback will no longer be called. */
   int stop() const noexcept
   {
-    return uv_status(
-        ::uv_check_stop(static_cast< uv_t* >(uv_handle))
-    );
+    auto instance_ptr = instance::from(uv_handle);
+    auto &opcmd_state = instance_ptr->properties().opcmd_state;
+
+    auto opcmd_state0 = opcmd_state;
+    opcmd_state = opcmd::STOP;
+
+    auto uv_ret = uv_status(::uv_check_stop(static_cast< uv_t* >(uv_handle)));
+
+    switch (opcmd_state0)
+    {
+    case opcmd::UNKNOWN:
+    case opcmd::STOP:
+        break;
+    case opcmd::START:
+        instance_ptr->unref();  // UNREF:STOP -- release the reference from start()
+        break;
+    }
+
+    return uv_ret;
   }
 
 public: /*conversion operators*/
@@ -629,8 +810,8 @@ public: /*conversion operators*/
 template< typename >
 void check::check_cb(::uv_check_t *_uv_handle)
 {
-  auto &cb = instance::from(_uv_handle)->properties().cb;
-  if (cb)  cb(check(_uv_handle));
+  auto &check_cb = instance::from(_uv_handle)->properties().check_cb;
+  if (check_cb)  check_cb(check(_uv_handle));
 }
 
 //! \}
