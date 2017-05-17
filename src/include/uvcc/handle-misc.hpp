@@ -331,6 +331,189 @@ void timer::timer_cb(::uv_timer_t *_uv_handle)
     \ingroup doxy_group__handle
     \brief `uv::idle`, `uv::prepare`, and `uv::check` handles. */
 //! \{
+#if 0
+//{
+
+/*! \brief The class template for `uv::idle`, `uv::prepare`, and `uv::check` handles.
+    \sa libuv API documentation:
+            \li [`uv_idle_t` — Idle handle](http://docs.libuv.org/en/v1.x/idle.html#uv-idle-t-idle-handle),
+            \li [`uv_prepare_t` — Prepare handle](http://docs.libuv.org/en/v1.x/prepare.html#uv-prepare-t-prepare-handle),
+            \li [`uv_check_t` — Check handle](http://docs.libuv.org/en/v1.x/check.html#uv-check-t-check-handle). */
+template<
+    typename _uvHandleTp_,
+    int (*_uvInitFn_)(::uv_loop_t*, _uvHandleTp_*),
+    int (*_uvStartFn_)(_uvHandleTp_*, void (*)(_uvHandleTp_*)),
+    int (*_uvStopFn_)(_uvHandleTp_*)
+>
+class loop_watcher : public handle
+{
+  //! \cond
+  friend class handle::uv_interface;
+  friend class handle::instance< loop_watcher >;
+  //! \endcond
+
+public: /*types*/
+  using uv_t = _uvHandleTp_;
+  using cb_t = std::function< void(loop_watcher _handle) >;
+  /*!< \brief The function type of the handle's callback. */
+
+protected: /*types*/
+  //! \cond internals
+  //! \addtogroup doxy_group__internals
+  //! \{
+
+  enum class opcmd  { UNKNOWN, STOP, START };
+
+  struct properties : handle::properties
+  {
+    opcmd opcmd_state = opcmd::UNKNOWN;
+    cb_t cb;
+  };
+
+  struct uv_interface : handle::uv_handle_interface  {};
+
+  //! \}
+  //! \endcond
+
+private: /*types*/
+  using instance = handle::instance< loop_watcher >;
+
+private: /*functions*/
+  static void cb(uv_t *_uv_handle)
+  {
+    auto &cb = instance::from(_uv_handle)->properties().cb;
+    if (cb)  cb(idle(_uv_handle));
+  }
+
+protected: /*constructors*/
+  //! \cond
+  explicit loop_watcher(uv_t *_uv_handle) : handle(reinterpret_cast< handle::uv_t* >(_uv_handle))  {}
+  //! \endcond
+
+public: /*constructors*/
+  ~loop_watcher() = default;
+
+  loop_watcher(const loop_watcher&) = default;
+  loop_watcher& operator =(const loop_watcher&) = default;
+
+  loop_watcher(loop_watcher&&) noexcept = default;
+  loop_watcher& operator =(loop_watcher&&) noexcept = default;
+
+  /*! \brief Create a watcher handle. */
+  explicit loop_watcher(uv::loop &_loop)
+  {
+    uv_handle = instance::create();
+
+    auto uv_ret = (*_uvInitFn_)(static_cast< uv::loop::uv_t* >(_loop), static_cast< uv_t* >(uv_handle));
+    if (uv_status(uv_ret) < 0)  return;
+
+    instance::from(uv_handle)->book_loop();
+  }
+
+public: /*interface*/
+  /*! \brief Set the handle's callback. */
+  cb_t& cb() const noexcept  { return instance::from(uv_handle)->properties().cb; }
+
+  /*! \brief Start the handle.
+      \note On successful start this function adds an extra reference to the handle instance,
+      which is released when the counterpart function `stop()` is called. Repeated calls don't
+      change the reference count. */
+  int start() const
+  {
+    auto instance_ptr = instance::from(uv_handle);
+    auto &properties = instance_ptr->properties();
+
+    auto opcmd_state0 = properties.opcmd_state;
+
+    properties.opcmd_state = opcmd::START;
+    instance_ptr->ref();  // REF:START -- make sure it will exist for the future idle_cb() calls until stop()
+
+    switch (opcmd_state0)
+    {
+    case opcmd::UNKNOWN:
+    case opcmd::STOP:
+        break;
+    case opcmd::START:
+        // uv_status(::uv_idle_stop(static_cast< uv_t* >(uv_handle)));  // it does not need to stop
+        instance_ptr->unref();  // UNREF:START -- emulate stop()
+        break;
+    }
+
+    uv_status(0);
+    auto uv_ret = (*_uvStartFn_)(static_cast< uv_t* >(uv_handle), cb);
+    if (uv_ret < 0)
+    {
+      uv_status(uv_ret);
+      properties.opcmd_state = opcmd::UNKNOWN;
+      instance_ptr->unref();  // UNREF:START_FAILURE -- release the extra reference on failure
+    }
+
+    return uv_ret;
+  }
+
+  /*! \brief Start the handle with the given callback.
+      \details This is equivalent for
+      ```
+      loop_watcher.cb() = std::bind(
+          std::forward< _Cb_ >(_cb), std::placeholders::_1, std::forward< _Args_ >(_args)...
+      );
+      loop_watcher.start();
+      ```
+      \sa `loop_watcher::start()` */
+  template< class _Cb_, typename... _Args_, typename = std::enable_if_t< std::is_convertible<
+      decltype(std::bind(std::declval< _Cb_ >(), std::placeholders::_1, static_cast< _Args_&& >(std::declval< _Args_ >())...)),
+      cb_t
+  >::value > >
+  int start(_Cb_ &&_cb, _Args_&&... _args) const
+  {
+    cb() = std::bind(std::forward< _Cb_ >(_cb), std::placeholders::_1, std::forward< _Args_ >(_args)...);
+    return start();
+  }
+
+  /*! \brief Stop the handle, the callback will no longer be called. */
+  int stop() const noexcept
+  {
+    auto instance_ptr = instance::from(uv_handle);
+    auto &opcmd_state = instance_ptr->properties().opcmd_state;
+
+    auto opcmd_state0 = opcmd_state;
+    opcmd_state = opcmd::STOP;
+
+    auto uv_ret = uv_status((*_uvStopFn_)(static_cast< uv_t* >(uv_handle)));
+
+    switch (opcmd_state0)
+    {
+    case opcmd::UNKNOWN:
+    case opcmd::STOP:
+        break;
+    case opcmd::START:
+        instance_ptr->unref();  // UNREF:STOP -- release the reference from start()
+        break;
+    }
+
+    return uv_ret;
+  }
+
+public: /*conversion operators*/
+  explicit operator const uv_t*() const noexcept  { return static_cast< const uv_t* >(uv_handle); }
+  explicit operator       uv_t*()       noexcept  { return static_cast<       uv_t* >(uv_handle); }
+};
+
+/*! \brief Idle handle.
+    \sa libuv API documentation: [`uv_idle_t` — Idle handle](http://docs.libuv.org/en/v1.x/idle.html#uv-idle-t-idle-handle). */
+using idle = loop_watcher< ::uv_idle_t, ::uv_idle_init, ::uv_idle_start, ::uv_idle_stop >;
+
+/*! \brief Prepare handle.
+    \sa libuv API documentation: [`uv_prepare_t` — Prepare handle](http://docs.libuv.org/en/v1.x/prepare.html#uv-prepare-t-prepare-handle). */
+using prepare = loop_watcher< ::uv_prepare_t, ::uv_prepare_init, ::uv_prepare_start, ::uv_prepare_stop >;
+
+/*! \brief Check handle.
+    \sa libuv API documentation: [`uv_check_t` — Check handle](http://docs.libuv.org/en/v1.x/check.html#uv-check-t-check-handle). */
+using check = loop_watcher< ::uv_check_t, ::uv_check_init, ::uv_check_start, ::uv_check_stop >;
+
+//}
+#else
+//{
 
 /*! \brief Idle handle.
     \sa libuv API documentation: [`uv_idle_t` — Idle handle](http://docs.libuv.org/en/v1.x/idle.html#uv-idle-t-idle-handle). */
@@ -814,6 +997,8 @@ void check::check_cb(::uv_check_t *_uv_handle)
   if (check_cb)  check_cb(check(_uv_handle));
 }
 
+//}
+#endif
 //! \}
 
 
