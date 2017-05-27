@@ -1473,7 +1473,7 @@ public: /*interface*/
       spawn_options.flags &= ~UV_PROCESS_SETGID;
     else
       spawn_options.flags |= UV_PROCESS_SETGID;
-    spawn_options.uid = _gid;
+    spawn_options.gid = _gid;
 #endif
   }
 
