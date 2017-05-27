@@ -382,7 +382,7 @@ public: /*interface*/
   /*! \brief Create an `io` handle object which actual type is derived from an existing file descriptor.
       \details Supported file desctriptors:
       - Windows: pipe, tty, file
-      - Unicies: pipe, tty, file, tcp/udp socket
+      - Unix-like systems: pipe, tty, file, tcp/udp socket
       .
       \sa libuv API documentation: [`uv_guess_handle()`](http://docs.libuv.org/en/v1.x/misc.html#c.uv_guess_handle). */
   static io guess_handle(uv::loop&, ::uv_file);

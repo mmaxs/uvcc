@@ -197,7 +197,7 @@ public: /*interface*/
   /*! \brief Get the cross platform representation of the file handle.
       \details On Windows this function returns _a C run-time file descriptor_ which differs from the
       _operating-system file handle_ that is returned by `handle::fileno()` function.
-      On Unicies both functions return the same value.
+      On Unix-like systems both functions return the same value.
       \sa Windows: [`_open_osfhandle()`](https://msdn.microsoft.com/en-us/library/bdts1c9x.aspx). */
   ::uv_file fd() const noexcept  { return static_cast< uv_t* >(uv_handle)->result; }
 
