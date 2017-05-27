@@ -1519,6 +1519,186 @@ void process::exit_cb(::uv_process_t* _uv_handle, int64_t _exit_status, int _ter
 }
 
 
+
+/*! \ingroup doxy_group__handle
+    \brief Poll handle.
+    \sa libuv API documentation: [`uv_poll_t` — Poll handle](http://docs.libuv.org/en/v1.x/poll.html#uv-poll-t-poll-handle). */
+class poll : public handle
+{
+  //! \cond
+  friend class handle::uv_interface;
+  friend class handle::instance< poll >;
+  //! \endcond
+
+public: /*types*/
+  using uv_t = ::uv_poll_t;
+  using on_poll_t = std::function< void(poll _handle, int _events) >;
+  /*!< \brief The function type of the handle's callback. */
+
+protected: /*types*/
+  //! \cond internals
+  //! \addtogroup doxy_group__internals
+  //! \{
+
+  enum class opcmd  { UNKNOWN, STOP, START };
+
+  struct properties : handle::properties
+  {
+    opcmd opcmd_state = opcmd::UNKNOWN;
+    on_poll_t poll_cb;
+  };
+
+  struct uv_interface : handle::uv_handle_interface  {};
+
+  //! \}
+  //! \endcond
+
+private: /*types*/
+  using instance = handle::instance< poll >;
+
+private: /*functions*/
+  template < typename = void > static void poll_cb(::uv_poll_t*, int, int);
+
+protected: /*constructors*/
+  //! \cond
+  explicit poll(uv_t *_uv_handle) : handle(reinterpret_cast< handle::uv_t* >(_uv_handle))  {}
+  //! \endcond
+
+public: /*constructors*/
+  ~poll() = default;
+
+  poll(const poll&) = default;
+  poll& operator =(const poll&) = default;
+
+  poll(poll&&) noexcept = default;
+  poll& operator =(poll&&) noexcept = default;
+
+  /*! \brief Create a `poll` handle for a file descriptor (_Windows and Unix-like systems_) or for a socket descriptor (_Unix-like systems only_).
+      \sa libuv API documentation [`uv_poll_init()`](http://docs.libuv.org/en/v1.x/poll.html#c.uv_poll_init). */
+  poll(uv::loop &_loop, int _fd)
+  {
+    uv_handle = instance::create();
+
+    auto uv_ret = ::uv_poll_init(static_cast< uv::loop::uv_t* >(_loop), static_cast< uv_t* >(uv_handle), _fd);
+    if (uv_status(uv_ret) < 0)  return;
+
+    instance::from(uv_handle)->book_loop();
+  }
+
+#ifdef _WIN32
+  /*! \brief Create a `poll` handle for a socket descriptor. (_Windows only._)
+      \sa libuv API documentation [`uv_poll_init_socket()`](http://docs.libuv.org/en/v1.x/poll.html#c.uv_poll_init_socket).*/
+  poll(uv::loop &_loop, ::uv_os_sock_t _socket)
+  {
+    uv_handle = instance::create();
+
+    auto uv_ret = ::uv_poll_init_socket(static_cast< uv::loop::uv_t* >(_loop), static_cast< uv_t* >(uv_handle), _socket);
+    if (uv_status(uv_ret) < 0)  return;
+
+    instance::from(uv_handle)->book_loop();
+  }
+#endif
+
+public: /*interface*/
+  /*! \brief Set the handle's callback. */
+  on_poll_t& on_poll() const noexcept  { return instance::from(uv_handle)->properties().poll_cb; }
+
+  /*! \brief Start the handle.
+      \note On successful start this function adds an extra reference to the handle instance,
+      which is released when the counterpart function `stop()` is called. Repeated calls don't
+      change the reference count.
+      \sa libuv API documentation: [`uv_poll_start()`](http://docs.libuv.org/en/v1.x/poll.html#c.uv_poll_start). */
+  int start(int _events) const
+  {
+    auto instance_ptr = instance::from(uv_handle);
+    auto &properties = instance_ptr->properties();
+
+    auto opcmd_state0 = properties.opcmd_state;
+
+    properties.opcmd_state = opcmd::START;
+    instance_ptr->ref();  // REF:START -- make sure it will exist for the future poll_cb() calls until stop()
+
+    switch (opcmd_state0)
+    {
+    case opcmd::UNKNOWN:
+    case opcmd::STOP:
+        break;
+    case opcmd::START:
+        // uv_status(::uv_poll_stop(static_cast< uv_t* >(uv_handle)));  // it does not need to stop
+        instance_ptr->unref();  // UNREF:START -- emulate stop()
+        break;
+    }
+
+    uv_status(0);
+    auto uv_ret = ::uv_poll_start(static_cast< uv_t* >(uv_handle), _events, poll_cb);
+    if (uv_ret < 0)
+    {
+      uv_status(uv_ret);
+      properties.opcmd_state = opcmd::UNKNOWN;
+      instance_ptr->unref();  // UNREF:START_FAILURE -- release the extra reference on failure
+    }
+
+    return uv_ret;
+  }
+
+  /*! \brief Start the handle with the given callback.
+      \details This is equivalent for
+      ```
+      poll.on_poll() = std::bind(
+          std::forward< _Cb_ >(_cb), std::placeholders::_1, std::placeholders::_2, std::forward< _Args_ >(_args)...
+      );
+      poll.start(_events);
+      ```
+      \sa `poll::start()` */
+  template< class _Cb_, typename... _Args_, typename = std::enable_if_t< std::is_convertible<
+      decltype(std::bind(std::declval< _Cb_ >(), std::placeholders::_1, std::placeholders::_2, static_cast< _Args_&& >(std::declval< _Args_ >())...)),
+      on_poll_t
+  >::value > >
+  int start(int _events, _Cb_ &&_cb, _Args_&&... _args) const
+  {
+    on_poll() = std::bind(std::forward< _Cb_ >(_cb), std::placeholders::_1, std::placeholders::_2, std::forward< _Args_ >(_args)...);
+    return start(_events);
+  }
+
+  /*! \brief Stop the handle, the callback will no longer be called. */
+  int stop() const noexcept
+  {
+    auto instance_ptr = instance::from(uv_handle);
+    auto &opcmd_state = instance_ptr->properties().opcmd_state;
+
+    auto opcmd_state0 = opcmd_state;
+    opcmd_state = opcmd::STOP;
+
+    auto uv_ret = uv_status(::uv_poll_stop(static_cast< uv_t* >(uv_handle)));
+
+    switch (opcmd_state0)
+    {
+    case opcmd::UNKNOWN:
+    case opcmd::STOP:
+        break;
+    case opcmd::START:
+        instance_ptr->unref();  // UNREF:STOP -- release the reference from start()
+        break;
+    }
+
+    return uv_ret;
+  }
+
+public: /*conversion operators*/
+  explicit operator const uv_t*() const noexcept  { return static_cast< const uv_t* >(uv_handle); }
+  explicit operator       uv_t*()       noexcept  { return static_cast<       uv_t* >(uv_handle); }
+};
+
+template< typename >
+void poll::poll_cb(::uv_poll_t *_uv_handle, int _status, int _events)
+{
+  auto instance_ptr = instance::from(_uv_handle);
+  instance_ptr->uv_error = _status;
+  auto &poll_cb = instance_ptr->properties().poll_cb;
+  if (poll_cb)  poll_cb(poll(_uv_handle), _events);
+}
+
+
 }
 
 
