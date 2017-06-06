@@ -434,8 +434,8 @@ public: /*interface*/
     case opcmd::STOP:
         break;
     case opcmd::START:
-        // uv_status(::uv_idle_stop(static_cast< uv_t* >(uv_handle)));  // it does not need to stop
-        instance_ptr->unref();  // UNREF:START -- emulate stop()
+        // uv_status(::uv_idle_stop(static_cast< uv_t* >(uv_handle)));  // it does not need to be explicitly stopped
+        instance_ptr->unref();  // UNREF:START -- adjust extra reference number
         break;
     }
 
@@ -603,8 +603,8 @@ public: /*interface*/
     case opcmd::STOP:
         break;
     case opcmd::START:
-        // uv_status(::uv_idle_stop(static_cast< uv_t* >(uv_handle)));  // it does not need to stop
-        instance_ptr->unref();  // UNREF:START -- emulate stop()
+        // uv_status(::uv_idle_stop(static_cast< uv_t* >(uv_handle)));  // it does not need to be explicitly stopped
+        instance_ptr->unref();  // UNREF:START -- adjust extra reference number
         break;
     }
 
@@ -764,8 +764,8 @@ public: /*interface*/
     case opcmd::STOP:
         break;
     case opcmd::START:
-        // uv_status(::uv_prepare_stop(static_cast< uv_t* >(uv_handle)));  // it does not need to stop
-        instance_ptr->unref();  // UNREF:START -- emulate stop()
+        // uv_status(::uv_prepare_stop(static_cast< uv_t* >(uv_handle)));  // it does not need to be explicitly stopped
+        instance_ptr->unref();  // UNREF:START -- adjust extra reference number
         break;
     }
 
@@ -925,8 +925,8 @@ public: /*interface*/
     case opcmd::STOP:
         break;
     case opcmd::START:
-        // uv_status(::uv_check_stop(static_cast< uv_t* >(uv_handle)));  // it does not need to stop
-        instance_ptr->unref();  // UNREF:START -- emulate stop()
+        // uv_status(::uv_check_stop(static_cast< uv_t* >(uv_handle)));  // it does not need to be explicitly stopped
+        instance_ptr->unref();  // UNREF:START -- adjust extra reference number
         break;
     }
 
@@ -1103,7 +1103,7 @@ protected: /*functions*/
     case opcmd::START:
     case opcmd::START_ONESHOT:
         // uv_status(::uv_signal_stop(static_cast< uv_t* >(uv_handle)));  // ::uv_signal_start() does this when necessary
-        instance_ptr->unref();  // UNREF:RESTART -- emulate stop()
+        instance_ptr->unref();  // UNREF:RESTART -- adjust extra reference number
         break;
     }
 
@@ -1164,7 +1164,7 @@ public: /*interface*/
       \details This function overload allows to change the signal number being watched for by the handle.
       This is equivalent for
       ```
-      signal.signum() = _signum;  // (virtually) change the signal number being watched for
+      signal.signum() = _signum;  // change the signal number being watched for
       signal.on_signal() = std::bind(
           std::forward< _Cb_ >(_cb), std::placeholders::_1, std::placeholders::_2, std::forward< _Args_ >(_args)...
       );
@@ -1624,8 +1624,8 @@ public: /*interface*/
     case opcmd::STOP:
         break;
     case opcmd::START:
-        // uv_status(::uv_poll_stop(static_cast< uv_t* >(uv_handle)));  // it does not need to stop
-        instance_ptr->unref();  // UNREF:START -- emulate stop()
+        // uv_status(::uv_poll_stop(static_cast< uv_t* >(uv_handle)));  // it does not need to be explicitly stopped
+        instance_ptr->unref();  // UNREF:START -- adjust extra reference number
         break;
     }
 
