@@ -1065,9 +1065,9 @@ public: /*constructors*/
     uv_handle = instance::create();
 
     auto uv_ret = ::uv_signal_init(static_cast< uv::loop::uv_t* >(_loop), static_cast< uv_t* >(uv_handle));
-    if (uv_status(uv_ret) < 0)  return;
-
     instance::from(uv_handle)->properties().signum = _signum;
+
+    if (uv_status(uv_ret) < 0)  return;
 
     instance::from(uv_handle)->book_loop();
   }

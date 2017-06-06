@@ -100,9 +100,8 @@ protected: /*constructors*/
     static_cast< uv_t* >(uv_handle)->loop = _loop;
     static_cast< uv_t* >(uv_handle)->result = _fd;
     static_cast< uv_t* >(uv_handle)->path = _path;
-    instance::from(uv_handle)->book_loop();
-
     if (_fd < 0)  instance::from(uv_handle)->properties().is_closing = 1;
+    instance::from(uv_handle)->book_loop();
   }
 
   explicit file(uv_t *_uv_handle) : io(static_cast< io::uv_t* >(_uv_handle))  {}
