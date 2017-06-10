@@ -180,6 +180,8 @@ public: /*interface*/
   file handle() const noexcept  { return file(instance::from(uv_req)->properties().uv_handle); }
 
   /*! \brief Run the request. Close a `_file` handle.
+      \details If the `_file` is in reading state being put in by `io::read_start()` function,
+      the request calls `io::read_stop()` for the `_file`.
       \sa libuv API documentation: [`uv_fs_close()`](http://docs.libuv.org/en/v1.x/fs.html#c.uv_fs_close).
       \sa Linux: [`close()`](http://man7.org/linux/man-pages/man2/close.2.html).
       \note If the request callback is empty (has not been set), the request runs _synchronously_. */
@@ -194,6 +196,8 @@ public: /*interface*/
     if (!instance_ptr->request_cb_storage.value())
     {
       instance_ptr->properties().uv_handle = static_cast< file::uv_t* >(_file);
+
+      _file.read_stop();
 
       return uv_status(::uv_fs_close(
           static_cast< file::uv_t* >(_file)->loop, static_cast< uv_t* >(uv_req),
@@ -211,6 +215,8 @@ public: /*interface*/
         auto &properties = instance_ptr->properties();
         properties.uv_handle = static_cast< file::uv_t* >(_file);
       }
+
+      _file.read_stop();  // it shall be after adding the extra reference to the handle
 
       uv_status(0);
       auto uv_ret = ::uv_fs_close(
