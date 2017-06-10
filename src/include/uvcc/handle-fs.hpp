@@ -16,6 +16,8 @@
 #endif
 
 #include <functional>   // function
+#include <string>       // string
+#include <utility>      // move()
 
 
 namespace uv
@@ -253,6 +255,205 @@ void file::read_cb(::uv_fs_t *_uv_req)
       }
       break;
   }
+}
+
+
+
+/*! \ingroup doxy_group__handle
+    \brief FS Event handle.
+    \sa libuv API documentation: [`uv_fs_event_t` — FS Event handle](http://docs.libuv.org/en/v1.x/fs_event.html#uv-fs-event-t-fs-event-handle). */
+class fs_event : public handle
+{
+  //! \cond
+  friend class handle::uv_interface;
+  friend class handle::instance< fs_event >;
+  //! \endcond
+
+public: /*types*/
+  using uv_t = ::uv_fs_event_t;
+  using on_fs_event_t = std::function< void(fs_event _handle, const char *_filename, int _events) >;
+  /*!< \brief The function type of the FS event callback.
+       \sa libuv API documentation: [`uv_fs_event_cb`](http://docs.libuv.org/en/v1.x/fs_event.html#c.uv_fs_event_cb),
+                                    [`uv_fs_event`](http://docs.libuv.org/en/v1.x/fs_event.html#c.uv_fs_event). */
+
+protected: /*types*/
+  //! \cond internals
+  //! \addtogroup doxy_group__internals
+  //! \{
+
+  enum class opcmd  { UNKNOWN, STOP, START };
+
+  struct properties : handle::properties
+  {
+    opcmd opcmd_state = opcmd::UNKNOWN;
+    int event_flags = 0;
+    std::string path;
+    on_fs_event_t fs_event_cb;
+  };
+
+  struct uv_interface : handle::uv_handle_interface  {};
+
+  //! \}
+  //! \endcond
+
+private: /*types*/
+  using instance = handle::instance< fs_event >;
+
+private: /*functions*/
+  template < typename = void > static void fs_event_cb(::uv_fs_event_t*, const char*, int, int);
+
+protected: /*constructors*/
+  //! \cond
+  explicit fs_event(uv_t *_uv_handle) : handle(reinterpret_cast< handle::uv_t* >(_uv_handle))  {}
+  //! \endcond
+
+public: /*constructors*/
+  ~fs_event() = default;
+
+  fs_event(const fs_event&) = default;
+  fs_event& operator =(const fs_event&) = default;
+
+  fs_event(fs_event&&) noexcept = default;
+  fs_event& operator =(fs_event&&) noexcept = default;
+
+  /*! \brief Create an `fs_event`. */
+  fs_event(uv::loop &_loop, int _event_flags)
+  {
+    uv_handle = instance::create();
+
+    auto uv_ret = ::uv_fs_event_init(static_cast< uv::loop::uv_t* >(_loop), static_cast< uv_t* >(uv_handle));
+    instance::from(uv_handle)->properties().event_flags = _event_flags;
+
+    if (uv_status(uv_ret) < 0)  return;
+
+    instance::from(uv_handle)->book_loop();
+  }
+
+public: /*interface*/
+  /*! \brief Set the FS path being monitored by this handle. */
+  std::string& path() const noexcept  { return  instance::from(uv_handle)->properties().path; }
+
+  /*! \brief Set the FS event callback. */
+  on_fs_event_t& on_fs_event() const noexcept  { return instance::from(uv_handle)->properties().fs_event_cb; }
+
+  /*! \brief Start the handle.
+      \details Repeated call to this function results in the automatic call to `stop()` first.
+      \note On successful start this function adds an extra reference to the handle instance,
+      which is released when the counterpart function `stop()` is called.
+      \sa libuv API documentation: [`uv_fs_event_start()`](http://docs.libuv.org/en/v1.x/fs_event.html#c.uv_fs_event_start). */
+  int start() const
+  {
+    auto instance_ptr = instance::from(uv_handle);
+    auto &properties = instance_ptr->properties();
+
+    auto opcmd_state0 = properties.opcmd_state;
+
+    properties.opcmd_state = opcmd::START;
+    instance_ptr->ref();  // REF:START -- make sure it will exist for the future fs_event_cb() calls until stop()
+
+    switch (opcmd_state0)
+    {
+    case opcmd::UNKNOWN:
+    case opcmd::STOP:
+        break;
+    case opcmd::START:
+        uv_status(::uv_fs_event_stop(static_cast< uv_t* >(uv_handle)));
+        instance_ptr->unref();  // UNREF:RESTART -- adjust extra reference number
+        break;
+    }
+
+    uv_status(0);
+    auto uv_ret = ::uv_fs_event_start(static_cast< uv_t* >(uv_handle), fs_event_cb, properties.path.c_str(), properties.event_flags);
+    if (uv_ret < 0)
+    {
+      uv_status(uv_ret);
+      properties.opcmd_state = opcmd::UNKNOWN;
+      instance_ptr->unref();  // UNREF:START_FAILURE -- release the extra reference on failure
+    }
+
+    return uv_ret;
+  }
+
+  /*! \brief Start the handle with the given callback.
+      \details This is equivalent for
+      ```
+      fs_event.on_fs_event() = std::bind(
+          std::forward< _Cb_ >(_cb), std::placeholders::_1, std::placeholders::_2, std::forward< _Args_ >(_args)...
+      );
+      fs_event.start();
+      ```
+      \sa `fs_event::start()` */
+  template< class _Cb_, typename... _Args_, typename = std::enable_if_t< std::is_convertible<
+      decltype(std::bind(std::declval< _Cb_ >(), std::placeholders::_1, std::placeholders::_2, static_cast< _Args_&& >(std::declval< _Args_ >())...)),
+      on_fs_event_t
+  >::value > >
+  int start(_Cb_ &&_cb, _Args_&&... _args) const
+  {
+    instance::from(uv_handle)->properties().fs_event_cb = std::bind(
+        std::forward< _Cb_ >(_cb), std::placeholders::_1, std::placeholders::_2, std::forward< _Args_ >(_args)...
+    );
+    return start();
+  }
+
+  /*! \brief Start the handle with the given callback, watching for the specified FS path.
+      \details This is equivalent for
+      ```
+      fs_event.path() = _path;
+      fs_event.on_fs_event() = std::bind(
+          std::forward< _Cb_ >(_cb), std::placeholders::_1, std::placeholders::_2, std::forward< _Args_ >(_args)...
+      );
+      fs_event.start();
+      ```
+      \sa `fs_event::start()` */
+  template< class _Cb_, typename... _Args_, typename = std::enable_if_t< std::is_convertible<
+      decltype(std::bind(std::declval< _Cb_ >(), std::placeholders::_1, std::placeholders::_2, static_cast< _Args_&& >(std::declval< _Args_ >())...)),
+      on_fs_event_t
+  >::value > >
+  int start(std::string _path, _Cb_ &&_cb, _Args_&&... _args) const
+  {
+    instance::from(uv_handle)->properties().path = std::move(_path);
+    instance::from(uv_handle)->properties().fs_event_cb = std::bind(
+        std::forward< _Cb_ >(_cb), std::placeholders::_1, std::placeholders::_2, std::forward< _Args_ >(_args)...
+    );
+    return start();
+  }
+
+  /*! \brief Stop the handle, the callback will no longer be called. */
+  int stop() const noexcept
+  {
+    auto instance_ptr = instance::from(uv_handle);
+    auto &opcmd_state = instance_ptr->properties().opcmd_state;
+
+    auto opcmd_state0 = opcmd_state;
+    opcmd_state = opcmd::STOP;
+
+    auto uv_ret = uv_status(::uv_fs_event_stop(static_cast< uv_t* >(uv_handle)));
+
+    switch (opcmd_state0)
+    {
+    case opcmd::UNKNOWN:
+    case opcmd::STOP:
+        break;
+    case opcmd::START:
+        instance_ptr->unref();  // UNREF:STOP -- release the reference from start()
+        break;
+    }
+
+    return uv_ret;
+  }
+
+public: /*conversion operators*/
+  explicit operator const uv_t*() const noexcept  { return static_cast< const uv_t* >(uv_handle); }
+  explicit operator       uv_t*()       noexcept  { return static_cast<       uv_t* >(uv_handle); }
+};
+
+template< typename >
+void fs_event::fs_event_cb(::uv_fs_event_t *_uv_handle, const char *_filename, int _events, int _status)
+{
+  auto instance_ptr = instance::from(_uv_handle);
+  instance_ptr->uv_error = _status;
+  auto &fs_event_cb = instance_ptr->properties().fs_event_cb;
+  if (fs_event_cb)  fs_event_cb(fs_event(_uv_handle), _filename, _events);
 }
 
 
