@@ -317,7 +317,7 @@ public: /*constructors*/
   fs_event& operator =(fs_event&&) noexcept = default;
 
   /*! \brief Create an `fs_event`. */
-  fs_event(uv::loop &_loop, int _event_flags)
+  explicit fs_event(uv::loop &_loop, int _event_flags = 0)
   {
     uv_handle = instance::create();
 
